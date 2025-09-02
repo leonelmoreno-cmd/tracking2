@@ -1,0 +1,70 @@
+name: Amazon Competitors Tracker
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      country:
+        description: "Amazon country code (default: US)"
+        required: false
+        default: "US"
+        type: string
+      output_path:
+        description: "Output CSV path (default: data/competitors_history.csv)"
+        required: false
+        default: "data/competitors_history.csv"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: amazon-competitors-tracker
+  cancel-in-progress: false
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install requests pandas python-dotenv
+          fi
+
+      - name: Run data request
+        env:
+          RAPIDAPI_KEY: ${{ secrets.AMAZON_API_KEY }}
+          COUNTRY: ${{ inputs.country }}
+          OUTPUT_PATH: ${{ inputs.output_path }}
+        run: |
+          set -euo pipefail
+          : "${COUNTRY:=US}"
+          : "${OUTPUT_PATH:=data/competitors_history.csv}"
+          python request-api.py
+
+      - name: Get UTC timestamp
+        id: ts
+        run: echo "utc=$(date -u +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+      - name: Commit y push automáticos
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(data): update competitors CSV (UTC ${{ steps.ts.outputs.utc }})"
+          branch: main
