@@ -44,7 +44,7 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
-    # Find the global maximum price across all ASINs
+    # Find the maximum price across all ASINs
     max_price = df['product_price'].max()
     
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
@@ -72,27 +72,26 @@ def create_price_graph(df):
                 line=dict(dash='dot' if asin_data['discount'].iloc[0] == 'Discounted' else 'solid'),
                 hovertemplate=(
                     'ASIN: %{text}<br>' +
-                    'Product Title: %{customdata[0]}<br>' +
                     'Price: $%{y:.2f}<br>' +
                     'Date: %{x}<br>' +
-                    'Price Change: %{customdata[1]:.2f}%<br>' +
+                    'Price Change: %{customdata:.2f}%<br>' +
                     '<extra></extra>'
                 ),
                 text=asin_data['asin'],  # Tooltip with ASIN
-                customdata=[asin_data['product_title'], asin_data['price_change']],  # Custom data for product_title and price change
+                customdata=asin_data['price_change'],  # Custom data for price change percentage
                 showlegend=False
             ),
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
         )
 
-    # Update the layout of the plot
+    # Update the layout of the plot to set the same Y-axis scale
     fig.update_layout(
         height=400 * rows,  # Set the height for the total grid
         showlegend=True,
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(range=[0, max_price]),  # Make sure all graphs share the same Y-axis range
+        yaxis=dict(range=[0, max_price]),  # Set the Y-axis range from 0 to max price
     )
     
     return fig
