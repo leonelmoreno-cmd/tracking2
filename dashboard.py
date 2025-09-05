@@ -44,9 +44,6 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
-    # Find the maximum price across all ASINs
-    max_price = df['product_price'].max()
-    
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
     
@@ -106,48 +103,14 @@ prepared_df = prepare_data(df)
 # Create the price graph with subplots
 price_graph = create_price_graph(prepared_df)
 
-# Layout with three columns (left for metrics, right for graph)
-cols = st.columns([1, 3])
-
-# Left column: Discount and Price Change Information
-with cols[0]:
-    # Discount - Best and Worst
-    best_discount = df.loc[df['product_original_price'].idxmax()]
-    worst_discount = df.loc[df['product_original_price'].idxmin()]
-    
-    st.markdown("### Best and Worst Discount")
-    st.metric("Best Discount", f"${best_discount['product_original_price']:.2f}", delta=f"-${best_discount['product_price'] - best_discount['product_original_price']:.2f}")
-    st.metric("Worst Discount", f"${worst_discount['product_original_price']:.2f}", delta=f"-${worst_discount['product_price'] - worst_discount['product_original_price']:.2f}")
-    
-    # Price Change - Max and Min
-    latest_update_date = df['date'].max()
-    max_price_change_asin = df.loc[df['price_change'].idxmax()]
-    min_price_change_asin = df.loc[df['price_change'].idxmin()]
-    
-    st.markdown("### Biggest Price Change")
-    st.metric("Max Price Change", f"ASIN: {max_price_change_asin['asin']}, Change: {max_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
-    st.metric("Min Price Change", f"ASIN: {min_price_change_asin['asin']}, Change: {min_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
-
-# Right column: Graph showing price history for all ASINs
-with cols[1]:
-    st.markdown("### Price History for All ASINs")
-    st.markdown(
-        """
-        <div style="border: 2px solid #E5E5E5; border-radius: 10px; padding: 10px; margin-bottom: 20px;">
-            <h3 style="text-align: center; font-size: 18px;">Price Trends</h3>
-            <div style="border-top: 2px solid #E5E5E5; padding-top: 10px;">
-                <p style="text-align: center;">This graph shows the price history for all the ASINs over time. Hover over the lines to see detailed information.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.plotly_chart(price_graph)
+# Show the plot
+st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
 st.subheader("Detailed Product Information")
 
 # Create filters
-asin_filter = st.selectbox("Filter by ASIN", options=['All'] + df['asin'].unique().tolist())
+asin_filter = st.selectbox("Filter by ASIN", options=['All'] + prepared_df['asin'].unique().tolist())
 discount_filter = st.selectbox("Filter by Discount Status", options=['All', 'Discounted', 'No Discount'])
 
 # Filter the dataframe based on user input
