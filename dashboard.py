@@ -94,27 +94,54 @@ def create_price_graph(df):
     return fig
 
 # Main Streamlit UI
-# No need for st.title() anymore, as we already set it with markdown.
+cols = st.columns([1, 3])
 
-# Load and prepare the data
-df = fetch_data()
-prepared_df = prepare_data(df)
+# Left column: Discount and Price Change Information
+with cols[0]:
+    # Discount - Best and Worst
+    best_discount = df.loc[df['product_original_price'].idxmax()]
+    worst_discount = df.loc[df['product_original_price'].idxmin()]
+    
+    st.markdown("### Best and Worst Discount")
+    st.metric("Best Discount", f"${best_discount['product_original_price']:.2f}", delta=f"-${best_discount['product_price'] - best_discount['product_original_price']:.2f}")
+    st.metric("Worst Discount", f"${worst_discount['product_original_price']:.2f}", delta=f"-${worst_discount['product_price'] - worst_discount['product_original_price']:.2f}")
+    
+    # Price Change - Max and Min
+    latest_update_date = df['date'].max()
+    max_price_change_asin = df.loc[df['price_change'].idxmax()]
+    min_price_change_asin = df.loc[df['price_change'].idxmin()]
+    
+    st.markdown("### Biggest Price Change")
+    st.metric("Max Price Change", f"ASIN: {max_price_change_asin['asin']}, Change: {max_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
+    st.metric("Min Price Change", f"ASIN: {min_price_change_asin['asin']}, Change: {min_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
 
-# Create the price graph with subplots
-price_graph = create_price_graph(prepared_df)
-
-# Show the plot
-st.plotly_chart(price_graph)
+# Right column: Graph showing price history for all ASINs
+with cols[1]:
+    st.markdown("### Price History for All ASINs")
+    price_graph = create_price_graph(df)
+    
+    # Add the soft border effect to the price graph using Markdown with CSS
+    st.markdown(
+        """
+        <div style="border-radius: 10px; border: 1px solid #ccc; padding: 10px;">
+            <div style="border-radius: 10px; border: 1px solid #ccc; padding: 10px;">
+                <div style="text-align: center;">
+                    <h3>All ASIN Price Trends</h3>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
 st.subheader("Detailed Product Information")
 
 # Create filters
-asin_filter = st.selectbox("Filter by ASIN", options=['All'] + prepared_df['asin'].unique().tolist())
+asin_filter = st.selectbox("Filter by ASIN", options=['All'] + df['asin'].unique().tolist())
 discount_filter = st.selectbox("Filter by Discount Status", options=['All', 'Discounted', 'No Discount'])
 
 # Filter the dataframe based on user input
-filtered_df = prepared_df.copy()
+filtered_df = df.copy()
 
 if asin_filter != 'All':
     filtered_df = filtered_df[filtered_df['asin'] == asin_filter]
