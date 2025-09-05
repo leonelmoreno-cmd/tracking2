@@ -44,6 +44,9 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
+    # Find the maximum price across all ASINs
+    max_price = df['product_price'].max()
+    
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
     
@@ -81,7 +84,7 @@ def create_price_graph(df):
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
         )
 
-    # Update the layout of the plot with rounded borders
+    # Update the layout of the plot
     fig.update_layout(
         height=400 * rows,  # Set the height for the total grid
         showlegend=True,
@@ -89,18 +92,6 @@ def create_price_graph(df):
         xaxis_title="Date",
         yaxis_title="Product Price",
         yaxis=dict(scaleanchor="x"),  # Make sure y-axis scales are shared across all subplots
-        margin=dict(t=50, b=50, l=50, r=50),  # Add margins for spacing
-        template="plotly_dark",  # Optional: You can add a nice theme
-        # Add rounded corners to the whole figure
-        paper_bgcolor='rgba(0, 0, 0, 0)',  # Transparent background
-        plot_bgcolor='rgba(0, 0, 0, 0)',   # Transparent plot area
-        shapes=[dict(
-            type="rect",
-            x0=0, x1=1, y0=0, y1=1,
-            xref="paper", yref="paper",
-            line=dict(color="white", width=2, dash="solid"),
-            opacity=0.1
-        )],
     )
     
     return fig
@@ -115,14 +106,48 @@ prepared_df = prepare_data(df)
 # Create the price graph with subplots
 price_graph = create_price_graph(prepared_df)
 
-# Show the plot
-st.plotly_chart(price_graph)
+# Layout with three columns (left for metrics, right for graph)
+cols = st.columns([1, 3])
+
+# Left column: Discount and Price Change Information
+with cols[0]:
+    # Discount - Best and Worst
+    best_discount = df.loc[df['product_original_price'].idxmax()]
+    worst_discount = df.loc[df['product_original_price'].idxmin()]
+    
+    st.markdown("### Best and Worst Discount")
+    st.metric("Best Discount", f"${best_discount['product_original_price']:.2f}", delta=f"-${best_discount['product_price'] - best_discount['product_original_price']:.2f}")
+    st.metric("Worst Discount", f"${worst_discount['product_original_price']:.2f}", delta=f"-${worst_discount['product_price'] - worst_discount['product_original_price']:.2f}")
+    
+    # Price Change - Max and Min
+    latest_update_date = df['date'].max()
+    max_price_change_asin = df.loc[df['price_change'].idxmax()]
+    min_price_change_asin = df.loc[df['price_change'].idxmin()]
+    
+    st.markdown("### Biggest Price Change")
+    st.metric("Max Price Change", f"ASIN: {max_price_change_asin['asin']}, Change: {max_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
+    st.metric("Min Price Change", f"ASIN: {min_price_change_asin['asin']}, Change: {min_price_change_asin['price_change']:.2f}%", delta=f"Date: {latest_update_date.strftime('%Y-%m-%d')}")
+
+# Right column: Graph showing price history for all ASINs
+with cols[1]:
+    st.markdown("### Price History for All ASINs")
+    st.markdown(
+        """
+        <div style="border: 2px solid #E5E5E5; border-radius: 10px; padding: 10px; margin-bottom: 20px;">
+            <h3 style="text-align: center; font-size: 18px;">Price Trends</h3>
+            <div style="border-top: 2px solid #E5E5E5; padding-top: 10px;">
+                <p style="text-align: center;">This graph shows the price history for all the ASINs over time. Hover over the lines to see detailed information.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
 st.subheader("Detailed Product Information")
 
 # Create filters
-asin_filter = st.selectbox("Filter by ASIN", options=['All'] + prepared_df['asin'].unique().tolist())
+asin_filter = st.selectbox("Filter by ASIN", options=['All'] + df['asin'].unique().tolist())
 discount_filter = st.selectbox("Filter by Discount Status", options=['All', 'Discounted', 'No Discount'])
 
 # Filter the dataframe based on user input
