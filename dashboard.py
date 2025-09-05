@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 
 # Configuración de la página
 st.set_page_config(
-    page_title="UR - Competitors Price Tracker",
+    page_title="Ultimatum Roach - Competitors Price Tracker",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
@@ -97,42 +97,39 @@ def create_price_graph(df):
     return fig
 
 # Main Streamlit UI
+# No need for st.title() anymore, as we already set it with markdown.
+
+# Load and prepare the data
+df = fetch_data()
+prepared_df = prepare_data(df)
+
+# Extracting the best and worst discount
+best_discount_row = df.loc[df['product_original_price'].idxmax()]
+worst_discount_row = df.loc[df['product_original_price'].idxmin()]
+
+# Extracting the biggest and smallest price change
+latest_data = df[df['date'] == df['date'].max()]
+largest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmax()]
+smallest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmin()]
+
+# Layout: Left side (Discounts and Price Changes), Right side (Price Graph)
 cols = st.columns([1, 3])
 
-# Left container: Best and Worst Discount, Best and Worst Price Change
-left_cell = cols[0].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
-
-with left_cell:
-    # Filters for the Detailed Product Information table
+# Left Column: Best and Worst Discount + Biggest and Smallest Price Change
+with cols[0]:
+    # Display Best and Worst Discount
     st.subheader("Best and Worst Discount")
-
-    # Get the best and worst discount
-    best_discount = df.loc[df['product_original_price'].idxmax()]
-    worst_discount = df.loc[df['product_original_price'].idxmin()]
+    st.write(f"**Best Discount ASIN:** {best_discount_row['asin']} - ${best_discount_row['product_original_price']:.2f}")
+    st.write(f"**Worst Discount ASIN:** {worst_discount_row['asin']} - ${worst_discount_row['product_original_price']:.2f}")
     
-    # Display the best and worst discount
-    st.metric(label="Biggest Discount", value=f"${best_discount['product_price']:.2f}", delta=f"-${best_discount['product_original_price'] - best_discount['product_price']:.2f}")
-    st.metric(label="Smallest Discount", value=f"${worst_discount['product_price']:.2f}", delta=f"-${worst_discount['product_original_price'] - worst_discount['product_price']:.2f}")
-    
-    st.subheader("Price Change Info")
+    # Display Biggest and Smallest Price Change
+    st.subheader("Biggest and Smallest Price Change")
+    st.write(f"**ASIN with biggest price change:** {largest_price_change_asin['asin']} - {largest_price_change_asin['price_change']:.2f}%")
+    st.write(f"**ASIN with smallest price change:** {smallest_price_change_asin['asin']} - {smallest_price_change_asin['price_change']:.2f}%")
+    st.write(f"**Date of last update:** {latest_data['date'].max()}")
 
-    # Get the ASIN with the biggest and smallest price change
-    latest_data = df[df['date'] == df['date'].max()]  # Get data of last update
-    best_price_change = latest_data.loc[latest_data['price_change'].idxmax()]
-    worst_price_change = latest_data.loc[latest_data['price_change'].idxmin()]
-    
-    # Display the best and worst price change
-    st.metric(label="Highest Price Change", value=f"ASIN: {best_price_change['asin']} {best_price_change['price_change']:.2f}%", delta="latest update")
-    st.metric(label="Lowest Price Change", value=f"ASIN: {worst_price_change['asin']} {worst_price_change['price_change']:.2f}%", delta="latest update")
-
-# Right container: Plotting the price trend for all ASINs
-right_cell = cols[1].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
-
-with right_cell:
+# Right Column: Plotting all ASINs on a single graph
+with cols[1]:
     # Create the price graph with subplots
     price_graph = create_price_graph(prepared_df)
 
