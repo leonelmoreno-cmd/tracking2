@@ -117,6 +117,9 @@ def create_price_graph(df):
     
     return fig
 
+# Main Streamlit UI
+st.title("Ultimatum Roach - Competitors Price Tracker")
+
 # Load and prepare the data
 df = fetch_data()
 prepared_df = prepare_data(df)
