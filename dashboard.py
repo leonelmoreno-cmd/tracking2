@@ -54,10 +54,19 @@ def create_price_graph(df):
         subplot_titles=[f"ASIN: {asin}" for asin in asins]  # Title with ASIN
     )
     
+    # Max price across all ASINs to set the same Y-axis scale
+    max_price = df['product_price'].max()
+
     # For each ASIN, create a graph in the respective subplot
     for i, asin in enumerate(asins):  # Iterate over each ASIN
         # Filter data for this ASIN
         asin_data = df[df['asin'] == asin]
+        
+        # Get the product title for this ASIN
+        product_title = asin_data['product_title'].iloc[0]  # Assuming product_title is the same for each ASIN
+        
+        # Add product title above each plot
+        fig.layout.annotations[i].update(text=product_title)
         
         # Create a scatter plot for this ASIN
         fig.add_trace(
@@ -88,7 +97,7 @@ def create_price_graph(df):
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(scaleanchor="x"),  # Make sure y-axis scales are shared across all subplots
+        yaxis=dict(range=[0, max_price]),  # Set Y-axis to be the same for all graphs
     )
     
     return fig
