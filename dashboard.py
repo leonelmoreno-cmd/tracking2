@@ -44,6 +44,9 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
+    # Find the global maximum price across all ASINs
+    max_price = df['product_price'].max()
+    
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
     
@@ -54,19 +57,10 @@ def create_price_graph(df):
         subplot_titles=[f"ASIN: {asin}" for asin in asins]  # Title with ASIN
     )
     
-    # Max price across all ASINs to set the same Y-axis scale
-    max_price = df['product_price'].max()
-
     # For each ASIN, create a graph in the respective subplot
     for i, asin in enumerate(asins):  # Iterate over each ASIN
         # Filter data for this ASIN
         asin_data = df[df['asin'] == asin]
-        
-        # Get the product title for this ASIN
-        product_title = asin_data['product_title'].iloc[0]  # Assuming product_title is the same for each ASIN
-        
-        # Add product title above each plot
-        fig.layout.annotations[i].update(text=product_title)
         
         # Create a scatter plot for this ASIN
         fig.add_trace(
@@ -78,13 +72,14 @@ def create_price_graph(df):
                 line=dict(dash='dot' if asin_data['discount'].iloc[0] == 'Discounted' else 'solid'),
                 hovertemplate=(
                     'ASIN: %{text}<br>' +
+                    'Product Title: %{customdata[0]}<br>' +
                     'Price: $%{y:.2f}<br>' +
                     'Date: %{x}<br>' +
-                    'Price Change: %{customdata:.2f}%<br>' +
+                    'Price Change: %{customdata[1]:.2f}%<br>' +
                     '<extra></extra>'
                 ),
                 text=asin_data['asin'],  # Tooltip with ASIN
-                customdata=asin_data['price_change'],  # Custom data for price change percentage
+                customdata=[asin_data['product_title'], asin_data['price_change']],  # Custom data for product_title and price change
                 showlegend=False
             ),
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
@@ -97,7 +92,7 @@ def create_price_graph(df):
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(range=[0, max_price]),  # Set Y-axis to be the same for all graphs
+        yaxis=dict(range=[0, max_price]),  # Make sure all graphs share the same Y-axis range
     )
     
     return fig
