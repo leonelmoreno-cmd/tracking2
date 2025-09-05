@@ -3,6 +3,13 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Configuración de la página
+st.set_page_config(
+    page_title="UR - Competitors Price Tracker",
+    page_icon=":chart_with_upwards_trend:",
+    layout="wide",
+)
+
 # Function to fetch CSV from GitHub
 @st.cache_data
 def fetch_data():
@@ -109,9 +116,6 @@ def create_price_graph(df):
     )
     
     return fig
-
-# Main Streamlit UI
-st.title("Ultimatum Roach - Competitors Price Tracker")
 
 # Load and prepare the data
 df = fetch_data()
