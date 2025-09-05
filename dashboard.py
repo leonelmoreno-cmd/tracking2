@@ -39,62 +39,7 @@ def prepare_data(df):
     
     return df
 
-# Main Streamlit UI
-cols = st.columns([1, 3])
-
-# Load and prepare the data
-df = fetch_data()
-prepared_df = prepare_data(df)
-
-# Calculate required values
-max_discount = prepared_df[prepared_df['discount'] == 'Discounted']['product_price'].max()
-min_discount = prepared_df[prepared_df['discount'] == 'Discounted']['product_price'].min()
-
-# Find the ASIN with the largest price change
-max_price_change_asin = prepared_df.loc[prepared_df['price_change'].idxmax()]['asin']
-min_price_change_asin = prepared_df.loc[prepared_df['price_change'].idxmin()]['asin']
-
-# Top left cell for discount and price change information
-top_left_cell = cols[0].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
-
-with top_left_cell:
-    st.subheader("Key Metrics")
-    st.write(f"**Biggest Discount**: ${max_discount:.2f}")
-    st.write(f"**Smallest Discount**: ${min_discount:.2f}")
-    st.write(f"**ASIN with Largest Price Change**: {max_price_change_asin}")
-    st.write(f"**ASIN with Smallest Price Change**: {min_price_change_asin}")
-
-# Right cell for plotting all ASINs
-right_cell = cols[1].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
-
-with right_cell:
-    # Plot all ASINs over time (normalized)
-    all_asins = prepared_df.pivot(index='date', columns='asin', values='product_price')
-    normalized_all_asins = all_asins.div(all_asins.iloc[0])
-
-    st.subheader("All ASINs Over Time (Normalized)")
-    fig_all_asins = go.Figure()
-
-    for asin in normalized_all_asins.columns:
-        fig_all_asins.add_trace(go.Scatter(x=normalized_all_asins.index, y=normalized_all_asins[asin], mode='lines', name=asin))
-
-    fig_all_asins.update_layout(
-        title="Normalized Price History for All ASINs",
-        xaxis_title="Date",
-        yaxis_title="Normalized Price",
-        showlegend=True,
-        height=400
-    )
-    st.plotly_chart(fig_all_asins)
-
-# Minigraphs section
-st.subheader("Price History for Individual ASINs")
-
-# Create subplots for individual ASINs
+# Function to create multiple subplots (one for each ASIN)
 def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
@@ -151,9 +96,48 @@ def create_price_graph(df):
     
     return fig
 
-# Generate and display minigraphs
-price_graph = create_price_graph(prepared_df)
-st.plotly_chart(price_graph)
+# Main Streamlit UI
+cols = st.columns([1, 3])
+
+# Left container: Best and Worst Discount, Best and Worst Price Change
+left_cell = cols[0].container(
+    border=True, height="stretch", vertical_alignment="center"
+)
+
+with left_cell:
+    # Filters for the Detailed Product Information table
+    st.subheader("Best and Worst Discount")
+
+    # Get the best and worst discount
+    best_discount = df.loc[df['product_original_price'].idxmax()]
+    worst_discount = df.loc[df['product_original_price'].idxmin()]
+    
+    # Display the best and worst discount
+    st.metric(label="Biggest Discount", value=f"${best_discount['product_price']:.2f}", delta=f"-${best_discount['product_original_price'] - best_discount['product_price']:.2f}")
+    st.metric(label="Smallest Discount", value=f"${worst_discount['product_price']:.2f}", delta=f"-${worst_discount['product_original_price'] - worst_discount['product_price']:.2f}")
+    
+    st.subheader("Price Change Info")
+
+    # Get the ASIN with the biggest and smallest price change
+    latest_data = df[df['date'] == df['date'].max()]  # Get data of last update
+    best_price_change = latest_data.loc[latest_data['price_change'].idxmax()]
+    worst_price_change = latest_data.loc[latest_data['price_change'].idxmin()]
+    
+    # Display the best and worst price change
+    st.metric(label="Highest Price Change", value=f"ASIN: {best_price_change['asin']} {best_price_change['price_change']:.2f}%", delta="latest update")
+    st.metric(label="Lowest Price Change", value=f"ASIN: {worst_price_change['asin']} {worst_price_change['price_change']:.2f}%", delta="latest update")
+
+# Right container: Plotting the price trend for all ASINs
+right_cell = cols[1].container(
+    border=True, height="stretch", vertical_alignment="center"
+)
+
+with right_cell:
+    # Create the price graph with subplots
+    price_graph = create_price_graph(prepared_df)
+
+    # Show the plot
+    st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
 st.subheader("Detailed Product Information")
