@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Ultimatum Roach - Competitors Price Tracker",
+    page_title="UR - Competitors Price Tracker",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
@@ -44,9 +44,6 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
-    # Find the maximum price across all ASINs
-    max_price = df['product_price'].max()
-    
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
     
@@ -84,14 +81,14 @@ def create_price_graph(df):
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
         )
 
-    # Update the layout of the plot to set the same Y-axis scale
+    # Update the layout of the plot
     fig.update_layout(
         height=400 * rows,  # Set the height for the total grid
         showlegend=True,
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(range=[0, max_price]),  # Set the Y-axis range from 0 to max price
+        yaxis=dict(scaleanchor="x"),  # Make sure y-axis scales are shared across all subplots
     )
     
     return fig
@@ -103,38 +100,11 @@ def create_price_graph(df):
 df = fetch_data()
 prepared_df = prepare_data(df)
 
-# Extracting the best and worst discount
-best_discount_row = df.loc[df['product_original_price'].idxmax()]
-worst_discount_row = df.loc[df['product_original_price'].idxmin()]
+# Create the price graph with subplots
+price_graph = create_price_graph(prepared_df)
 
-# Extracting the biggest and smallest price change
-latest_data = df[df['date'] == df['date'].max()]
-largest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmax()]
-smallest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmin()]
-
-# Layout: Left side (Discounts and Price Changes), Right side (Price Graph)
-cols = st.columns([1, 3])
-
-# Left Column: Best and Worst Discount + Biggest and Smallest Price Change
-with cols[0]:
-    # Display Best and Worst Discount
-    st.subheader("Best and Worst Discount")
-    st.write(f"**Best Discount ASIN:** {best_discount_row['asin']} - ${best_discount_row['product_original_price']:.2f}")
-    st.write(f"**Worst Discount ASIN:** {worst_discount_row['asin']} - ${worst_discount_row['product_original_price']:.2f}")
-    
-    # Display Biggest and Smallest Price Change
-    st.subheader("Biggest and Smallest Price Change")
-    st.write(f"**ASIN with biggest price change:** {largest_price_change_asin['asin']} - {largest_price_change_asin['price_change']:.2f}%")
-    st.write(f"**ASIN with smallest price change:** {smallest_price_change_asin['asin']} - {smallest_price_change_asin['price_change']:.2f}%")
-    st.write(f"**Date of last update:** {latest_data['date'].max()}")
-
-# Right Column: Plotting all ASINs on a single graph
-with cols[1]:
-    # Create the price graph with subplots
-    price_graph = create_price_graph(prepared_df)
-
-    # Show the plot
-    st.plotly_chart(price_graph)
+# Show the plot
+st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
 st.subheader("Detailed Product Information")
