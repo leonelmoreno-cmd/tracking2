@@ -44,20 +44,21 @@ def prepare_data(df):
     
     return df
 
-# Function to create multiple subplots, each showing one group of prices
+# Function to create multiple subplots (2x2 grid)
 def create_price_graph(df):
     price_groups = df['price_group'].unique()  # Get unique price groups
     num_groups = len(price_groups)  # Number of subplots we need to create
     
-    # Create a subplot layout with a number of rows based on the price groups
+    # Create a subplot layout with 2 columns and 2 rows (2x2 grid)
     fig = make_subplots(
-        rows=num_groups, cols=1, shared_xaxes=True, 
+        rows=2, cols=2, shared_xaxes=True, 
         vertical_spacing=0.1,  # Space between subplots
-        subplot_titles=[f"Price Range: {group}" for group in price_groups]
+        horizontal_spacing=0.1,  # Space between subplots
+        subplot_titles=[f"Price Range: {group}" for group in price_groups[:4]]  # We limit to 4 price ranges for the 2x2 layout
     )
     
-    # For each price group, create a graph
-    for i, price_group in enumerate(price_groups):
+    # For each price group, create a graph in the respective subplot
+    for i, price_group in enumerate(price_groups[:4]):  # Only use first 4 groups
         # Filter data for this price group
         group_data = df[df['price_group'] == price_group]
         
@@ -87,7 +88,7 @@ def create_price_graph(df):
                     customdata=asin_data['price_change'],  # Custom data for price change percentage
                     showlegend=False
                 ),
-                row=i+1, col=1  # Add trace to the correct subplot (row=i+1, col=1)
+                row=(i//2) + 1, col=(i%2) + 1  # Place in correct 2x2 grid
             )
             
             # Add points where there's a significant price change (highlighted)
@@ -109,12 +110,12 @@ def create_price_graph(df):
                     customdata=highlight['price_change'],  # Custom data for price change percentage
                     showlegend=False
                 ),
-                row=i+1, col=1
+                row=(i//2) + 1, col=(i%2) + 1
             )
 
     # Update the layout of the plot
     fig.update_layout(
-        height=300 * num_groups,  # Set the height based on the number of subplots
+        height=600,  # Set the total height for the 2x2 grid of subplots
         title="Competitors Price History by Price Range",
         title_x=0.5,  # Center the title
         showlegend=True,
