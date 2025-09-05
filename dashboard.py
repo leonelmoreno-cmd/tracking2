@@ -104,18 +104,13 @@ df = fetch_data()
 prepared_df = prepare_data(df)
 
 # Extracting the best and worst discount
-best_discount_row = df.loc[df['product_original_price'].idxmax()] if df['product_original_price'].notnull().any() else None
-worst_discount_row = df.loc[df['product_original_price'].idxmin()] if df['product_original_price'].notnull().any() else None
+best_discount_row = df.loc[df['product_original_price'].idxmax()]
+worst_discount_row = df.loc[df['product_original_price'].idxmin()]
 
 # Extracting the biggest and smallest price change
 latest_data = df[df['date'] == df['date'].max()]
-
-# Check if price_change exists and then safely get the largest and smallest price change
-if 'price_change' in latest_data.columns:
-    largest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmax()] if not latest_data['price_change'].isna().all() else None
-    smallest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmin()] if not latest_data['price_change'].isna().all() else None
-else:
-    largest_price_change_asin = smallest_price_change_asin = None
+largest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmax()]
+smallest_price_change_asin = latest_data.loc[latest_data['price_change'].idxmin()]
 
 # Layout: Left side (Discounts and Price Changes), Right side (Price Graph)
 cols = st.columns([1, 3])
@@ -124,28 +119,13 @@ cols = st.columns([1, 3])
 with cols[0]:
     # Display Best and Worst Discount
     st.subheader("Best and Worst Discount")
-    if best_discount_row is not None:
-        st.write(f"**Best Discount ASIN:** {best_discount_row['asin']} - ${best_discount_row['product_original_price']:.2f}")
-    else:
-        st.write("**No discount data available.**")
-    
-    if worst_discount_row is not None:
-        st.write(f"**Worst Discount ASIN:** {worst_discount_row['asin']} - ${worst_discount_row['product_original_price']:.2f}")
-    else:
-        st.write("**No discount data available.**")
+    st.write(f"**Best Discount ASIN:** {best_discount_row['asin']} - ${best_discount_row['product_original_price']:.2f}")
+    st.write(f"**Worst Discount ASIN:** {worst_discount_row['asin']} - ${worst_discount_row['product_original_price']:.2f}")
     
     # Display Biggest and Smallest Price Change
     st.subheader("Biggest and Smallest Price Change")
-    if largest_price_change_asin is not None:
-        st.write(f"**ASIN with biggest price change:** {largest_price_change_asin['asin']} - {largest_price_change_asin['price_change']:.2f}%")
-    else:
-        st.write("**No price change data available.**")
-    
-    if smallest_price_change_asin is not None:
-        st.write(f"**ASIN with smallest price change:** {smallest_price_change_asin['asin']} - {smallest_price_change_asin['price_change']:.2f}%")
-    else:
-        st.write("**No price change data available.**")
-
+    st.write(f"**ASIN with biggest price change:** {largest_price_change_asin['asin']} - {largest_price_change_asin['price_change']:.2f}%")
+    st.write(f"**ASIN with smallest price change:** {smallest_price_change_asin['asin']} - {smallest_price_change_asin['price_change']:.2f}%")
     st.write(f"**Date of last update:** {latest_data['date'].max()}")
 
 # Right Column: Plotting all ASINs on a single graph
