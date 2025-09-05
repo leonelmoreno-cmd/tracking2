@@ -39,10 +39,68 @@ def prepare_data(df):
     
     return df
 
-# Function to create multiple subplots (one for each ASIN)
+# Main Streamlit UI
+cols = st.columns([1, 3])
+
+# Load and prepare the data
+df = fetch_data()
+prepared_df = prepare_data(df)
+
+# Calculate required values
+max_discount = prepared_df[prepared_df['discount'] == 'Discounted']['product_price'].max()
+min_discount = prepared_df[prepared_df['discount'] == 'Discounted']['product_price'].min()
+
+# Find the ASIN with the largest price change
+max_price_change_asin = prepared_df.loc[prepared_df['price_change'].idxmax()]['asin']
+min_price_change_asin = prepared_df.loc[prepared_df['price_change'].idxmin()]['asin']
+
+# Top left cell for discount and price change information
+top_left_cell = cols[0].container(
+    border=True, height="stretch", vertical_alignment="center"
+)
+
+with top_left_cell:
+    st.subheader("Key Metrics")
+    st.write(f"**Biggest Discount**: ${max_discount:.2f}")
+    st.write(f"**Smallest Discount**: ${min_discount:.2f}")
+    st.write(f"**ASIN with Largest Price Change**: {max_price_change_asin}")
+    st.write(f"**ASIN with Smallest Price Change**: {min_price_change_asin}")
+
+# Right cell for plotting all ASINs
+right_cell = cols[1].container(
+    border=True, height="stretch", vertical_alignment="center"
+)
+
+with right_cell:
+    # Plot all ASINs over time (normalized)
+    all_asins = prepared_df.pivot(index='date', columns='asin', values='product_price')
+    normalized_all_asins = all_asins.div(all_asins.iloc[0])
+
+    st.subheader("All ASINs Over Time (Normalized)")
+    fig_all_asins = go.Figure()
+
+    for asin in normalized_all_asins.columns:
+        fig_all_asins.add_trace(go.Scatter(x=normalized_all_asins.index, y=normalized_all_asins[asin], mode='lines', name=asin))
+
+    fig_all_asins.update_layout(
+        title="Normalized Price History for All ASINs",
+        xaxis_title="Date",
+        yaxis_title="Normalized Price",
+        showlegend=True,
+        height=400
+    )
+    st.plotly_chart(fig_all_asins)
+
+# Minigraphs section
+st.subheader("Price History for Individual ASINs")
+
+# Create subplots for individual ASINs
 def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
+    
+    # Find the maximum price across all ASINs
+    max_price = df['product_price'].max()
     
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
@@ -81,29 +139,20 @@ def create_price_graph(df):
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
         )
 
-    # Update the layout of the plot
+    # Update the layout of the plot to set the same Y-axis scale
     fig.update_layout(
         height=400 * rows,  # Set the height for the total grid
         showlegend=True,
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(scaleanchor="x"),  # Make sure y-axis scales are shared across all subplots
+        yaxis=dict(range=[0, max_price]),  # Set the Y-axis range from 0 to max price
     )
     
     return fig
 
-# Main Streamlit UI
-# No need for st.title() anymore, as we already set it with markdown.
-
-# Load and prepare the data
-df = fetch_data()
-prepared_df = prepare_data(df)
-
-# Create the price graph with subplots
+# Generate and display minigraphs
 price_graph = create_price_graph(prepared_df)
-
-# Show the plot
 st.plotly_chart(price_graph)
 
 # Filters for the Detailed Product Information table
