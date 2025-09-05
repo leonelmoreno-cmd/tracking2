@@ -10,6 +10,14 @@ st.set_page_config(
     layout="wide",
 )
 
+# Centrar el título usando HTML
+st.markdown(
+    """
+    <h1 style="text-align: center; font-size: 36px;">Ultimatum Roach - Competitors Price Tracker</h1>
+    """, 
+    unsafe_allow_html=True
+)
+
 # Function to fetch CSV from GitHub
 @st.cache_data
 def fetch_data():
@@ -118,7 +126,7 @@ def create_price_graph(df):
     return fig
 
 # Main Streamlit UI
-st.title("Ultimatum Roach - Competitors Price Tracker")
+# No need for st.title() anymore, as we already set it with markdown.
 
 # Load and prepare the data
 df = fetch_data()
