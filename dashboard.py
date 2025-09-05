@@ -44,9 +44,6 @@ def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
     num_asins = len(asins)  # Number of subplots we need to create
     
-    # Find the maximum price across all ASINs
-    max_price = df['product_price'].max()
-    
     # Create a subplot layout with 3 columns and the number of rows determined by the number of ASINs
     rows = (num_asins // 3) + (1 if num_asins % 3 != 0 else 0)  # Determine how many rows are needed
     
@@ -84,14 +81,14 @@ def create_price_graph(df):
             row=(i // 3) + 1, col=(i % 3) + 1  # Place in correct row and column
         )
 
-    # Update the layout of the plot to set the same Y-axis scale
+    # Update the layout of the plot
     fig.update_layout(
         height=400 * rows,  # Set the height for the total grid
         showlegend=True,
         legend_title="ASIN",
         xaxis_title="Date",
         yaxis_title="Product Price",
-        yaxis=dict(range=[0, max_price]),  # Set the Y-axis range from 0 to max price
+        yaxis=dict(scaleanchor="x"),  # Make sure y-axis scales are shared across all subplots
     )
     
     return fig
