@@ -39,6 +39,10 @@ def prepare_data(df):
     
     return df
 
+# Ensure data is loaded first
+df = fetch_data()
+prepared_df = prepare_data(df)
+
 # Function to create multiple subplots (one for each ASIN)
 def create_price_graph(df):
     asins = df['asin'].unique()  # Get unique ASINs
