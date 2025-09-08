@@ -3,7 +3,7 @@ name: Amazon Competitors Tracker
 on:
   schedule:
     - cron: "0 12 * * 1"
-  workflow_dispatch: {}  # permite ejecución manual
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -34,29 +34,21 @@ jobs:
         run: |
           set -euo pipefail
           mapfile -t files < <(find Asins -maxdepth 1 -type f -iregex '.*/asins_.*\.txt' | sort)
-
           if [ ${#files[@]} -eq 0 ]; then
-            echo "No se encontraron archivos con patrón asins_*.txt (case-insensitive) en Asins/"
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
-          echo "Archivos detectados:"
-          printf ' - %s\n' "${files[@]}"
-
-          # Filtro primero, args después
           json=$(jq -n -c '[ $ARGS.positional[] | {asin_file: .} ]' --args "${files[@]}")
-          echo "Matriz detectada (compacta): $json"
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   fetch-and-commit:
     needs: discover-asins
-    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}  # salta si no hay archivos
+    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     strategy:
-      max-parallel: 1   # ejecutar de a uno
+      max-parallel: 1
       matrix:
         include: ${{ fromJson(needs.discover-asins.outputs.matrix) }}
 
@@ -95,6 +87,17 @@ jobs:
           echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
+      # ✅ Nuevo: rebase contra el último origin/main antes de commitear/pushear
+      - name: Sync main (rebase)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          # Rebase limpio; si falla, aborta y hace un pull --rebase
+          git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
+
       - name: Get UTC timestamp
         id: ts
         shell: bash
@@ -105,3 +108,5 @@ jobs:
         with:
           commit_message: "chore(data): update competitors CSVs (UTC ${{ steps.ts.outputs.utc }})"
           branch: main
+          # Backup por si otro job comiteó entre rebase y push (no debería suceder con max-parallel:1)
+          push_options: --force-with-lease
