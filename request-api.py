@@ -104,8 +104,25 @@ def safe_bool(value: Any) -> Optional[bool]:
     return None
 
 
-def parse_sales_volume(value: Any) -> Optional[int]:
-    return parse_number_from_text(value)
+def extract_sales_volume_label(value: Any) -> Optional[str]:
+    """
+    Devuelve la etiqueta compacta tipo '30K+' / '50+' / '1.2M+' si está presente
+    en el texto original (e.g., '30K+ bought in past month').
+    Si no se detecta patrón, devuelve None o el primer token numérico encontrado.
+    """
+    if value is None:
+        return None
+    s = str(value).strip()
+    # Buscar patrón como "<numero><sufijo_opcional>+"
+    m = re.search(r"(?i)\b(\d+(?:\.\d+)?)([KM])?\+\b", s)
+    if m:
+        num, suf = m.group(1), (m.group(2) or "")
+        return f"{num}{suf.upper()}+"
+    # Fallback: si hay número sin '+', regresar token simple
+    m2 = re.search(r"(?i)\b(\d+(?:[\.,]\d+)?)\b", s)
+    if m2:
+        return m2.group(1)
+    return None
 
 
 def extract_brand(item: Dict[str, Any]) -> Optional[str]:
@@ -192,12 +209,14 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
         num_ratings = to_int(raw.get("product_num_ratings"))
         is_choice = safe_bool(raw.get("is_amazon_choice"))
         is_best = safe_bool(raw.get("is_best_seller"))
-        sales_vol = parse_sales_volume(raw.get("sales_volume"))
+        # sales_volume ahora es etiqueta categórica ('30K+', etc.)
+        sales_vol_label = extract_sales_volume_label(raw.get("sales_volume"))
         brand = extract_brand(raw)
         product_url = raw.get("product_url")
 
         discount = None
         if price is not None and orig is not None and orig > 0 and price < orig:
+            # Numérico 0–100 (representa porcentaje)
             discount = round((1 - (price / orig)) * 100, 2)
 
         rows.append({
@@ -209,7 +228,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "product_num_ratings": num_ratings,
             "is_amazon_choice": is_choice,
             "is_best_seller": is_best,
-            "sales_volume": sales_vol,
+            "sales_volume": sales_vol_label,
             "discount": discount,
             "brand": brand,
             "product_url": product_url,
@@ -243,25 +262,30 @@ def main() -> None:
     rows = build_rows(payload, requested_asins)
     df = pd.DataFrame(rows)
 
-    # Sufijo dinámico a partir del nombre del archivo (ej: Asins/asins_UR.txt -> __UR)
+    # Sufijo dinámico a partir del nombre del archivo (ej: Asins/asins_UR.txt -> UR)
     suffix = Path(ASIN_FILE).stem.split("_")[-1]
     output_with_suffix = OUTPUT_PATH.with_name(f"{OUTPUT_PATH.stem} - {suffix}{OUTPUT_PATH.suffix}")
 
     write_header = not output_with_suffix.exists()
 
+    # Tipificar columnas
     numeric_cols = [
         "product_price",
         "product_original_price",
         "product_star_rating",
         "product_num_ratings",
-        "sales_volume",
-        "discount",
+        "discount",  # numérico 0–100, representa %
         "week",
     ]
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    # sales_volume pasa a categoría (etiquetas como '30K+')
+    if "sales_volume" in df.columns:
+        df["sales_volume"] = pd.Categorical(df["sales_volume"])
+
+    # Booleans a tipo 'boolean' con NA
     for col in ["is_amazon_choice", "is_best_seller"]:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
