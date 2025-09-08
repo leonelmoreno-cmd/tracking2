@@ -3,7 +3,7 @@ name: Amazon Competitors Tracker
 on:
   schedule:
     - cron: "0 12 * * 1"
-  workflow_dispatch: {}  # permite ejecución manual
+  workflow_dispatch: {}  # ejecución manual
 
 permissions:
   contents: write
@@ -32,19 +32,21 @@ jobs:
           files=(Asins/asins_*.txt)
 
           if [ ${#files[@]} -eq 0 ]; then
-            echo "No se encontraron archivos Asins/asins_*.txt. La matriz quedará vacía y no habrá ejecuciones."
-            echo 'matrix=[]' >> "$GITHUB_OUTPUT"
+            echo "No se encontraron archivos Asins/asins_*.txt"
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Construir un array JSON de objetos { "asin_file": "<path>" }
-          json=$(printf '%s\n' "${files[@]}" | awk '{print "{\"asin_file\":\""$0"\"}"}' | jq -s .)
+          # Construir array JSON compacto: [{"asin_file":"Asins/asins_IC.txt"}, ...]
+          json=$(printf '%s\n' "${files[@]}" | jq -R -c '[inputs | select(length>0) | {asin_file:.}]')
+          echo "Matriz detectada (compacta): $json"
+
+          # IMPORTANTE: escribir en UNA sola línea en GITHUB_OUTPUT
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
-          echo "Matriz detectada: $json"
 
   fetch-and-commit:
     needs: discover-asins
-    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}  # salta si no hay archivos
+    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -85,7 +87,7 @@ jobs:
           set -euo pipefail
           echo "Processing $ASIN_FILE ..."
           python request-api.py
-          echo "Sleeping 1s to respect API pacing..."
+          echo "Sleeping 1s to pace requests..."
           sleep 1
 
       - name: Get UTC timestamp
