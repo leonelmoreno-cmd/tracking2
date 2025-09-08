@@ -33,8 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Buscar case-insensitive archivos que cumplan asins_*.txt (cualquier combinación de mayúsculas)
-          # Ejemplos válidos: asins_UR.txt, ASINS_ic.TXT, Asins_IC.txt (siempre que empiece por 'asins_' y termine en '.txt')
+          # Buscar case-insensitive: asins_*.txt
           mapfile -t files < <(find Asins -maxdepth 1 -type f -iregex '.*/asins_.*\.txt' | sort)
 
           if [ ${#files[@]} -eq 0 ]; then
@@ -46,11 +45,11 @@ jobs:
           echo "Archivos detectados:"
           printf ' - %s\n' "${files[@]}"
 
-          # Construir JSON compacto: [{"asin_file":"Asins/asins_IC.txt"}, ...]
-          json=$(printf '%s\n' "${files[@]}" | jq -R -c '[inputs | select(length>0) | {asin_file:.}]')
+          # *** FIX: usar jq con argumentos, no por stdin, para incluir TODOS los archivos ***
+          json=$(jq -n -c --args "${files[@]}" '[ .[] | {asin_file:.} ]')
           echo "Matriz detectada (compacta): $json"
 
-          # IMPORTANTE: una sola línea en GITHUB_OUTPUT
+          # Un solo renglón en GITHUB_OUTPUT
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   fetch-and-commit:
