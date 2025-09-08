@@ -33,8 +33,6 @@ API_HOST = "real-time-amazon-data.p.rapidapi.com"
 # Helpers
 # -------------------------
 _money_pat = re.compile(r"[-+]?\d+(?:,\d{3})*(?:\.\d+)?")
-_digits_pat = re.compile(r"[\d.,]+")
-
 
 def parse_money(value: Any) -> Optional[float]:
     if value is None:
@@ -51,30 +49,6 @@ def parse_money(value: Any) -> Optional[float]:
         return None
 
 
-def parse_number_from_text(value: Any) -> Optional[int]:
-    if value is None:
-        return None
-    if isinstance(value, (int, float)):
-        return int(value)
-    s = str(value).strip().lower()
-
-    mult = 1
-    if "m" in s:
-        mult = 1_000_000
-    elif "k" in s:
-        mult = 1_000
-
-    m = _digits_pat.search(s)
-    if not m:
-        return None
-    num_txt = m.group(0).replace(",", "")
-    try:
-        base = float(num_txt)
-        return int(round(base * mult))
-    except ValueError:
-        return None
-
-
 def to_float(value: Any) -> Optional[float]:
     if value is None:
         return None
@@ -86,12 +60,17 @@ def to_float(value: Any) -> Optional[float]:
         return None
 
 
-def to_int(value: Any) -> Optional[int]:
+def to_int_from_text(value: Any) -> Optional[int]:
     if value is None:
         return None
     if isinstance(value, (int, float)):
         return int(value)
-    return parse_number_from_text(value)
+    s = str(value).strip().lower()
+    s = s.replace(",", "")
+    try:
+        return int(float(s))
+    except ValueError:
+        return None
 
 
 def safe_bool(value: Any) -> Optional[bool]:
@@ -104,24 +83,23 @@ def safe_bool(value: Any) -> Optional[bool]:
     return None
 
 
-def extract_sales_volume_label(value: Any) -> Optional[str]:
+def extract_sales_volume_token(value: Any) -> Optional[str]:
     """
-    Devuelve la etiqueta compacta tipo '30K+' / '50+' / '1.2M+' si está presente
-    en el texto original (e.g., '30K+ bought in past month').
-    Si no se detecta patrón, devuelve None o el primer token numérico encontrado.
+    Devuelve exactamente el token con '+' del inicio, ej.:
+      '600+ bought in past month' -> '600+'
+      '30K+ bought...'            -> '30K+'
+      '1.2M+ bought...'           -> '1.2M+'
+    Si no hay '+', devuelve None.
     """
     if value is None:
         return None
-    s = str(value).strip()
-    # Buscar patrón como "<numero><sufijo_opcional>+"
-    m = re.search(r"(?i)\b(\d+(?:\.\d+)?)([KM])?\+\b", s)
+    s = str(value)
+    m = re.search(r"\b(\d+(?:\.\d+)?(?:[KM])?)\+\b", s, flags=re.IGNORECASE)
     if m:
-        num, suf = m.group(1), (m.group(2) or "")
-        return f"{num}{suf.upper()}+"
-    # Fallback: si hay número sin '+', regresar token simple
-    m2 = re.search(r"(?i)\b(\d+(?:[\.,]\d+)?)\b", s)
-    if m2:
-        return m2.group(1)
+        # Normalizamos sufijos K/M a mayúsculas
+        token = m.group(1)
+        token = re.sub(r"([km])$", lambda x: x.group(1).upper(), token)
+        return f"{token}+"
     return None
 
 
@@ -206,17 +184,17 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
         price = parse_money(raw.get("product_price"))
         orig = parse_money(raw.get("product_original_price"))
         rating = to_float(raw.get("product_star_rating"))
-        num_ratings = to_int(raw.get("product_num_ratings"))
+        num_ratings = to_int_from_text(raw.get("product_num_ratings"))
         is_choice = safe_bool(raw.get("is_amazon_choice"))
         is_best = safe_bool(raw.get("is_best_seller"))
-        # sales_volume ahora es etiqueta categórica ('30K+', etc.)
-        sales_vol_label = extract_sales_volume_label(raw.get("sales_volume"))
+        # sales_volume: EXACTAMENTE el token con '+', como string (no categórico)
+        sales_vol = extract_sales_volume_token(raw.get("sales_volume"))
         brand = extract_brand(raw)
         product_url = raw.get("product_url")
 
         discount = None
         if price is not None and orig is not None and orig > 0 and price < orig:
-            # Numérico 0–100 (representa porcentaje)
+            # Numérico 0–100 (representa %)
             discount = round((1 - (price / orig)) * 100, 2)
 
         rows.append({
@@ -228,7 +206,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "product_num_ratings": num_ratings,
             "is_amazon_choice": is_choice,
             "is_best_seller": is_best,
-            "sales_volume": sales_vol_label,
+            "sales_volume": sales_vol,
             "discount": discount,
             "brand": brand,
             "product_url": product_url,
@@ -262,34 +240,31 @@ def main() -> None:
     rows = build_rows(payload, requested_asins)
     df = pd.DataFrame(rows)
 
-    # Sufijo dinámico a partir del nombre del archivo (ej: Asins/asins_UR.txt -> UR)
+    # Sufijo dinámico (Asins/asins_UR.txt -> UR)
     suffix = Path(ASIN_FILE).stem.split("_")[-1]
     output_with_suffix = OUTPUT_PATH.with_name(f"{OUTPUT_PATH.stem} - {suffix}{OUTPUT_PATH.suffix}")
 
     write_header = not output_with_suffix.exists()
 
-    # Tipificar columnas
+    # Tipificar columnas numéricas; discount es porcentaje (0–100)
     numeric_cols = [
         "product_price",
         "product_original_price",
         "product_star_rating",
         "product_num_ratings",
-        "discount",  # numérico 0–100, representa %
+        "discount",
         "week",
     ]
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # sales_volume pasa a categoría (etiquetas como '30K+')
-    if "sales_volume" in df.columns:
-        df["sales_volume"] = pd.Categorical(df["sales_volume"])
-
-    # Booleans a tipo 'boolean' con NA
+    # Booleans con NA
     for col in ["is_amazon_choice", "is_best_seller"]:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
 
+    # sales_volume se queda como string exacto (ej. "600+"); NO convertir a categoría
     df.to_csv(output_with_suffix, mode="a", index=False, header=write_header)
 
     print("Wrote rows:", len(df))
