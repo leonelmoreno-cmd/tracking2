@@ -33,7 +33,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Buscar case-insensitive: asins_*.txt
           mapfile -t files < <(find Asins -maxdepth 1 -type f -iregex '.*/asins_.*\.txt' | sort)
 
           if [ ${#files[@]} -eq 0 ]; then
@@ -45,11 +44,11 @@ jobs:
           echo "Archivos detectados:"
           printf ' - %s\n' "${files[@]}"
 
-          # *** FIX: usar jq con argumentos, no por stdin, para incluir TODOS los archivos ***
-          json=$(jq -n -c --args "${files[@]}" '[ .[] | {asin_file:.} ]')
+          # ✅ Usar $ARGS.positional para construir el array de objetos
+          json=$(jq -n -c --args "${files[@]}" '[ $ARGS.positional[] | {asin_file: .} ]')
           echo "Matriz detectada (compacta): $json"
 
-          # Un solo renglón en GITHUB_OUTPUT
+          # Escribir en una sola línea en GITHUB_OUTPUT
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   fetch-and-commit:
