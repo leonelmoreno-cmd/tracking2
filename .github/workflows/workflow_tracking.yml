@@ -44,11 +44,9 @@ jobs:
           echo "Archivos detectados:"
           printf ' - %s\n' "${files[@]}"
 
-          # ✅ Usar $ARGS.positional para construir el array de objetos
-          json=$(jq -n -c --args "${files[@]}" '[ $ARGS.positional[] | {asin_file: .} ]')
+          # Filtro primero, args después
+          json=$(jq -n -c '[ $ARGS.positional[] | {asin_file: .} ]' --args "${files[@]}")
           echo "Matriz detectada (compacta): $json"
-
-          # Escribir en una sola línea en GITHUB_OUTPUT
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   fetch-and-commit:
