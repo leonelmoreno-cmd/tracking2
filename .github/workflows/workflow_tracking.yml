@@ -3,7 +3,7 @@ name: Amazon Competitors Tracker
 on:
   schedule:
     - cron: "0 12 * * 1"
-  workflow_dispatch: {}  # ejecución manual
+  workflow_dispatch: {}  # permite ejecución manual
 
 permissions:
   contents: write
@@ -23,30 +23,39 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug list Asins directory
+        run: |
+          echo "Contenido de Asins/:"
+          ls -la Asins || true
+
       - name: Build matrix from Asins/*.txt
         id: build-matrix
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          files=(Asins/asins_*.txt)
+          # Buscar case-insensitive archivos que cumplan asins_*.txt (cualquier combinación de mayúsculas)
+          # Ejemplos válidos: asins_UR.txt, ASINS_ic.TXT, Asins_IC.txt (siempre que empiece por 'asins_' y termine en '.txt')
+          mapfile -t files < <(find Asins -maxdepth 1 -type f -iregex '.*/asins_.*\.txt' | sort)
 
           if [ ${#files[@]} -eq 0 ]; then
-            echo "No se encontraron archivos Asins/asins_*.txt"
+            echo "No se encontraron archivos con patrón asins_*.txt (case-insensitive) en Asins/"
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Construir array JSON compacto: [{"asin_file":"Asins/asins_IC.txt"}, ...]
+          echo "Archivos detectados:"
+          printf ' - %s\n' "${files[@]}"
+
+          # Construir JSON compacto: [{"asin_file":"Asins/asins_IC.txt"}, ...]
           json=$(printf '%s\n' "${files[@]}" | jq -R -c '[inputs | select(length>0) | {asin_file:.}]')
           echo "Matriz detectada (compacta): $json"
 
-          # IMPORTANTE: escribir en UNA sola línea en GITHUB_OUTPUT
+          # IMPORTANTE: una sola línea en GITHUB_OUTPUT
           echo "matrix=$json" >> "$GITHUB_OUTPUT"
 
   fetch-and-commit:
     needs: discover-asins
-    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}
+    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}  # salta si no hay archivos
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -87,7 +96,7 @@ jobs:
           set -euo pipefail
           echo "Processing $ASIN_FILE ..."
           python request-api.py
-          echo "Sleeping 1s to pace requests..."
+          echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
       - name: Get UTC timestamp
