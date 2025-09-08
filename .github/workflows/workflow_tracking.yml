@@ -3,7 +3,7 @@ name: Amazon Competitors Tracker
 on:
   schedule:
     - cron: "0 12 * * 1"
-  workflow_dispatch:
+  workflow_dispatch: {}  # permite ejecución manual
 
 permissions:
   contents: write
@@ -13,37 +13,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  fetch-and-commit:
+  discover-asins:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    strategy:
-      max-parallel: 1 # ejecutar de a uno para no romper rate limit
-      matrix:
-        asin_file: [] # placeholder, se llena dinámicamente más abajo
-
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Find ASIN txt files
-        id: asin_files
+      - name: Build matrix from Asins/*.txt
+        id: build-matrix
+        shell: bash
         run: |
-          files=$(ls Asins/asins_*.txt)
-          echo "files=$files"
-          files_json=$(printf '%s\n' $files | jq -R . | jq -s .)
-          echo "matrix={\"asin_file\":$files_json}" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          shopt -s nullglob
+          files=(Asins/asins_*.txt)
 
-      - name: Set dynamic matrix
-        uses: actions/github-script@v7
-        id: set-matrix
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No se encontraron archivos Asins/asins_*.txt. La matriz quedará vacía y no habrá ejecuciones."
+            echo 'matrix=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Construir un array JSON de objetos { "asin_file": "<path>" }
+          json=$(printf '%s\n' "${files[@]}" | awk '{print "{\"asin_file\":\""$0"\"}"}' | jq -s .)
+          echo "matrix=$json" >> "$GITHUB_OUTPUT"
+          echo "Matriz detectada: $json"
+
+  fetch-and-commit:
+    needs: discover-asins
+    if: ${{ needs.discover-asins.outputs.matrix != '[]' }}  # salta si no hay archivos
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      max-parallel: 1   # ejecutar de a uno
+      matrix:
+        include: ${{ fromJson(needs.discover-asins.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          script: |
-            return JSON.parse(process.env.MATRIX_JSON)
-        env:
-          MATRIX_JSON: ${{ steps.asin_files.outputs.matrix }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,7 +66,9 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           else
@@ -64,16 +80,18 @@ jobs:
           RAPIDAPI_KEY: ${{ secrets.AMAZON_API_KEY }}
           COUNTRY: US
           ASIN_FILE: ${{ matrix.asin_file }}
+        shell: bash
         run: |
           set -euo pipefail
           echo "Processing $ASIN_FILE ..."
           python request-api.py
-          echo "Sleeping 10s to respect API rate limit..."
-          sleep 10
+          echo "Sleeping 1s to respect API pacing..."
+          sleep 1
 
       - name: Get UTC timestamp
         id: ts
-        run: echo "utc=$(date -u +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+        shell: bash
+        run: echo "utc=$(date -u +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_OUTPUT"
 
       - name: Commit y push automáticos
         uses: stefanzweifel/git-auto-commit-action@v5
