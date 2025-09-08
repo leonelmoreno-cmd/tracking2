@@ -2,19 +2,8 @@ name: Amazon Competitors Tracker
 
 on:
   schedule:
-    - cron: "0 12 * * 1"   # Lunes 12:00 UTC
+    - cron: "0 12 * * 1"
   workflow_dispatch:
-    inputs:
-      country:
-        description: "Amazon country code (default: US)"
-        required: false
-        default: "US"
-        type: string
-      output_path:
-        description: "Output CSV base path (default: data/competitors_history.csv)"
-        required: false
-        default: "data/competitors_history.csv"
-        type: string
 
 permissions:
   contents: write
@@ -24,51 +13,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  discover-asins:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.build-matrix.outputs.matrix }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build matrix from Asins/*.txt
-        id: build-matrix
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import glob, json, os
-          files = sorted(glob.glob('Asins/asins_*.txt'))
-          matrix = [{"asin_file": f, "index": i} for i, f in enumerate(files)]
-          # Imprime en formato que GitHub pueda capturar como output
-          print(f"matrix={json.dumps(matrix)}")
-          PY
-          # Exportar a $GITHUB_OUTPUT
-          echo "$(python - <<'PY'
-import glob, json
-files = sorted(glob.glob('Asins/asins_*.txt'))
-print("matrix=" + json.dumps([{"asin_file": f, "index": i} for i, f in enumerate(files)]))
-PY
-)" >> "$GITHUB_OUTPUT"
-
   fetch-and-commit:
-    needs: discover-asins
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     strategy:
-      max-parallel: 1               # Ejecuta los lotes de a uno (secuencial)
-      fail-fast: false
+      max-parallel: 1 # ejecutar de a uno para no romper rate limit
       matrix:
-        include: ${{ fromJSON(needs.discover-asins.outputs.matrix) }}
+        asin_file: [] # placeholder, se llena dinámicamente más abajo
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Find ASIN txt files
+        id: asin_files
+        run: |
+          files=$(ls Asins/asins_*.txt)
+          echo "files=$files"
+          files_json=$(printf '%s\n' $files | jq -R . | jq -s .)
+          echo "matrix={\"asin_file\":$files_json}" >> $GITHUB_OUTPUT
+
+      - name: Set dynamic matrix
+        uses: actions/github-script@v7
+        id: set-matrix
+        with:
+          script: |
+            return JSON.parse(process.env.MATRIX_JSON)
+        env:
+          MATRIX_JSON: ${{ steps.asin_files.outputs.matrix }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -84,22 +59,17 @@ PY
             pip install requests pandas python-dotenv
           fi
 
-      # Espaciado entre lotes para respetar rate limit (mínimo 10s entre runs)
-      - name: Rate limit spacing (10s)
-        run: sleep 10
-
       - name: Run data request for ${{ matrix.asin_file }}
         env:
           RAPIDAPI_KEY: ${{ secrets.AMAZON_API_KEY }}
-          COUNTRY: ${{ inputs.country || 'US' }}
-          OUTPUT_PATH: ${{ inputs.output_path || 'data/competitors_history.csv' }}
+          COUNTRY: US
           ASIN_FILE: ${{ matrix.asin_file }}
         run: |
           set -euo pipefail
-          : "${COUNTRY:=US}"
-          : "${OUTPUT_PATH:=data/competitors_history.csv}"
-          : "${ASIN_FILE:?ASIN_FILE is required from matrix}"
-          python scripts/fetch_amazon_data.py
+          echo "Processing $ASIN_FILE ..."
+          python request-api.py
+          echo "Sleeping 10s to respect API rate limit..."
+          sleep 10
 
       - name: Get UTC timestamp
         id: ts
@@ -108,5 +78,5 @@ PY
       - name: Commit y push automáticos
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(data): update CSV for ${{ matrix.asin_file }} (UTC ${{ steps.ts.outputs.utc }})"
+          commit_message: "chore(data): update competitors CSVs (UTC ${{ steps.ts.outputs.utc }})"
           branch: main
