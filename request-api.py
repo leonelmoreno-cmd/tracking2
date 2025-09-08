@@ -48,7 +48,6 @@ def parse_money(value: Any) -> Optional[float]:
     except ValueError:
         return None
 
-
 def to_float(value: Any) -> Optional[float]:
     if value is None:
         return None
@@ -59,19 +58,16 @@ def to_float(value: Any) -> Optional[float]:
     except (ValueError, TypeError):
         return None
 
-
 def to_int_from_text(value: Any) -> Optional[int]:
     if value is None:
         return None
     if isinstance(value, (int, float)):
         return int(value)
-    s = str(value).strip().lower()
-    s = s.replace(",", "")
+    s = str(value).strip().lower().replace(",", "")
     try:
         return int(float(s))
     except ValueError:
         return None
-
 
 def safe_bool(value: Any) -> Optional[bool]:
     if isinstance(value, bool):
@@ -81,27 +77,6 @@ def safe_bool(value: Any) -> Optional[bool]:
     if str(value).lower() in ("false", "0"):
         return False
     return None
-
-
-def extract_sales_volume_token(value: Any) -> Optional[str]:
-    """
-    Devuelve exactamente el token con '+' del inicio, ej.:
-      '600+ bought in past month' -> '600+'
-      '30K+ bought...'            -> '30K+'
-      '1.2M+ bought...'           -> '1.2M+'
-    Si no hay '+', devuelve None.
-    """
-    if value is None:
-        return None
-    s = str(value)
-    m = re.search(r"\b(\d+(?:\.\d+)?(?:[KM])?)\+\b", s, flags=re.IGNORECASE)
-    if m:
-        # Normalizamos sufijos K/M a mayúsculas
-        token = m.group(1)
-        token = re.sub(r"([km])$", lambda x: x.group(1).upper(), token)
-        return f"{token}+"
-    return None
-
 
 def extract_brand(item: Dict[str, Any]) -> Optional[str]:
     info = item.get("product_information") or {}
@@ -149,7 +124,6 @@ def normalize_data_list(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         return [data]
     return []
 
-
 def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict[str, Any]]:
     data_list = normalize_data_list(payload)
     by_asin = {str(item.get("asin")).strip(): item for item in data_list if item and item.get("asin")}
@@ -172,7 +146,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "product_num_ratings": None,
                 "is_amazon_choice": None,
                 "is_best_seller": None,
-                "sales_volume": None,
+                "sales_volume": None,   # se deja tal cual venga
                 "discount": None,
                 "brand": None,
                 "product_url": None,
@@ -187,15 +161,13 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
         num_ratings = to_int_from_text(raw.get("product_num_ratings"))
         is_choice = safe_bool(raw.get("is_amazon_choice"))
         is_best = safe_bool(raw.get("is_best_seller"))
-        # sales_volume: EXACTAMENTE el token con '+', como string (no categórico)
-        sales_vol = extract_sales_volume_token(raw.get("sales_volume"))
+        sales_vol = raw.get("sales_volume")  # <-- mantener texto original del API
         brand = extract_brand(raw)
         product_url = raw.get("product_url")
 
         discount = None
         if price is not None and orig is not None and orig > 0 and price < orig:
-            # Numérico 0–100 (representa %)
-            discount = round((1 - (price / orig)) * 100, 2)
+            discount = round((1 - (price / orig)) * 100, 2)  # numérico 0–100
 
         rows.append({
             "asin": asin,
@@ -264,7 +236,7 @@ def main() -> None:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
 
-    # sales_volume se queda como string exacto (ej. "600+"); NO convertir a categoría
+    # sales_volume permanece como string original
     df.to_csv(output_with_suffix, mode="a", index=False, header=write_header)
 
     print("Wrote rows:", len(df))
