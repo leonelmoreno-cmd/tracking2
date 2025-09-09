@@ -42,7 +42,7 @@ def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
     week_range=None,   # will be ignored if None
-    use_markers=True
+    use_markers=False
 ) -> go.Figure:
     # Brand filter
     if brands_to_plot is not None and len(brands_to_plot) > 0:
@@ -207,11 +207,6 @@ wk_max_glob = int(prepared_df["week_number"].max())
 with left_col:
     with st.container(border=True):
         st.caption("Select the brands to filter the overview chart.")
-        use_markers = st.checkbox(
-            "Show markers on overview",
-            value=False,
-            help="Toggle markers on the overview chart for clearer hover points."
-        )
         selected_brands = st.multiselect(
             "Brands to display (overview)",
             options=all_brands,
