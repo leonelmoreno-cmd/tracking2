@@ -13,6 +13,11 @@ st.set_page_config(
     layout="wide",
 )
 
+# Paleta/estilos del tema (contraste con fondo #1d293d)
+TEXT_COLOR = "#e2e8f0"
+LINK_COLOR = "#615fff"
+BG_COLOR = "#1d293d"  # para referencia
+
 # -------------------------------
 # Data loading
 # -------------------------------
@@ -25,149 +30,137 @@ def fetch_data():
 @st.cache_data
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    # Tipos
+    # Asegura date como datetime y crea week (ISO)
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df['week'] = df['date'].dt.isocalendar().week.astype(int)
 
-    # Etiqueta de descuento (si hay precio original no nulo)
-    df['discount'] = np.where(
-        df['product_original_price'].notna(),
-        'Discounted', 'No Discount'
+    # Etiqueta de "descuento existente"
+    df['discount'] = df.apply(
+        lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
+        axis=1
     )
+    # Cambio porcentual por ASIN
+    df['price_change'] = df.groupby('asin')['product_price'].pct_change() * 100
 
-    # ---- Agregación semanal ----
-    # Definimos el inicio de semana (Lunes). Puedes cambiar a 'W-SUN' si prefieres semanas que terminan domingo.
-    df['week_start'] = df['date'].dt.to_period('W-MON').apply(lambda p: p.start_time)
+    # Asegura columnas que usaremos en títulos
+    if 'brand' not in df.columns:
+        df['brand'] = df['product_title'].str.split().str[0]
+    if 'product_url' not in df.columns:
+        df['product_url'] = "https://www.amazon.com/dp/" + df['asin'].astype(str)
 
-    # Mapeo (asin -> marca/url) tomando el registro más reciente por asin
-    latest_meta = (
-        df.sort_values('date')
-          .groupby('asin', as_index=False)
-          .tail(1)[['asin', 'brand', 'product_url']]
-    )
-
-    # Agregamos por semana y asin
-    weekly = (
-        df.groupby(['asin', 'week_start'], as_index=False)
-          .agg(
-              product_price=('product_price', 'mean'),
-              product_original_price=('product_original_price', 'mean'),
-              # Cualquier Discounted en la semana -> Discounted
-              any_discount=('discount', lambda s: (s == 'Discounted').any()),
-          )
-    )
-
-    # Recalcular label de descuento semanal coherente
-    weekly['discount'] = np.where(
-        weekly['product_original_price'].notna() & (weekly['product_original_price'] > 0) &
-        (weekly['product_price'] < weekly['product_original_price']),
-        'Discounted', 'No Discount'
-    )
-    # Si alguien marcó any_discount True pero la regla anterior no lo capturó, mantenemos True por consistencia
-    weekly.loc[weekly['any_discount'], 'discount'] = 'Discounted'
-    weekly = weekly.drop(columns=['any_discount'])
-
-    # Cambio porcentual semana a semana por asin
-    weekly['price_change'] = (
-        weekly.sort_values(['asin', 'week_start'])
-              .groupby('asin')['product_price']
-              .pct_change() * 100
-    )
-
-    # Añadimos brand y url al weekly
-    weekly = weekly.merge(latest_meta, on='asin', how='left')
-
-    return weekly
+    return df
 
 # -------------------------------
-# Plot helper (semanal)
+# Plot helper
 # -------------------------------
-def create_price_graph(weekly_df: pd.DataFrame) -> go.Figure:
-    asins = weekly_df['asin'].dropna().unique()
+def create_price_graph(df: pd.DataFrame) -> go.Figure:
+    asins = df['asin'].dropna().unique()
     num_asins = len(asins)
 
     # Layout en 3 columnas
     cols = 3 if num_asins >= 3 else max(1, num_asins)
     rows = int(np.ceil(num_asins / cols))
 
-    # Títulos por subplot: marca como link a la product_url
-    # (usamos anotaciones de Plotly que aceptan HTML <a href="...">)
-    titles = []
-    asin_brand_url = (
-        weekly_df[['asin', 'brand', 'product_url']]
-        .drop_duplicates('asin')
-        .set_index('asin')
-        .to_dict(orient='index')
-    )
-    for asin in asins:
-        meta = asin_brand_url.get(asin, {})
-        brand = meta.get('brand') or str(asin)
-        url = meta.get('product_url') or ''
-        # Si no hay URL, dejamos solo el texto
-        if url:
-            titles.append(f"<a href='{url}' target='_blank'>{brand}</a>")
-        else:
-            titles.append(brand)
-
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.08, horizontal_spacing=0.06,
-        subplot_titles=titles
+        subplot_titles=["" for _ in asins]  # luego los sustituimos con anotaciones ricas
     )
 
-    # Añadimos trazas
+    # Para reemplazar títulos luego con brand + enlace + asin
+    titles_meta = []
+
     for i, asin in enumerate(asins):
-        asin_data = weekly_df[weekly_df['asin'] == asin].sort_values('week_start')
+        asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
             continue
 
+        # Estilo de línea: punteada si en algún día hubo "Discounted"
         dashed = 'dot' if (asin_data['discount'] == 'Discounted').any() else 'solid'
+
         r = i // cols + 1
         c = i % cols + 1
 
+        # customdata: [price_change, date_str]
+        customdata = np.stack([
+            asin_data['price_change'].astype(float).fillna(0).values,
+            asin_data['date'].dt.strftime('%Y-%m-%d').values
+        ], axis=-1)
+
         fig.add_trace(
             go.Scatter(
-                x=asin_data['week_start'],
-                y=asin_data['product_price'],
+                x=asin_data['week'],                 # Semana (eje X)
+                y=asin_data['product_price'],        # Precio (eje Y)
                 mode='lines+markers',
                 name=str(asin),
                 line=dict(dash=dashed),
                 hovertemplate=(
                     'ASIN: %{text}<br>' +
-                    'Avg Weekly Price: $%{y:.2f}<br>' +
-                    'Week Start: %{x|%Y-%m-%d}<br>' +
-                    'WoW Δ: %{customdata:.2f}%<br>' +
+                    'Week: %{x}<br>' +
+                    'Date: %{customdata[1]}<br>' +
+                    'Price: $%{y:.2f}<br>' +
+                    'Price Change: %{customdata[0]:.2f}%<br>' +
                     '<extra></extra>'
                 ),
                 text=asin_data['asin'],
-                customdata=asin_data['price_change'],
+                customdata=customdata,
                 showlegend=False
             ),
             row=r, col=c
         )
 
-    # Escala uniforme Y: [0, max_price_global]
-    max_price = float(weekly_df['product_price'].max())
+        # Guarda metadata para el título enriquecido (marca linkeable + asin)
+        brand = asin_data['brand'].iloc[0] if 'brand' in asin_data.columns else str(asin)
+        url = asin_data['product_url'].iloc[0] if 'product_url' in asin_data.columns else f"https://www.amazon.com/dp/{asin}"
+        titles_meta.append((r, c, brand, url, asin))
+
+    # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
+    max_price = float(df['product_price'].max())
     fig.update_yaxes(range=[0, max_price])
 
-    # Formato de eje X semanal
-    fig.update_xaxes(
-        tickformat="%Y-%m-%d",  # muestra fecha del inicio de semana
-        ticklabelmode="period"
-    )
+    # Ejes y estilo
+    for r in range(1, rows + 1):
+        for c in range(1, cols + 1):
+            fig.update_xaxes(
+                row=r, col=c,
+                title_text="Week #",
+                tickmode='auto',
+                type='linear'  # semanas como números
+            )
+            fig.update_yaxes(
+                row=r, col=c,
+                title_text="Product Price (USD)"
+            )
 
     fig.update_layout(
-        height=max(400, 280 * rows),
-        xaxis_title="Week (start date)",
-        yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=50, b=20)
+        height=max(420, 300 * rows),
+        margin=dict(l=20, r=20, t=70, b=20),
+        paper_bgcolor=BG_COLOR,
+        plot_bgcolor=BG_COLOR,
+        font=dict(color=TEXT_COLOR)
     )
 
-    # Asegura que las anotaciones (títulos) con <a> se muestren centradas
-    # (make_subplots ya crea las annotations; solo nos aseguramos de permitir HTML)
-    if 'annotations' in fig.layout:
-        for ann in fig.layout.annotations:
-            ann.align = 'center'  # centra el texto
-            # Plotly permite HTML en annotations; Streamlit respeta en el renderer
+    # Sustituir los títulos de cada subplot por anotaciones HTML ricas (marca link + asin debajo)
+    # Eliminamos anotaciones automáticas (subplot_titles) y añadimos las nuestras
+    fig.layout.annotations = tuple(a for a in fig.layout.annotations if a.text != "")
+
+    for (r, c, brand, url, asin) in titles_meta:
+        # Título (marca) linkeable + subtítulo (ASIN)
+        # Nota: el color del link se fuerza con style; el subtítulo con <span>
+        title_html = (
+            f"<b><a href='{url}' target='_blank' style='color:{LINK_COLOR};"
+            f"text-decoration:none;'>{brand}</a></b>"
+            f"<br><span style='color:{TEXT_COLOR}; font-size:12px;'>ASIN: {asin}</span>"
+        )
+
+        fig.add_annotation(
+            text=title_html,
+            xref=f"x{(r-1)*cols+c} domain",
+            yref=f"y{(r-1)*cols+c} domain",
+            x=0.5, y=1.12, showarrow=False,
+            align="center",
+            font=dict(size=14, color=TEXT_COLOR),
+        )
 
     return fig
 
@@ -175,51 +168,52 @@ def create_price_graph(weekly_df: pd.DataFrame) -> go.Figure:
 # Main UI
 # -------------------------------
 df = fetch_data()
-weekly_df = prepare_data(df)
+prepared_df = prepare_data(df)
 
-# Última actualización (fecha máxima original del dataset)
-last_update = pd.to_datetime(df['date'], errors='coerce').max()
+# Última actualización (fecha máxima del dataset)
+last_update = prepared_df['date'].max()
 last_update_str = last_update.strftime('%Y-%m-%d') if pd.notna(last_update) else 'N/A'
 
 # Título + Subtítulo centrados
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
-        <h3 style="color:#666; font-weight:400; margin-top:0;">Last Update: {last_update_str}</h3>
+        <h1 style="font-size: 36px; margin-bottom: 4px; color:{TEXT_COLOR};">
+            Competitors Price Tracker
+        </h1>
+        <h3 style="color:#9ca3af; font-weight:400; margin-top:0;">
+            Última actualización: {last_update_str}
+        </h3>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Gráfico semanal
-price_graph = create_price_graph(weekly_df)
+# Gráfico
+price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
 # -------------------------------
-# Tabla con filtros (semanal)
+# Tabla con filtros
 # -------------------------------
-st.subheader("Detailed Product Information (Weekly)")
+st.subheader("Detailed Product Information")
 
-asin_options = ['All'] + weekly_df['asin'].dropna().unique().tolist()
+asin_options = ['All'] + prepared_df['asin'].dropna().unique().tolist()
 discount_options = ['All', 'Discounted', 'No Discount']
 
 asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0)
 discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0)
 
-filtered_df = weekly_df.copy()
+filtered_df = prepared_df.copy()
 if asin_filter != 'All':
     filtered_df = filtered_df[filtered_df['asin'] == asin_filter]
 if discount_filter != 'All':
     filtered_df = filtered_df[filtered_df['discount'] == discount_filter]
 
-# Mostramos columnas clave (semanales)
 st.dataframe(
     filtered_df[[
-        'asin', 'brand', 'product_price', 'product_original_price',
-        'discount', 'price_change', 'week_start', 'product_url'
-    ]].rename(columns={
-        'product_price': 'avg_weekly_price',
-        'product_original_price': 'avg_weekly_original_price'
-    })
+        'asin', 'brand', 'product_title', 'product_price', 'product_original_price',
+        'product_star_rating', 'product_num_ratings', 'is_amazon_choice',
+        'sales_volume', 'discount', 'date', 'week'
+    ]]
 )
