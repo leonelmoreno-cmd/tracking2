@@ -98,6 +98,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
         margin=dict(l=20, r=20, t=50, b=20)
+        # Nota: se elimina scaleanchor para evitar problemas entre subplots
     )
     return fig
 
