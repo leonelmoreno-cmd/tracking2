@@ -51,7 +51,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     rows = int(np.ceil(num_asins / cols))
 
     fig = make_subplots(
-        rows=rows, cols=cols, shared_xaxes='all',
+        rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.15, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
         subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
     )
