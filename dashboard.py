@@ -18,7 +18,7 @@ st.set_page_config(
 # -------------------------------
 @st.cache_data
 def fetch_data():
-    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic2.csv"
+    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic3.csv"
     df = pd.read_csv(url)
     return df
 
