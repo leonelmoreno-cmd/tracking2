@@ -41,41 +41,19 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
-    week_range=None,     # kept for backwards-compat (unused in current UI)
-    date_range=None,     # NEW: (start_date, end_date)
+    week_range=None,   # will be ignored if None
     use_markers=True
 ) -> go.Figure:
     # Brand filter
     if brands_to_plot is not None and len(brands_to_plot) > 0:
         df = df[df["brand"].isin(brands_to_plot)]
 
-    # Prefer date_range (calendar) over week_range
-    if date_range is not None:
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-            start_dt, end_dt = date_range
-        else:
-            start_dt = end_dt = date_range
-        df = df[
-            (df["date"] >= pd.to_datetime(start_dt)) &
-            (df["date"] <= pd.to_datetime(end_dt))
-        ]
-    elif week_range is not None:
+    # Week range filter (inclusive) - ignored if None
+    if week_range is not None:
         wk_min, wk_max = week_range
         df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
 
-    # Handle empty after filters
-    if df.empty:
-        fig = go.Figure()
-        fig.update_layout(
-            title="Overview — Weekly Average Price by Brand (no data for selected range)",
-            height=420,
-            hovermode="x unified",
-            legend_title_text="Brand",
-            margin=dict(l=20, r=20, t=50, b=40)
-        )
-        return fig
-
-    # Ranges for axes (recomputed after filters)
+    # Ranges for axes
     max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
     min_week = int(df["week_number"].min())
     max_week = int(df["week_number"].max())
@@ -110,17 +88,11 @@ def create_overview_graph(
         tickmode="linear", tick0=min_week, dtick=1,   # integer ISO weeks
         title_text="Week Number"
     )
-
-    # Dynamic title showing selected date range if provided
-    title_txt = f"Overview — Weekly Average Price by Brand (Weeks {min_week}–{max_week})"
-    if date_range is not None:
-        sd, ed = date_range if isinstance(date_range, tuple) else (date_range, date_range)
-        title_txt = f"Overview — Weekly Average Price by Brand ({sd} to {ed})"
-
+    # Title with selected range (global if no filter)
     fig.update_layout(
-        title=title_txt,
+        title=f"Overview — Weekly Average Price by Brand (Weeks {min_week}–{max_week})",
         height=420,
-        hovermode="x unified",
+        hovermode="x unified",  # unified tooltip across traces
         legend_title_text="Brand",
         margin=dict(l=20, r=20, t=50, b=40)
     )
@@ -223,7 +195,7 @@ st.subheader("Overview — All Brands")
 st.caption("Use the controls below to filter the overview. The metrics summarize the latest ISO week across selected brands.")
 
 # Two columns: left (selectors) and right (metrics). Right is wider, with extra gap for breathing room.
-left_col, right_col = st.columns([0.7, 2.3], gap="large")
+left_col, right_col = st.columns([0.7, 2.3], gap="large")  # narrower selector + more inter-column space
 
 # Available brands and week bounds
 all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
@@ -233,33 +205,18 @@ wk_max_glob = int(prepared_df["week_number"].max())
 # LEFT: selectors inside a bordered container
 with left_col:
     with st.container(border=True):
-        st.caption("Select the brands and date range to filter the overview chart.")
-
+        st.caption("Select the brands to filter the overview chart.")
         use_markers = st.checkbox(
             "Show markers on overview",
             value=False,
             help="Toggle markers on the overview chart for clearer hover points."
         )
-
         selected_brands = st.multiselect(
             "Brands to display (overview)",
             options=all_brands,
             default=all_brands,
             help="Select the brands you want to compare in the overview chart."
         )
-
-        # NEW: Calendar button (popover) with date range
-        date_min = prepared_df["date"].min().date()
-        date_max = prepared_df["date"].max().date()
-        with st.popover("📅 Date range", use_container_width=True):
-            date_range = st.date_input(
-                "Select date range",
-                value=(date_min, date_max),
-                min_value=date_min,
-                max_value=date_max,
-                help="Pick a start and end date to filter the overview chart."
-            )
-
         # Small internal spacer
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
@@ -350,11 +307,10 @@ with right_col:
         else:
             st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
 
-# Overview chart (uses the selections above)
+# Overview chart (uses the selections above; no week-range filter anymore)
 overview_fig = create_overview_graph(
     prepared_df,
     brands_to_plot=selected_brands,
-    date_range=date_range,   # <-- now filtering via calendar date range
     use_markers=use_markers
 )
 st.plotly_chart(overview_fig, use_container_width=True)
@@ -375,7 +331,7 @@ st.caption("Filter the table and download the filtered data as CSV.")
 asin_options = ["All"] + sorted(prepared_df["asin"].dropna().unique().tolist())
 discount_options = ["All", "Discounted", "No Discount"]
 
-# Week filter for the table (kept as week range)
+# We still keep a week filter for the table only
 table_week_range = st.slider(
     "Filter by week (range)",
     min_value=wk_min_glob,
