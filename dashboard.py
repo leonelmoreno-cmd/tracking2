@@ -29,7 +29,7 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
     # Agrega columna para el número de semana
     df['week_number'] = df['date'].dt.isocalendar().week
-    df = df.sort_values(by=['asin', 'week_number'])  # Ordenar por ASIN y semana
+    df = df.sort_values(by=['asin', 'week_number'])
     # Etiqueta de descuento (si hay precio original no nulo)
     df['discount'] = df.apply(
         lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
@@ -46,13 +46,13 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df['asin'].dropna().unique()
     num_asins = len(asins)
 
-    # Layout en 3 columnas (cambiar según sea necesario)
+    # Layout en 3 columnas
     cols = 3 if num_asins >= 3 else max(1, num_asins)
-    rows = int(np.ceil(num_asins / cols))  # Distribuir en filas
+    rows = int(np.ceil(num_asins / cols))
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
-        vertical_spacing=0.15, horizontal_spacing=0.06,  # Ajustar espaciado entre los gráficos
+        vertical_spacing=0.15, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
         subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
     )
 
@@ -97,7 +97,6 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
     fig.update_yaxes(range=[0, max_price])
-
     # Establecer el rango uniforme para el eje X en todos los subplots (semana)
     fig.update_xaxes(range=[min_week, max_week])
 
