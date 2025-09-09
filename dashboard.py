@@ -222,90 +222,92 @@ with left_col:
 
 # RIGHT: metrics — latest week only, filtered by selected brands
 with right_col:
-    last_week = int(prepared_df["week_number"].max())
-    df_week = prepared_df[
-        (prepared_df["week_number"] == last_week) &
-        (prepared_df["brand"].isin(selected_brands))
-    ].copy()
+    # ✅ NEW: bordered metrics container
+    with st.container(border=True):
+        last_week = int(prepared_df["week_number"].max())
+        df_week = prepared_df[
+            (prepared_df["week_number"] == last_week) &
+            (prepared_df["brand"].isin(selected_brands))
+        ].copy()
 
-    # Discount % (only when original price present and > 0)
-    df_week["discount_pct"] = np.where(
-        df_week["product_original_price"].notna() & (df_week["product_original_price"] != 0),
-        (df_week["product_original_price"] - df_week["product_price"]) / df_week["product_original_price"] * 100.0,
-        np.nan
-    )
+        # Discount % (only when original price present and > 0)
+        df_week["discount_pct"] = np.where(
+            df_week["product_original_price"].notna() & (df_week["product_original_price"] != 0),
+            (df_week["product_original_price"] - df_week["product_price"]) / df_week["product_original_price"] * 100.0,
+            np.nan
+        )
 
-    # Highest / Lowest discount (last week)
-    row_max_disc = df_week.loc[df_week["discount_pct"].idxmax()] if df_week["discount_pct"].notna().any() else None
-    row_min_disc = df_week.loc[df_week["discount_pct"].idxmin()] if df_week["discount_pct"].notna().any() else None
+        # Highest / Lowest discount (last week)
+        row_max_disc = df_week.loc[df_week["discount_pct"].idxmax()] if df_week["discount_pct"].notna().any() else None
+        row_min_disc = df_week.loc[df_week["discount_pct"].idxmin()] if df_week["discount_pct"].notna().any() else None
 
-    # Highest / Lowest price (last week)
-    row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() else None
-    row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() else None
+        # Highest / Lowest price (last week)
+        row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() else None
+        row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() else None
 
-    # Largest / Lowest price change on the last update of the last week:
-    if not df_week.empty:
-        latest_by_brand = df_week.loc[df_week.groupby("brand")["date"].idxmax()].copy()
-    else:
-        latest_by_brand = pd.DataFrame()
-
-    row_max_change = (
-        latest_by_brand.loc[latest_by_brand["price_change"].idxmax()]
-        if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any()
-        else None
-    )
-    row_min_change = (
-        latest_by_brand.loc[latest_by_brand["price_change"].idxmin()]
-        if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any()
-        else None
-    )
-
-    st.markdown("### Last week highlights")
-
-    # 3 columns: Discounts | Prices | Price changes
-    dcol, pcol, ccol = st.columns(3)
-
-    # Discounts
-    with dcol:
-        if row_max_disc is not None:
-            st.metric(f"🏷️ Highest discount — week {last_week} — {row_max_disc['brand']}", f"{row_max_disc['discount_pct']:.1f}%")
+        # Largest / Lowest price change on the last update of the last week:
+        if not df_week.empty:
+            latest_by_brand = df_week.loc[df_week.groupby("brand")["date"].idxmax()].copy()
         else:
-            st.metric(f"🏷️ Highest discount — week {last_week}", "N/A")
+            latest_by_brand = pd.DataFrame()
 
-        if row_min_disc is not None:
-            st.metric(f"🏷️ Lowest discount — week {last_week} — {row_min_disc['brand']}", f"{row_min_disc['discount_pct']:.1f}%")
-        else:
-            st.metric(f"🏷️ Lowest discount — week {last_week}", "N/A")
+        row_max_change = (
+            latest_by_brand.loc[latest_by_brand["price_change"].idxmax()]
+            if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any()
+            else None
+        )
+        row_min_change = (
+            latest_by_brand.loc[latest_by_brand["price_change"].idxmin()]
+            if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any()
+            else None
+        )
 
-    # Prices
-    with pcol:
-        if row_max_price is not None:
-            st.metric(f"💲 Highest price — week {last_week} — {row_max_price['brand']}", f"${row_max_price['product_price']:.2f}")
-        else:
-            st.metric(f"💲 Highest price — week {last_week}", "N/A")
+        st.markdown("### Last week highlights")
 
-        if row_min_price is not None:
-            st.metric(f"💲 Lowest price — week {last_week} — {row_min_price['brand']}", f"${row_min_price['product_price']:.2f}")
-        else:
-            st.metric(f"💲 Lowest price — week {last_week}", "N/A")
+        # 3 columns: Discounts | Prices | Price changes
+        dcol, pcol, ccol = st.columns(3)
 
-    # Price changes (last update)
-    with ccol:
-        if row_max_change is not None:
-            st.metric(
-                f"🔺 Largest price change (last update) — week {last_week} — {row_max_change['brand']}",
-                f"{row_max_change['price_change']:+.1f}%"
-            )
-        else:
-            st.metric(f"🔺 Largest price change (last update) — week {last_week}", "N/A")
+        # Discounts
+        with dcol:
+            if row_max_disc is not None:
+                st.metric(f"🏷️ Highest discount — week {last_week} — {row_max_disc['brand']}", f"{row_max_disc['discount_pct']:.1f}%")
+            else:
+                st.metric(f"🏷️ Highest discount — week {last_week}", "N/A")
 
-        if row_min_change is not None:
-            st.metric(
-                f"🔻 Lowest price change (last update) — week {last_week} — {row_min_change['brand']}",
-                f"{row_min_change['price_change']:+.1f}%"
-            )
-        else:
-            st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
+            if row_min_disc is not None:
+                st.metric(f"🏷️ Lowest discount — week {last_week} — {row_min_disc['brand']}", f"{row_min_disc['discount_pct']:.1f}%")
+            else:
+                st.metric(f"🏷️ Lowest discount — week {last_week}", "N/A")
+
+        # Prices
+        with pcol:
+            if row_max_price is not None:
+                st.metric(f"💲 Highest price — week {last_week} — {row_max_price['brand']}", f"${row_max_price['product_price']:.2f}")
+            else:
+                st.metric(f"💲 Highest price — week {last_week}", "N/A")
+
+            if row_min_price is not None:
+                st.metric(f"💲 Lowest price — week {last_week} — {row_min_price['brand']}", f"${row_min_price['product_price']:.2f}")
+            else:
+                st.metric(f"💲 Lowest price — week {last_week}", "N/A")
+
+        # Price changes (last update)
+        with ccol:
+            if row_max_change is not None:
+                st.metric(
+                    f"🔺 Largest price change (last update) — week {last_week} — {row_max_change['brand']}",
+                    f"{row_max_change['price_change']:+.1f}%"
+                )
+            else:
+                st.metric(f"🔺 Largest price change (last update) — week {last_week}", "N/A")
+
+            if row_min_change is not None:
+                st.metric(
+                    f"🔻 Lowest price change (last update) — week {last_week} — {row_min_change['brand']}",
+                    f"{row_min_change['price_change']:+.1f}%"
+                )
+            else:
+                st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
 
 # Overview chart (uses the selections above; no week-range filter anymore)
 overview_fig = create_overview_graph(
