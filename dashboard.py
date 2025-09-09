@@ -46,13 +46,13 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df['asin'].dropna().unique()
     num_asins = len(asins)
 
-    # Layout en 3 columnas
+    # Layout en 3 columnas (cambiar según sea necesario)
     cols = 3 if num_asins >= 3 else max(1, num_asins)
-    rows = int(np.ceil(num_asins / cols))
+    rows = int(np.ceil(num_asins / cols))  # Distribuir en filas
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
-        vertical_spacing=0.15, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
+        vertical_spacing=0.15, horizontal_spacing=0.06,  # Ajustar espaciado entre los gráficos
         subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
     )
 
@@ -97,6 +97,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
     fig.update_yaxes(range=[0, max_price])
+
     # Establecer el rango uniforme para el eje X en todos los subplots (semana)
     fig.update_xaxes(range=[min_week, max_week])
 
@@ -131,24 +132,4 @@ st.markdown(
 
 # Gráfico
 price_graph = create_price_graph(prepared_df)
-st.plotly_chart(price_graph, use_container_width=True)
-
-# -------------------------------
-# Tabla con filtros
-# -------------------------------
-st.subheader("Detailed Product Information")
-
-asin_options = ['All'] + prepared_df['asin'].dropna().unique().tolist()
-discount_options = ['All', 'Discounted', 'No Discount']
-
-asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0)
-discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0)
-
-filtered_df = prepared_df.copy()
-if asin_filter != 'All':
-    filtered_df = filtered_df[filtered_df['asin'] == asin_filter]
-if discount_filter != 'All':
-    filtered_df = filtered_df[filtered_df['discount'] == discount_filter]
-
-st.dataframe(filtered_df)
-
+st.plot
