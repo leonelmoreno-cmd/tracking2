@@ -132,4 +132,23 @@ st.markdown(
 
 # Gráfico
 price_graph = create_price_graph(prepared_df)
-st.plot
+st.plotly_chart(price_graph, use_container_width=True)
+
+# -------------------------------
+# Tabla con filtros
+# -------------------------------
+st.subheader("Detailed Product Information")
+
+asin_options = ['All'] + prepared_df['asin'].dropna().unique().tolist()
+discount_options = ['All', 'Discounted', 'No Discount']
+
+asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0)
+discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0)
+
+filtered_df = prepared_df.copy()
+if asin_filter != 'All':
+    filtered_df = filtered_df[filtered_df['asin'] == asin_filter]
+if discount_filter != 'All':
+    filtered_df = filtered_df[filtered_df['discount'] == discount_filter]
+
+st.dataframe(filtered_df)
