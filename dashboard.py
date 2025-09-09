@@ -55,6 +55,9 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE;'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
     )
 
+    # Obtener el precio máximo global para establecer la misma escala en Y
+    max_price = float(df['product_price'].max())
+
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
@@ -88,7 +91,6 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         )
 
     # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
-    max_price = float(df['product_price'].max())
     fig.update_yaxes(range=[0, max_price])
 
     fig.update_layout(
@@ -96,7 +98,6 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
         margin=dict(l=20, r=20, t=50, b=20)
-        # Nota: se elimina scaleanchor para evitar problemas entre subplots
     )
     return fig
 
