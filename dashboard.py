@@ -102,6 +102,13 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     # Establecer el rango uniforme para el eje X en todos los subplots (semana)
     fig.update_xaxes(range=[min_week, max_week])
 
+    fig.for_each_xaxis(lambda ax: ax.update(
+    tickmode='linear',
+    tick0=min_week,
+    dtick=1
+))
+
+    
     fig.update_layout(
         height=max(400, 280 * rows),
         xaxis_title="Week Number",
