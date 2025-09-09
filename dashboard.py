@@ -309,7 +309,7 @@ with right_col:
 overview_fig = create_overview_graph(
     prepared_df,
     brands_to_plot=selected_brands,
-    use_markers=use_markers
+    use_markers=False  # fijo: sin marcadores
 )
 st.plotly_chart(overview_fig, use_container_width=True)
 
