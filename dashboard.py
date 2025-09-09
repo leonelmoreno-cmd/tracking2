@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 # Page config
 # -------------------------------
 st.set_page_config(
-    page_title="Competitors Price Tracker",
+    page_title="Competitor Price Monitoring",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
@@ -183,7 +183,7 @@ last_update_str = last_update.strftime("%Y-%m-%d") if pd.notna(last_update) else
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
+        <h1 style="font-size: 36px; margin-bottom: 4px;">Competitor Price Monitoring</h1>
         <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Economist Leonel Moreno </h3>    
         </p>
     </div>
