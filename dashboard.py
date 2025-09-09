@@ -40,7 +40,58 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # -------------------------------
-# Plot helper - Subplots por ASIN
+# NUEVO: gráfico overview (todas las series)
+# -------------------------------
+def create_overview_graph(df: pd.DataFrame, asins_to_plot=None, use_markers=True) -> go.Figure:
+    # Filtrado opcional por ASIN
+    if asins_to_plot is not None and len(asins_to_plot) > 0:
+        df = df[df['asin'].isin(asins_to_plot)]
+
+    # Rangos y semanas
+    weeks = sorted(df['week_number'].unique())
+    max_price = float(max(df['product_price'].max(),
+                          df['product_original_price'].max()))
+    min_week = df['week_number'].min()
+    max_week = df['week_number'].max()
+
+    fig = go.Figure()
+
+    # Modo de trazas: líneas+marcadores o solo líneas
+    trace_mode = 'lines+markers' if use_markers else 'lines'
+
+    # Una traza por ASIN
+    for asin, g in df.sort_values('date').groupby('asin'):
+        fig.add_trace(go.Scatter(
+            x=g['week_number'],
+            y=g['product_price'],
+            mode=trace_mode,
+            name=str(asin),
+            hovertemplate=(
+                'ASIN: %{text}<br>' +
+                'Price: $%{y:.2f}<br>' +
+                'Week: %{x}<extra></extra>'
+            ),
+            text=g['asin'],
+            showlegend=True
+        ))
+
+    # Ejes y layout
+    fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
+    fig.update_xaxes(
+        range=[min_week, max_week],
+        tickmode='linear', tick0=min_week, dtick=1,
+        title_text="Week Number"
+    )
+    fig.update_layout(
+        height=420,
+        hovermode="x unified",  # tooltip unificado por semana
+        legend_title_text="ASIN",
+        margin=dict(l=20, r=20, t=30, b=40)
+    )
+    return fig
+
+# -------------------------------
+# Plot helper (subplots por ASIN)
 # -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df['asin'].dropna().unique()
@@ -59,18 +110,21 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     # Escala Y global
     max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
 
-    # Rango X (semanas)
+    # Rango X común (semanas)
     min_week = df['week_number'].min()
     max_week = df['week_number'].max()
 
+    # Aseguramos ticklabels visibles en todos
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
 
+    # Trazas por ASIN
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
             continue
 
         dashed = 'dot' if (asin_data['discount'] == 'Discounted').any() else 'solid'
+
         r = i // cols + 1
         c = i % cols + 1
 
@@ -95,9 +149,8 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
             row=r, col=c
         )
 
-    # Escala uniforme en Y para TODOS los subplots
+    # Escala Y uniforme y rango X
     fig.update_yaxes(range=[0, max_price])
-    # Rango uniforme en X (semanas)
     fig.update_xaxes(range=[min_week, max_week])
 
     # Ticks semanales enteros
@@ -116,54 +169,12 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Plot helper - Overview (todos los ASIN)
-# -------------------------------
-def create_overview_graph(df: pd.DataFrame) -> go.Figure:
-    # Semanas y escala global
-    max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
-    min_week = df['week_number'].min()
-    max_week = df['week_number'].max()
-
-    fig = go.Figure()
-
-    # Una línea por ASIN
-    for asin, g in df.sort_values('date').groupby('asin'):
-        fig.add_trace(go.Scatter(
-            x=g['week_number'],
-            y=g['product_price'],
-            mode='lines+markers',
-            name=str(asin),
-            hovertemplate=(
-                'ASIN: %{text}<br>' +
-                'Price: $%{y:.2f}<br>' +
-                'Week: %{x}<extra></extra>'
-            ),
-            text=g['asin'],
-            showlegend=True
-        ))
-
-    # Ejes y layout
-    fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
-    fig.update_xaxes(
-        range=[min_week, max_week],
-        tickmode='linear', tick0=min_week, dtick=1,
-        title_text="Week Number"
-    )
-    fig.update_layout(
-        height=420,
-        hovermode="x unified",
-        legend_title_text="ASIN",
-        margin=dict(l=20, r=20, t=30, b=40)
-    )
-    return fig
-
-# -------------------------------
 # Main UI
 # -------------------------------
 df = fetch_data()
 prepared_df = prepare_data(df)
 
-# Última actualización (fecha máxima del dataset)
+# Última actualización
 last_update = prepared_df['date'].max()
 last_update_str = last_update.strftime('%Y-%m-%d') if pd.notna(last_update) else 'N/A'
 
@@ -178,12 +189,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Overview (todos los ASIN en un solo gráfico) ---
+# -------- Overview (nuevo) --------
 st.subheader("Overview — All ASINs")
-overview_fig = create_overview_graph(prepared_df)
+
+# Controles de UI para el overview
+all_asins = sorted(prepared_df['asin'].dropna().unique().tolist())
+use_markers = st.checkbox("Mostrar marcadores en el overview", value=False)  # por defecto solo líneas
+selected_asins = st.multiselect("ASINs a visualizar (overview)", options=all_asins, default=all_asins)
+
+overview_fig = create_overview_graph(prepared_df, asins_to_plot=selected_asins, use_markers=use_markers)
 st.plotly_chart(overview_fig, use_container_width=True)
 
-# --- Subplots por ASIN (lo que ya tienes) ---
+# -------- Subplots por ASIN (ya existente) --------
 price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
@@ -192,7 +209,7 @@ st.plotly_chart(price_graph, use_container_width=True)
 # -------------------------------
 st.subheader("Detailed Product Information")
 
-asin_options = ['All'] + prepared_df['asin'].dropna().unique().tolist()
+asin_options = ['All'] + all_asins
 discount_options = ['All', 'Discounted', 'No Discount']
 
 asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0)
