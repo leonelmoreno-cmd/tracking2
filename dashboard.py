@@ -56,7 +56,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     )
 
     # Obtener el precio máximo global para establecer la misma escala en Y
-    max_price = float(df['product_price'].max())
+    max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
 
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
