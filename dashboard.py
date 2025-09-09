@@ -63,6 +63,8 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     min_week = df['week_number'].min()
     max_week = df['week_number'].max()
 
+    fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
+    
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
