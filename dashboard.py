@@ -52,7 +52,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.08, horizontal_spacing=0.06,
-        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color:#FFFBFE'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
+        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE;'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
     )
 
     for i, asin in enumerate(asins):
@@ -68,7 +68,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=asin_data['date'],
+                x=asin_data['week_number'],
                 y=asin_data['product_price'],
                 mode='lines+markers',
                 name=str(asin),
@@ -76,7 +76,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
                 hovertemplate=(
                     'ASIN: %{text}<br>' +
                     'Price: $%{y:.2f}<br>' +
-                    'Date: %{x|%Y-%m-%d}<br>' +
+                    'Week: %{x}<br>' +
                     'Price Change: %{customdata:.2f}%<br>' +
                     '<extra></extra>'
                 ),
@@ -93,7 +93,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     fig.update_layout(
         height=max(400, 280 * rows),
-        xaxis_title="Date",
+        xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
         margin=dict(l=20, r=20, t=50, b=20)
         # Nota: se elimina scaleanchor para evitar problemas entre subplots
