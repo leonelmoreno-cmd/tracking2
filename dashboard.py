@@ -29,6 +29,7 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
     # Agrega columna para el número de semana
     df['week_number'] = df['date'].dt.isocalendar().week
+    df = df.sort_values(by=['asin', 'week_number'])
     # Etiqueta de descuento (si hay precio original no nulo)
     df['discount'] = df.apply(
         lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
