@@ -21,7 +21,7 @@ st.markdown(
 # Function to fetch CSV from GitHub
 @st.cache_data
 def fetch_data():
-    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/competitors_history-oldversion.csv"
+    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/competitors_history - IC.csv"
     df = pd.read_csv(url)
     return df
 
