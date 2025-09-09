@@ -27,8 +27,8 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     # Asegura tipos
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    # Agregar columna con el número de la semana
-    df['week'] = df['date'].dt.isocalendar().week
+    # Agrega columna para el número de semana
+    df['week_number'] = df['date'].dt.isocalendar().week
     # Etiqueta de descuento (si hay precio original no nulo)
     df['discount'] = df.apply(
         lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
@@ -52,11 +52,11 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.08, horizontal_spacing=0.06,
-        subplot_titles=[f"<a href='{df[df['asin'] == asin].iloc[0]['product_url']}' style='color:{textColor};'>{df[df['asin'] == asin].iloc[0]['brand']}</a> | {asin}" for asin in asins]
+        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
     )
 
     for i, asin in enumerate(asins):
-        asin_data = df[df['asin'] == asin].sort_values('week')
+        asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
             continue
 
@@ -68,7 +68,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=asin_data['week'],  # Ahora el eje X es la semana
+                x=asin_data['week_number'],
                 y=asin_data['product_price'],
                 mode='lines+markers',
                 name=str(asin),
@@ -95,8 +95,8 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         height=max(400, 280 * rows),
         xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=50, b=20),
-        plot_bgcolor=backgroundColor  # Fondo del gráfico
+        margin=dict(l=20, r=20, t=50, b=20)
+        # Nota: se elimina scaleanchor para evitar problemas entre subplots
     )
     return fig
 
@@ -114,8 +114,8 @@ last_update_str = last_update.strftime('%Y-%m-%d') if pd.notna(last_update) else
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <h1 style="font-size: 36px; margin-bottom: 4px; color:{textColor};">Competitors Price Tracker</h1>
-        <h3 style="color:{textColor}; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
+        <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
+        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
     </div>
     """,
     unsafe_allow_html=True
@@ -128,7 +128,7 @@ st.plotly_chart(price_graph, use_container_width=True)
 # -------------------------------
 # Tabla con filtros
 # -------------------------------
-st.subheader("Detailed Product Information", anchor="product-info")
+st.subheader("Detailed Product Information")
 
 asin_options = ['All'] + prepared_df['asin'].dropna().unique().tolist()
 discount_options = ['All', 'Discounted', 'No Discount']
@@ -146,7 +146,6 @@ st.dataframe(
     filtered_df[[
         'asin', 'product_title', 'product_price', 'product_original_price',
         'product_star_rating', 'product_num_ratings', 'is_amazon_choice',
-        'sales_volume', 'discount', 'date'
-    ]],
-    use_container_width=True
+        'sales_volume', 'discount', 'date', 'brand', 'product_url'
+    ]]
 )
