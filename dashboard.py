@@ -182,11 +182,101 @@ st.markdown(
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
 
-all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
-use_markers = st.checkbox("Show markers on overview", value=False)
-selected_brands = st.multiselect("Brands to display (overview)", options=all_brands, default=all_brands)
+# Two columns: left (selectors) and right (metrics). Right is 2/3 width.
+left_col, right_col = st.columns([1, 2])
 
-overview_fig = create_overview_graph(prepared_df, brands_to_plot=selected_brands, use_markers=use_markers)
+# Available brands
+all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
+
+# LEFT: selectors
+with left_col:
+    use_markers = st.checkbox("Show markers on overview", value=False)
+    selected_brands = st.multiselect(
+        "Brands to display (overview)",
+        options=all_brands,
+        default=all_brands
+    )
+
+# RIGHT: metrics (computed on the latest ISO week, optionally filtered by selected brands)
+with right_col:
+    last_week = int(prepared_df["week_number"].max())
+    df_week = prepared_df[
+        (prepared_df["week_number"] == last_week) &
+        (prepared_df["brand"].isin(selected_brands))
+    ].copy()
+
+    # Discount % (only when original price is present and > 0)
+    df_week["discount_pct"] = np.where(
+        df_week["product_original_price"].notna() & (df_week["product_original_price"] != 0),
+        (df_week["product_original_price"] - df_week["product_price"]) / df_week["product_original_price"] * 100.0,
+        np.nan
+    )
+
+    # Highest / Lowest discount (last week)
+    row_max_disc = df_week.loc[df_week["discount_pct"].idxmax()] if df_week["discount_pct"].notna().any() else None
+    row_min_disc = df_week.loc[df_week["discount_pct"].idxmin()] if df_week["discount_pct"].notna().any() else None
+
+    # Highest / Lowest price (last week)
+    row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() else None
+    row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() else None
+
+    # Largest price change on the last update of the last week:
+    # For each brand, take the most recent row within that week, then compare 'price_change'.
+    if not df_week.empty:
+        latest_by_brand = df_week.loc[df_week.groupby("brand")["date"].idxmax()].copy()
+    else:
+        latest_by_brand = pd.DataFrame()
+    row_max_change = (
+        latest_by_brand.loc[latest_by_brand["price_change"].idxmax()]
+        if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any()
+        else None
+    )
+
+    st.markdown("### Last week highlights")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if row_max_disc is not None:
+            st.metric(f"Highest discount (week {last_week}) — {row_max_disc['brand']}", f"{row_max_disc['discount_pct']:.1f}%")
+        else:
+            st.metric(f"Highest discount (week {last_week})", "N/A")
+
+    with c2:
+        if row_min_disc is not None:
+            st.metric(f"Lowest discount (week {last_week}) — {row_min_disc['brand']}", f"{row_min_disc['discount_pct']:.1f}%")
+        else:
+            st.metric(f"Lowest discount (week {last_week})", "N/A")
+
+    c3, c4 = st.columns(2)
+    with c3:
+        if row_max_price is not None:
+            st.metric(f"Highest price (week {last_week}) — {row_max_price['brand']}", f"${row_max_price['product_price']:.2f}")
+        else:
+            st.metric(f"Highest price (week {last_week})", "N/A")
+
+    with c4:
+        if row_min_price is not None:
+            st.metric(f"Lowest price (week {last_week}) — {row_min_price['brand']}", f"${row_min_price['product_price']:.2f}")
+        else:
+            st.metric(f"Lowest price (week {last_week})", "N/A")
+
+    if row_max_change is not None:
+        st.metric(
+            f"Largest price change on last update (week {last_week}) — {row_max_change['brand']}",
+            f"{row_max_change['price_change']:+.1f}%"
+        )
+    else:
+        st.metric(f"Largest price change on last update (week {last_week})", "N/A")
+
+# Spacer before the overview chart
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Overview chart (uses the selections above)
+overview_fig = create_overview_graph(
+    prepared_df,
+    brands_to_plot=selected_brands,
+    use_markers=use_markers
+)
 st.plotly_chart(overview_fig, use_container_width=True)
 
 # -------- Subplots by ASIN --------
