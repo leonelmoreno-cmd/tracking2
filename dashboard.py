@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # -------------------------------
-# Configuración de la página
+# Page config
 # -------------------------------
 st.set_page_config(
     page_title="Competitors Price Tracker",
@@ -24,141 +24,131 @@ def fetch_data():
 
 @st.cache_data
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
-    # Asegura tipos
     df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    # Agrega columna para el número de semana
-    df['week_number'] = df['date'].dt.isocalendar().week
-    df = df.sort_values(by=['asin', 'week_number'])
-    # Etiqueta de descuento (si hay precio original no nulo)
-    df['discount'] = df.apply(
-        lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["week_number"] = df["date"].dt.isocalendar().week
+    df = df.sort_values(by=["asin", "week_number"])
+    df["discount"] = df.apply(
+        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
         axis=1
     )
-    # Cambio porcentual por ASIN
-    df['price_change'] = df.groupby('asin')['product_price'].pct_change() * 100
+    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
     return df
 
 # -------------------------------
-# NUEVO: gráfico overview (todas las series)
+# NEW: Overview chart (by brand)
 # -------------------------------
-def create_overview_graph(df: pd.DataFrame, asins_to_plot=None, use_markers=True) -> go.Figure:
-    # Filtrado opcional por ASIN
-    if asins_to_plot is not None and len(asins_to_plot) > 0:
-        df = df[df['asin'].isin(asins_to_plot)]
+def create_overview_graph(df: pd.DataFrame, brands_to_plot=None, use_markers=True) -> go.Figure:
+    # Optional brand filter
+    if brands_to_plot is not None and len(brands_to_plot) > 0:
+        df = df[df["brand"].isin(brands_to_plot)]
 
-    # Rangos y semanas
-    weeks = sorted(df['week_number'].unique())
-    max_price = float(max(df['product_price'].max(),
-                          df['product_original_price'].max()))
-    min_week = df['week_number'].min()
-    max_week = df['week_number'].max()
+    # Global ranges and weeks
+    weeks = sorted(df["week_number"].unique())
+    max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
+    min_week = df["week_number"].min()
+    max_week = df["week_number"].max()
 
     fig = go.Figure()
+    trace_mode = "lines+markers" if use_markers else "lines"
 
-    # Modo de trazas: líneas+marcadores o solo líneas
-    trace_mode = 'lines+markers' if use_markers else 'lines'
-
-    # Una traza por ASIN
-    for asin, g in df.sort_values('date').groupby('asin'):
+    # One line per brand (avg price per week in case of multiple ASINs per brand)
+    brand_week = (
+        df.sort_values("date")
+          .groupby(["brand", "week_number"], as_index=False)["product_price"].mean()
+    )
+    for brand, g in brand_week.groupby("brand"):
         fig.add_trace(go.Scatter(
-            x=g['week_number'],
-            y=g['product_price'],
+            x=g["week_number"],
+            y=g["product_price"],
             mode=trace_mode,
-            name=str(asin),
+            name=str(brand),
             hovertemplate=(
-                'ASIN: %{text}<br>' +
-                'Price: $%{y:.2f}<br>' +
-                'Week: %{x}<extra></extra>'
+                "Brand: %{text}<br>" +
+                "Price: $%{y:.2f}<br>" +
+                "Week: %{x}<extra></extra>"
             ),
-            text=g['asin'],
+            text=g["brand"],
             showlegend=True
         ))
 
-    # Ejes y layout
+    # Axes and layout
     fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
     fig.update_xaxes(
         range=[min_week, max_week],
-        tickmode='linear', tick0=min_week, dtick=1,
+        tickmode="linear", tick0=min_week, dtick=1,
         title_text="Week Number"
     )
     fig.update_layout(
         height=420,
-        hovermode="x unified",  # tooltip unificado por semana
-        legend_title_text="ASIN",
+        hovermode="x unified",
+        legend_title_text="Brand",
         margin=dict(l=20, r=20, t=30, b=40)
     )
     return fig
 
 # -------------------------------
-# Plot helper (subplots por ASIN)
+# Subplots per ASIN
 # -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
-    asins = df['asin'].dropna().unique()
+    asins = df["asin"].dropna().unique()
     num_asins = len(asins)
 
-    # Layout en 3 columnas
+    # Grid: 3 columns
     cols = 3 if num_asins >= 3 else max(1, num_asins)
     rows = int(np.ceil(num_asins / cols))
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.15, horizontal_spacing=0.06,
-        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
+        subplot_titles=[
+            f"<a href='{df[df['asin']==asin]['product_url'].iloc[0]}' target='_blank' "
+            f"style='color:#FFFBFE; text-decoration:none;'>{df[df['asin']==asin]['brand'].iloc[0]} - {asin}</a>"
+            for asin in asins
+        ]
     )
 
-    # Escala Y global
-    max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
+    max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
+    min_week = df["week_number"].min()
+    max_week = df["week_number"].max()
 
-    # Rango X común (semanas)
-    min_week = df['week_number'].min()
-    max_week = df['week_number'].max()
-
-    # Aseguramos ticklabels visibles en todos
+    # Ensure x tick labels are visible on all subplots
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
 
-    # Trazas por ASIN
     for i, asin in enumerate(asins):
-        asin_data = df[df['asin'] == asin].sort_values('date')
+        asin_data = df[df["asin"] == asin].sort_values("date")
         if asin_data.empty:
             continue
 
-        dashed = 'dot' if (asin_data['discount'] == 'Discounted').any() else 'solid'
-
+        dashed = "dot" if (asin_data["discount"] == "Discounted").any() else "solid"
         r = i // cols + 1
         c = i % cols + 1
 
         fig.add_trace(
             go.Scatter(
-                x=asin_data['week_number'],
-                y=asin_data['product_price'],
-                mode='lines+markers',
+                x=asin_data["week_number"],
+                y=asin_data["product_price"],
+                mode="lines+markers",
                 name=str(asin),
                 line=dict(dash=dashed),
                 hovertemplate=(
-                    'ASIN: %{text}<br>' +
-                    'Price: $%{y:.2f}<br>' +
-                    'Week: %{x}<br>' +
-                    'Price Change: %{customdata:.2f}%<br>' +
-                    '<extra></extra>'
+                    "ASIN: %{text}<br>" +
+                    "Price: $%{y:.2f}<br>" +
+                    "Week: %{x}<br>" +
+                    "Price Change: %{customdata:.2f}%<br>" +
+                    "<extra></extra>"
                 ),
-                text=asin_data['asin'],
-                customdata=asin_data['price_change'],
+                text=asin_data["asin"],
+                customdata=asin_data["price_change"],
                 showlegend=False
             ),
             row=r, col=c
         )
 
-    # Escala Y uniforme y rango X
+    # Uniform scales and integer week ticks
     fig.update_yaxes(range=[0, max_price])
     fig.update_xaxes(range=[min_week, max_week])
-
-    # Ticks semanales enteros
-    fig.for_each_xaxis(lambda ax: ax.update(
-        tickmode='linear',
-        tick0=min_week,
-        dtick=1
-    ))
+    fig.for_each_xaxis(lambda ax: ax.update(tickmode="linear", tick0=min_week, dtick=1))
 
     fig.update_layout(
         height=max(400, 280 * rows),
@@ -174,11 +164,11 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 df = fetch_data()
 prepared_df = prepare_data(df)
 
-# Última actualización
-last_update = prepared_df['date'].max()
-last_update_str = last_update.strftime('%Y-%m-%d') if pd.notna(last_update) else 'N/A'
+# Last update
+last_update = prepared_df["date"].max()
+last_update_str = last_update.strftime("%Y-%m-%d") if pd.notna(last_update) else "N/A"
 
-# Título + Subtítulo centrados
+# Title + Subtitle
 st.markdown(
     f"""
     <div style="text-align:center;">
@@ -189,36 +179,35 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# -------- Overview (nuevo) --------
-st.subheader("Overview — All ASINs")
+# -------- Overview (by brand) --------
+st.subheader("Overview — All Brands")
 
-# Controles de UI para el overview
-all_asins = sorted(prepared_df['asin'].dropna().unique().tolist())
-use_markers = st.checkbox("Mostrar marcadores en el overview", value=False)  # por defecto solo líneas
-selected_asins = st.multiselect("ASINs a visualizar (overview)", options=all_asins, default=all_asins)
+all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
+use_markers = st.checkbox("Show markers on overview", value=False)
+selected_brands = st.multiselect("Brands to display (overview)", options=all_brands, default=all_brands)
 
-overview_fig = create_overview_graph(prepared_df, asins_to_plot=selected_asins, use_markers=use_markers)
+overview_fig = create_overview_graph(prepared_df, brands_to_plot=selected_brands, use_markers=use_markers)
 st.plotly_chart(overview_fig, use_container_width=True)
 
-# -------- Subplots por ASIN (ya existente) --------
+# -------- Subplots by ASIN --------
 price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
 # -------------------------------
-# Tabla con filtros
+# Table + filters
 # -------------------------------
 st.subheader("Detailed Product Information")
 
-asin_options = ['All'] + all_asins
-discount_options = ['All', 'Discounted', 'No Discount']
+asin_options = ["All"] + sorted(prepared_df["asin"].dropna().unique().tolist())
+discount_options = ["All", "Discounted", "No Discount"]
 
 asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0)
 discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0)
 
 filtered_df = prepared_df.copy()
-if asin_filter != 'All':
-    filtered_df = filtered_df[filtered_df['asin'] == asin_filter]
-if discount_filter != 'All':
-    filtered_df = filtered_df[filtered_df['discount'] == discount_filter]
+if asin_filter != "All":
+    filtered_df = filtered_df[filtered_df["asin"] == asin_filter]
+if discount_filter != "All":
+    filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
 
 st.dataframe(filtered_df)
