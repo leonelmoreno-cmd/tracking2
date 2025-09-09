@@ -58,6 +58,10 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     # Obtener el precio máximo global para establecer la misma escala en Y
     max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
 
+    # Obtener el rango de semanas (eje X común)
+    min_week = df['week_number'].min()
+    max_week = df['week_number'].max()
+
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
@@ -92,6 +96,8 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
     fig.update_yaxes(range=[0, max_price])
+    # Establecer el rango uniforme para el eje X en todos los subplots (semana)
+    fig.update_xaxes(range=[min_week, max_week])
 
     fig.update_layout(
         height=max(400, 280 * rows),
