@@ -18,19 +18,21 @@ st.set_page_config(
 # -------------------------------
 @st.cache_data
 def fetch_data():
-    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic3.csv"
+    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic2.csv"
     df = pd.read_csv(url)
     return df
 
 @st.cache_data
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+
+    # Tipos
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
-    # Semana ISO para eje X y hover
-    iso = df['date'].dt.isocalendar()
-    df['week'] = iso.week  # número de semana ISO
-    df['iso_year'] = iso.year
+    # Semana ISO (número de semana para eje X)
+    # Si ya existe la columna 'week', la respetamos; si no, la creamos
+    if 'week' not in df.columns:
+        df['week'] = df['date'].dt.isocalendar().week
 
     # Etiqueta de descuento (si hay precio original no nulo)
     df['discount'] = df.apply(
@@ -40,6 +42,7 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
 
     # Cambio porcentual por ASIN
     df['price_change'] = df.groupby('asin')['product_price'].pct_change() * 100
+
     return df
 
 # -------------------------------
@@ -53,11 +56,21 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     cols = 3 if num_asins >= 3 else max(1, num_asins)
     rows = int(np.ceil(num_asins / cols))
 
-    # Creamos subplots SIN títulos automáticos; agregaremos anotaciones personalizadas
+    # Prepara títulos "placeholder" (los reemplazaremos con anotaciones personalizadas)
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
-        vertical_spacing=0.08, horizontal_spacing=0.06
+        vertical_spacing=0.08, horizontal_spacing=0.06,
+        subplot_titles=["" for _ in range(num_asins)]  # vacío; usaremos anotaciones propias
     )
+
+    # Rango Y uniforme
+    max_price = float(df['product_price'].max())
+    # Rango X por semana
+    min_week = int(df['week'].min())
+    max_week = int(df['week'].max())
+
+    # Color de títulos/subtítulos (contrastan con #1d293d)
+    title_color = "#e2e8f0"
 
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
@@ -70,90 +83,72 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         r = i // cols + 1
         c = i % cols + 1
 
-        # customdata: [price_change, week]
-        customdata = np.column_stack([
-            asin_data['price_change'].to_numpy(),
-            asin_data['week'].to_numpy()
-        ])
-
+        # Trazo usando semana como eje X
         fig.add_trace(
             go.Scatter(
-                x=asin_data['date'],                    # mantenemos fechas para suavidad
+                x=asin_data['week'],
                 y=asin_data['product_price'],
                 mode='lines+markers',
                 name=str(asin),
                 line=dict(dash=dashed),
                 hovertemplate=(
-                    'ASIN: %{text}<br>' +
+                    'ASIN: %{customdata[0]}<br>' +
+                    'Brand: %{customdata[1]}<br>' +
+                    'Week: %{x}<br>' +
+                    'Date: %{customdata[2]|%Y-%m-%d}<br>' +
                     'Price: $%{y:.2f}<br>' +
-                    'Date: %{x|%Y-%m-%d}<br>' +
-                    'Week: %{customdata[1]}<br>' +
-                    'Price Change: %{customdata[0]:.2f}%<br>' +
+                    'Price Change: %{customdata[3]:.2f}%<br>' +
+                    'URL: %{customdata[4]}<br>' +
                     '<extra></extra>'
                 ),
-                text=asin_data['asin'],
-                customdata=customdata,
+                customdata=np.stack([
+                    asin_data['asin'],
+                    asin_data.get('brand', pd.Series(['']*len(asin_data))),
+                    asin_data['date'],
+                    asin_data['price_change'],
+                    asin_data.get('product_url', pd.Series(['']*len(asin_data)))
+                ], axis=1),
                 showlegend=False
             ),
             row=r, col=c
         )
 
-        # ----- Anotaciones personalizadas por subplot -----
-        # Obtenemos brand y url del primer registro disponible
-        brand = asin_data['brand'].dropna().iloc[0] if 'brand' in asin_data and not asin_data['brand'].dropna().empty else str(asin)
-        url = asin_data['product_url'].dropna().iloc[0] if 'product_url' in asin_data and not asin_data['product_url'].dropna().empty else None
+        # Texto de título para cada subplot: link a product_url con la brand + " — ASIN: ..."
+        brand = (asin_data['brand'].dropna().iloc[0]
+                 if 'brand' in asin_data.columns and asin_data['brand'].notna().any()
+                 else str(asin))
+        url = (asin_data['product_url'].dropna().iloc[0]
+               if 'product_url' in asin_data.columns and asin_data['product_url'].notna().any()
+               else "")
 
-        # Dominio (posición) del subplot en la figura para centrar el título
-        subplot_index = i + 1
-        xaxis_key = f'xaxis{subplot_index}' if subplot_index > 1 else 'xaxis'
-        yaxis_key = f'yaxis{subplot_index}' if subplot_index > 1 else 'yaxis'
+        # Intentamos usar <a href="..."> para que sea cliqueable.
+        # Nota: En algunos entornos Plotly, los enlaces en anotaciones pueden no ser clicables;
+        # de todas formas se verá claramente y la URL está en el hover también.
+        title_text = f'<a href="{url}" target="_blank" style="color:{title_color}; text-decoration:underline;">{brand}</a> — ASIN: {asin}'
 
-        x_domain = fig.layout[xaxis_key].domain
-        y_domain = fig.layout[yaxis_key].domain
-        x_center = (x_domain[0] + x_domain[1]) / 2.0
-        y_top = y_domain[1]
-
-        title_color = "#e2e8f0"   # alto contraste con #1C293C/#1d293d
-        subtitle_color = "#cbd5e1" # un poco más suave pero legible
-
-        # Título linkeable (brand)
-        if url:
-            title_text = f'<a href="{url}" target="_blank" style="text-decoration:none; color:{title_color};">{brand}</a>'
-        else:
-            title_text = f'<span style="color:{title_color};">{brand}</span>'
-
-        # Subtítulo con ASIN
-        subtitle_text = f'<span style="color:{subtitle_color};">ASIN: {asin}</span>'
-
-        # Anotación del título (arriba del subplot)
+        # Agregamos anotación como "título" del subplot
         fig.add_annotation(
-            x=x_center, y=y_top + 0.08, xref='paper', yref='paper',
-            text=title_text, showarrow=False,
-            xanchor='center', yanchor='bottom',
-            font=dict(size=14)
-        )
-        # Anotación del subtítulo (debajo del título)
-        fig.add_annotation(
-            x=x_center, y=y_top + 0.04, xref='paper', yref='paper',
-            text=subtitle_text, showarrow=False,
-            xanchor='center', yanchor='bottom',
-            font=dict(size=12)
+            text=title_text,
+            xref=f"x{(i+1) if (i+1)>1 else ''} domain",  # dominio del subplot
+            yref=f"y{(i+1) if (i+1)>1 else ''} domain",
+            x=0.0, y=1.12,  # un poco arriba del área del subplot
+            showarrow=False,
+            align="left",
+            font=dict(color=title_color, size=12)
         )
 
-    # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
-    max_price = float(df['product_price'].max())
-    fig.update_yaxes(range=[0, max_price])
+        # Asegura rangos por subplot (X semanas, Y precio)
+        fig.update_xaxes(range=[min_week, max_week], row=r, col=c, title_text="Week")
+        fig.update_yaxes(range=[0, max_price], row=r, col=c, title_text="Product Price (USD)")
 
-    # Mostrar número de semana en el eje X (formato ISO, %V)
-    # Manteniendo la serie temporal diaria, solo cambiamos el formato de los ticks del eje X.
-    fig.update_xaxes(tickformat="%V", title_text="Week #")
-
+    # Layout general
     fig.update_layout(
         height=max(420, 300 * rows),
-        xaxis_title="Week #",            # título genérico; cada sub-eje también lo hereda
-        yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=80, b=30),
+        margin=dict(l=20, r=20, t=60, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
     )
+
     return fig
 
 # -------------------------------
@@ -162,16 +157,16 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 df = fetch_data()
 prepared_df = prepare_data(df)
 
-# Last update (fecha máxima del dataset)
+# Última actualización (máxima fecha del dataset)
 last_update = prepared_df['date'].max()
 last_update_str = last_update.strftime('%Y-%m-%d') if pd.notna(last_update) else 'N/A'
 
-# Título + Subtítulo centrados
+# Título + Subtítulo centrados (en inglés)
 st.markdown(
     f"""
     <div style="text-align:center;">
-        <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
-        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
+        <h1 style="font-size: 36px; margin-bottom: 4px; color:#e2e8f0;">Competitors Price Tracker</h1>
+        <h3 style="color:#e2e8f0; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
     </div>
     """,
     unsafe_allow_html=True
@@ -200,7 +195,7 @@ if discount_filter != 'All':
 
 st.dataframe(
     filtered_df[[
-        'asin', 'brand', 'product_title', 'product_price', 'product_original_price',
+        'asin', 'product_title', 'product_price', 'product_original_price',
         'product_star_rating', 'product_num_ratings', 'is_amazon_choice',
         'sales_volume', 'discount', 'date', 'week'
     ]]
