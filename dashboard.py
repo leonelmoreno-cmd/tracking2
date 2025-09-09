@@ -194,37 +194,40 @@ st.markdown(
 st.subheader("Overview — All Brands")
 st.caption("Use the controls below to filter the overview. The metrics summarize the latest ISO week across selected brands.")
 
-# Two columns: left (selectors) and right (metrics). Right is 2/3 width.
-left_col, right_col = st.columns([1, 2])
+# Two columns: left (selectors) and right (metrics). Right is wider, with extra gap for breathing room.
+left_col, right_col = st.columns([0.7, 2.3], gap="large")  # narrower selector + more inter-column space
 
 # Available brands and week bounds
 all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
 wk_min_glob = int(prepared_df["week_number"].min())
 wk_max_glob = int(prepared_df["week_number"].max())
 
-# LEFT: selectors (1/3)
+# LEFT: selectors inside a bordered container
 with left_col:
-    use_markers = st.checkbox(
-        "Show markers on overview",
-        value=False,
-        help="Toggle markers on the overview chart for clearer hover points."
-    )
-    selected_brands = st.multiselect(
-        "Brands to display (overview)",
-        options=all_brands,
-        default=all_brands,
-        help="Select the brands you want to compare in the overview chart."
-    )
-    week_range = st.slider(
-        "Week range (ISO week number)",
-        min_value=wk_min_glob,
-        max_value=wk_max_glob,
-        value=(wk_min_glob, wk_max_glob),
-        help="Pick an ISO week range to filter the overview chart."
-    )
-    st.caption("Tip: Hold and drag the handles to adjust the week range.")
+    with st.container(border=True):
+        st.caption("Select the brands and week range to filter the overview chart.")
+        use_markers = st.checkbox(
+            "Show markers on overview",
+            value=False,
+            help="Toggle markers on the overview chart for clearer hover points."
+        )
+        selected_brands = st.multiselect(
+            "Brands to display (overview)",
+            options=all_brands,
+            default=all_brands,
+            help="Select the brands you want to compare in the overview chart."
+        )
+        week_range = st.slider(
+            "Week range (ISO week number)",
+            min_value=wk_min_glob,
+            max_value=wk_max_glob,
+            value=(wk_min_glob, wk_max_glob),
+            help="Pick an ISO week range to filter the overview chart."
+        )
+        # Small internal spacer
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-# RIGHT: metrics (2/3) — latest week only, filtered by selected brands
+# RIGHT: metrics — latest week only, filtered by selected brands
 with right_col:
     last_week = int(prepared_df["week_number"].max())
     df_week = prepared_df[
