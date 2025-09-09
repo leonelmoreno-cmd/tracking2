@@ -184,9 +184,7 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
-        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
-        <p style="color:#666; font-weight:200; margin-top:4px;">
-            Developed by Economist Leonel Moreno
+        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Economist Leonel Moreno </h3>    
         </p>
     </div>
     """,
