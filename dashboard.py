@@ -40,7 +40,7 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # -------------------------------
-# Plot helper
+# Plot helper - Subplots por ASIN
 # -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df['asin'].dropna().unique()
@@ -52,27 +52,25 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
-        vertical_spacing=0.15, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
+        vertical_spacing=0.15, horizontal_spacing=0.06,
         subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
     )
 
-    # Obtener el precio máximo global para establecer la misma escala en Y
+    # Escala Y global
     max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
 
-    # Obtener el rango de semanas (eje X común)
+    # Rango X (semanas)
     min_week = df['week_number'].min()
     max_week = df['week_number'].max()
 
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
-    
+
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
         if asin_data.empty:
             continue
 
-        # Estilo de línea: punteada si en algún día hubo "Discounted"
         dashed = 'dot' if (asin_data['discount'] == 'Discounted').any() else 'solid'
-
         r = i // cols + 1
         c = i % cols + 1
 
@@ -97,23 +95,65 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
             row=r, col=c
         )
 
-    # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
+    # Escala uniforme en Y para TODOS los subplots
     fig.update_yaxes(range=[0, max_price])
-    # Establecer el rango uniforme para el eje X en todos los subplots (semana)
+    # Rango uniforme en X (semanas)
     fig.update_xaxes(range=[min_week, max_week])
 
+    # Ticks semanales enteros
     fig.for_each_xaxis(lambda ax: ax.update(
-    tickmode='linear',
-    tick0=min_week,
-    dtick=1
-))
+        tickmode='linear',
+        tick0=min_week,
+        dtick=1
+    ))
 
-    
     fig.update_layout(
         height=max(400, 280 * rows),
         xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=50, b=50)  # Aumentamos el espaciado en la parte inferior (sur)
+        margin=dict(l=20, r=20, t=50, b=50)
+    )
+    return fig
+
+# -------------------------------
+# Plot helper - Overview (todos los ASIN)
+# -------------------------------
+def create_overview_graph(df: pd.DataFrame) -> go.Figure:
+    # Semanas y escala global
+    max_price = float(max(df['product_price'].max(), df['product_original_price'].max()))
+    min_week = df['week_number'].min()
+    max_week = df['week_number'].max()
+
+    fig = go.Figure()
+
+    # Una línea por ASIN
+    for asin, g in df.sort_values('date').groupby('asin'):
+        fig.add_trace(go.Scatter(
+            x=g['week_number'],
+            y=g['product_price'],
+            mode='lines+markers',
+            name=str(asin),
+            hovertemplate=(
+                'ASIN: %{text}<br>' +
+                'Price: $%{y:.2f}<br>' +
+                'Week: %{x}<extra></extra>'
+            ),
+            text=g['asin'],
+            showlegend=True
+        ))
+
+    # Ejes y layout
+    fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
+    fig.update_xaxes(
+        range=[min_week, max_week],
+        tickmode='linear', tick0=min_week, dtick=1,
+        title_text="Week Number"
+    )
+    fig.update_layout(
+        height=420,
+        hovermode="x unified",
+        legend_title_text="ASIN",
+        margin=dict(l=20, r=20, t=30, b=40)
     )
     return fig
 
@@ -138,7 +178,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Gráfico
+# --- Overview (todos los ASIN en un solo gráfico) ---
+st.subheader("Overview — All ASINs")
+overview_fig = create_overview_graph(prepared_df)
+st.plotly_chart(overview_fig, use_container_width=True)
+
+# --- Subplots por ASIN (lo que ya tienes) ---
 price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
