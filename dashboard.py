@@ -52,7 +52,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         vertical_spacing=0.15, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
-        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
+        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE; text-decoration: none;'>{df[df['asin'] == asin]['brand'].iloc[0]} - {asin}</a>" for asin in asins]
     )
 
     # Obtener el precio máximo global para establecer la misma escala en Y
