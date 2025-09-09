@@ -143,10 +143,5 @@ if asin_filter != 'All':
 if discount_filter != 'All':
     filtered_df = filtered_df[filtered_df['discount'] == discount_filter]
 
-st.dataframe(
-    filtered_df[[
-        'asin', 'product_title', 'product_price', 'product_original_price',
-        'product_star_rating', 'product_num_ratings', 'is_amazon_choice',
-        'sales_volume', 'discount', 'date', 'brand', 'product_url'
-    ]]
-)
+st.dataframe(filtered_df)
+
