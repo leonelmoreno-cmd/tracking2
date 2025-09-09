@@ -90,7 +90,7 @@ def create_overview_graph(
     )
     # Title with selected range (global if no filter)
     fig.update_layout(
-        title=f"Overview — Weekly Average Price by Brand (Weeks {min_week}–{max_week})",
+        title=f"Overview — Weekly Price by Brand (Weeks {min_week}–{max_week})",
         height=420,
         hovermode="x unified",  # unified tooltip across traces
         legend_title_text="Brand",
