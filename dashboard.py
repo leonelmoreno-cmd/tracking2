@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 # Configuración de la página
 # -------------------------------
 st.set_page_config(
-    page_title="UR - Competitors Price Tracker",
+    page_title="Competitors Price Tracker",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
@@ -18,7 +18,7 @@ st.set_page_config(
 # -------------------------------
 @st.cache_data
 def fetch_data():
-    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic2.csv"
+    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic3.csv"
     df = pd.read_csv(url)
     return df
 
@@ -27,6 +27,8 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     # Asegura tipos
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    # Agrega columna para el número de semana
+    df['week_number'] = df['date'].dt.isocalendar().week
     # Etiqueta de descuento (si hay precio original no nulo)
     df['discount'] = df.apply(
         lambda row: 'Discounted' if pd.notna(row.get('product_original_price')) else 'No Discount',
@@ -49,9 +51,12 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
-        vertical_spacing=0.08, horizontal_spacing=0.06,
-        subplot_titles=[f"ASIN: {asin}" for asin in asins]
+        vertical_spacing=0.12, horizontal_spacing=0.06,  # Aumentamos el espaciado vertical
+        subplot_titles=[f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' style='color: #FFFBFE;'>{df[df['asin'] == asin]['brand'].iloc[0]} - ASIN: {asin}</a>" for asin in asins]
     )
+
+    # Obtener el precio máximo global para establecer la misma escala en Y
+    max_price = float(df['product_price'].max())
 
     for i, asin in enumerate(asins):
         asin_data = df[df['asin'] == asin].sort_values('date')
@@ -66,7 +71,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=asin_data['date'],
+                x=asin_data['week_number'],
                 y=asin_data['product_price'],
                 mode='lines+markers',
                 name=str(asin),
@@ -74,7 +79,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
                 hovertemplate=(
                     'ASIN: %{text}<br>' +
                     'Price: $%{y:.2f}<br>' +
-                    'Date: %{x|%Y-%m-%d}<br>' +
+                    'Week: %{x}<br>' +
                     'Price Change: %{customdata:.2f}%<br>' +
                     '<extra></extra>'
                 ),
@@ -86,15 +91,13 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         )
 
     # Escala uniforme en Y para TODOS los subplots: [0, max_price_global]
-    max_price = float(df['product_price'].max())
     fig.update_yaxes(range=[0, max_price])
 
     fig.update_layout(
         height=max(400, 280 * rows),
-        xaxis_title="Date",
+        xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=50, b=20)
-        # Nota: se elimina scaleanchor para evitar problemas entre subplots
+        margin=dict(l=20, r=20, t=50, b=40)  # Aumentamos el espaciado en la parte inferior (sur)
     )
     return fig
 
@@ -113,7 +116,7 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom: 4px;">Competitors Price Tracker</h1>
-        <h3 style="color:#666; font-weight:400; margin-top:0;">Última actualización: {last_update_str}</h3>
+        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str}</h3>
     </div>
     """,
     unsafe_allow_html=True
@@ -144,6 +147,6 @@ st.dataframe(
     filtered_df[[
         'asin', 'product_title', 'product_price', 'product_original_price',
         'product_star_rating', 'product_num_ratings', 'is_amazon_choice',
-        'sales_volume', 'discount', 'date'
+        'sales_volume', 'discount', 'date', 'brand', 'product_url'
     ]]
 )
