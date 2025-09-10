@@ -243,42 +243,41 @@ st.markdown(
 # ===============================
 # NEW: Encapsulated, centered container (Current + Change basket)
 # ===============================
-col_l, col_c, col_r = st.columns([1, 1, 1])  # center area  ⟵ columns to center content
+col_l, col_c, col_r = st.columns([1, 1, 1])  # center the card
 with col_c:
-    # a single container, soft bordered and uniform margins
     with st.container(border=True):
-        # label "Current basket" (green)
-        st.markdown(
-            f"<div style='text-align:center; margin-top:4px; margin-bottom:8px;'>"
-            f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
-            f"<code style='color:#16a34a;'>{active_basket_name}</code>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+        # --- same row: left (Current basket), right (Change basket button) ---
+        left, right = st.columns([3, 2])  # tune ratios if you want more/less space
+        with left:
+            st.markdown(
+                f"<div style='text-align:left; margin:4px 0;'>"
+                f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
+                f"<code style='color:#16a34a;'>{active_basket_name}</code>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+        with right:
+            # Button as a popover, on the same row
+            with st.popover("🧺 Change basket"):
+                st.caption("Pick a CSV from the list and click Apply.")
+                options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
+                try:
+                    idx = options.index(active_basket_name)
+                except ValueError:
+                    idx = 0
+                sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
+                apply = st.button("Apply", type="primary")
+                if apply:
+                    st.session_state["basket"] = sel
+                    if hasattr(st, "query_params"):
+                        st.query_params["basket"] = sel
+                    else:
+                        try:
+                            st.experimental_set_query_params(basket=sel)
+                        except Exception:
+                            pass
+                    st.rerun()
 
-        # a little spacing to keep margins consistent
-        st.markdown("<div style='height:2px;'></div>", unsafe_allow_html=True)
-
-        # popover button to change basket (kept inside the same container)
-        with st.popover("🧺 Change basket (GitHub)"):
-            st.caption("Pick a CSV from the repository and click Apply.")
-            options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
-            try:
-                idx = options.index(active_basket_name)
-            except ValueError:
-                idx = 0
-            sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
-            apply = st.button("Apply", type="primary")
-            if apply:
-                st.session_state["basket"] = sel
-                if hasattr(st, "query_params"):
-                    st.query_params["basket"] = sel
-                else:
-                    try:
-                        st.experimental_set_query_params(basket=sel)
-                    except Exception:
-                        pass
-                st.rerun()
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
