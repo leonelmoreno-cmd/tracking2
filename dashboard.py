@@ -234,26 +234,11 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom: 4px;">Competitor Price Monitoring</h1>
-        <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Economist Leonel Moreno </h3>
+        <h5 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Moreno </h5>
     </div>
     """,
     unsafe_allow_html=True
 )
-
-st.markdown(
-    """
-    <style>
-    .block-container {
-        padding-top: 1rem;
-    }
-    .stMarkdown {
-        margin-bottom: -0.5rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 
 # ===============================
 # NEW: Encapsulated, centered container (Current + Change basket)
