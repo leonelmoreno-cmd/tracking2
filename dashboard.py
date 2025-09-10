@@ -240,6 +240,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 1rem;
+    }
+    .stMarkdown {
+        margin-bottom: -0.5rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # ===============================
 # NEW: Encapsulated, centered container (Current + Change basket)
 # ===============================
