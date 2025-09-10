@@ -234,7 +234,7 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom: 4px;">Competitor Price Monitoring</h1>
-        <h5 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Moreno </h5>
+        <h5 style="color:#666; font-weight:400; margin-top:-20;">Last update: {last_update_str} - Developed by Leonel Moreno </h5>
     </div>
     """,
     unsafe_allow_html=True
