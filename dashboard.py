@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import requests  # para GitHub API
+import requests  # Para consultar la GitHub API
 from typing import Dict, List
 
 # -------------------------------
@@ -25,10 +25,14 @@ GITHUB_BRANCH = "main"
 DEFAULT_BASKET = "synthethic3.csv"
 
 # -------------------------------
-# List CSVs from GitHub (cached)
+# List repo CSVs (cached)
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
+    """
+    Returns a list of dicts {name, download_url, path} for .csv files in
+    the given repo/path. Uses GitHub Contents API.
+    """
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
     headers = {"Accept": "application/vnd.github+json"}
     token = st.secrets.get("GITHUB_TOKEN", None)
@@ -49,10 +53,11 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     return csvs
 
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
+    """Build a raw URL as fallback."""
     return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
 
 # -------------------------------
-# Data loading (cached)
+# Data loading
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def fetch_data(url: str) -> pd.DataFrame:
@@ -72,36 +77,17 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # -------------------------------
-# NEW: Resolve active basket from URL/Session
-# -------------------------------
-csv_items = list_repo_csvs(GITHUB_OWNER, GITHUB_REPO, GITHUB_PATH, GITHUB_BRANCH)
-name_to_url: Dict[str, str] = {it["name"]: it["download_url"] for it in csv_items}
-
-qp = st.query_params.to_dict() if hasattr(st, "query_params") else {}
-qp_basket = qp.get("basket")
-if isinstance(qp_basket, list):
-    qp_basket = qp_basket[0] if qp_basket else None
-
-if "basket" not in st.session_state:
-    st.session_state["basket"] = qp_basket if qp_basket else DEFAULT_BASKET
-
-active_basket_name = st.session_state["basket"]
-active_url = name_to_url.get(
-    active_basket_name,
-    _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
-)
-
-# -------------------------------
-# Charts
+# Overview chart (by brand)
 # -------------------------------
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
-    week_range=None,
+    week_range=None,   # ignored if None
     use_markers=False
 ) -> go.Figure:
     if brands_to_plot is not None and len(brands_to_plot) > 0:
         df = df[df["brand"].isin(brands_to_plot)]
+
     if week_range is not None:
         wk_min, wk_max = week_range
         df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
@@ -112,6 +98,7 @@ def create_overview_graph(
 
     fig = go.Figure()
     trace_mode = "lines+markers" if use_markers else "lines"
+
     brand_week = (
         df.sort_values("date")
           .groupby(["brand", "week_number"], as_index=False)["product_price"].mean()
@@ -122,21 +109,33 @@ def create_overview_graph(
             y=g["product_price"],
             mode=trace_mode,
             name=str(brand),
-            hovertemplate=("Brand: %{text}<br>" +
-                           "Price: $%{y:.2f}<br>" +
-                           "Week: %{x}<extra></extra>"),
+            hovertemplate=(
+                "Brand: %{text}<br>" +
+                "Price: $%{y:.2f}<br>" +
+                "Week: %{x}<extra></extra>"
+            ),
             text=g["brand"],
             showlegend=True
         ))
+
     fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
-    fig.update_xaxes(range=[min_week, max_week], tickmode="linear", tick0=min_week, dtick=1, title_text="Week Number")
+    fig.update_xaxes(
+        range=[min_week, max_week],
+        tickmode="linear", tick0=min_week, dtick=1,
+        title_text="Week Number"
+    )
     fig.update_layout(
         title=f"Overview — Weekly Price by Brand (Weeks {min_week}–{max_week})",
-        height=420, hovermode="x unified", legend_title_text="Brand",
+        height=420,
+        hovermode="x unified",
+        legend_title_text="Brand",
         margin=dict(l=20, r=20, t=50, b=40)
     )
     return fig
 
+# -------------------------------
+# Subplots per ASIN
+# -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df["asin"].dropna().unique()
     num_asins = len(asins)
@@ -156,15 +155,18 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
     min_week = int(df["week_number"].min())
     max_week = int(df["week_number"].max())
+
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
 
     for i, asin in enumerate(asins):
         asin_data = df[df["asin"] == asin].sort_values("date")
         if asin_data.empty:
             continue
+
         dashed = "dot" if (asin_data["discount"] == "Discounted").any() else "solid"
         r = i // cols + 1
         c = i % cols + 1
+
         fig.add_trace(
             go.Scatter(
                 x=asin_data["week_number"],
@@ -172,19 +174,24 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
                 mode="lines+markers",
                 name=str(asin),
                 line=dict(dash=dashed),
-                hovertemplate=("ASIN: %{text}<br>" +
-                               "Price: $%{y:.2f}<br>" +
-                               "Week: %{x}<br>" +
-                               "Price Change: %{customdata:.2f}%<br><extra></extra>"),
+                hovertemplate=(
+                    "ASIN: %{text}<br>" +
+                    "Price: $%{y:.2f}<br>" +
+                    "Week: %{x}<br>" +
+                    "Price Change: %{customdata:.2f}%<br>" +
+                    "<extra></extra>"
+                ),
                 text=asin_data["asin"],
                 customdata=asin_data["price_change"],
                 showlegend=False
             ),
             row=r, col=c
         )
+
     fig.update_yaxes(range=[0, max_price])
     fig.update_xaxes(range=[min_week, max_week])
     fig.for_each_xaxis(lambda ax: ax.update(tickmode="linear", tick0=min_week, dtick=1))
+
     fig.update_layout(
         height=max(400, 280 * rows),
         xaxis_title="Week Number",
@@ -194,12 +201,31 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Main UI - load active basket
+# Resolve active basket (URL & session)
+# -------------------------------
+csv_items = list_repo_csvs(GITHUB_OWNER, GITHUB_REPO, GITHUB_PATH, GITHUB_BRANCH)
+name_to_url: Dict[str, str] = {it["name"]: it["download_url"] for it in csv_items}
+
+qp = st.query_params.to_dict() if hasattr(st, "query_params") else {}
+qp_basket = qp.get("basket")
+if isinstance(qp_basket, list):
+    qp_basket = qp_basket[0] if qp_basket else None
+
+if "basket" not in st.session_state:
+    st.session_state["basket"] = qp_basket if qp_basket else DEFAULT_BASKET
+
+active_basket_name = st.session_state["basket"]
+active_url = name_to_url.get(
+    active_basket_name,
+    _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
+)
+
+# -------------------------------
+# Main UI - load data
 # -------------------------------
 df = fetch_data(active_url)
 prepared_df = prepare_data(df)
 
-# Last update
 last_update = prepared_df["date"].max()
 last_update_str = last_update.strftime("%Y-%m-%d") if pd.notna(last_update) else "N/A"
 
@@ -209,30 +235,36 @@ st.markdown(
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom: 4px;">Competitor Price Monitoring</h1>
         <h3 style="color:#666; font-weight:400; margin-top:0;">Last update: {last_update_str} - Developed by Economist Leonel Moreno </h3>
-        </p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
 # -------------------------------
-# NEW: Modal instead of popover (ENGLISH TEXT)
+# NEW placement: centered "Change basket" + green "Current basket"
 # -------------------------------
-@st.dialog("Change data basket", width="medium", dismissible=True)
-def basket_dialog(options: List[str], active_name: str):
-    st.caption("Select a CSV from the repository and confirm to apply it to the dashboard.")
-    # safe index
-    try:
-        idx = options.index(active_name)
-    except ValueError:
-        idx = 0
-    sel = st.selectbox("Choose a basket (.csv)", options=options, index=idx, key="basket_select_dialog")
-
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        if st.button("Use this basket", type="primary"):
+col_l, col_c, col_r = st.columns([1, 1, 1])  # center area
+with col_c:
+    # Green current basket label (centered)
+    st.markdown(
+        f"<div style='text-align:center; margin-top:4px; margin-bottom:8px;'>"
+        f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
+        f"<code style='color:#16a34a;'>{active_basket_name}</code>"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+    # Popover button centered
+    with st.popover("🧺 Change basket (GitHub)"):
+        st.caption("Pick a CSV from the repository and click Apply.")
+        options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
+        try:
+            idx = options.index(active_basket_name)
+        except ValueError:
+            idx = 0
+        sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
+        apply = st.button("Apply", type="primary")
+        if apply:
             st.session_state["basket"] = sel
-            # Reflect in URL for reproducibility (fallback to experimental API if needed)
             if hasattr(st, "query_params"):
                 st.query_params["basket"] = sel
             else:
@@ -241,22 +273,6 @@ def basket_dialog(options: List[str], active_name: str):
                 except Exception:
                     pass
             st.rerun()
-    with c2:
-        st.button("Cancel")  # simply closes by clicking outside or X if dismissible=True
-
-# Trigger button just below "Last update"
-if st.button("Change basket"):
-    # open modal
-    options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
-    basket_dialog(options, active_basket_name)
-
-# Info panel about active source (kept as-is)
-with st.container(border=True):
-    st.markdown(
-        f"**Basket activa:** `{active_basket_name}`  \n"
-        f"**Filas x Columnas:** {prepared_df.shape[0]} x {prepared_df.shape[1]}  \n"
-        f"**Fuente:** {active_url}"
-    )
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
@@ -316,6 +332,7 @@ with right_col:
         )
 
         st.markdown("### Last week highlights")
+
         dcol, pcol, ccol = st.columns(3)
 
         with dcol:
