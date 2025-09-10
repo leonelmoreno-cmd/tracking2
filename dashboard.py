@@ -240,39 +240,45 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# -------------------------------
-# NEW placement: centered "Change basket" + green "Current basket"
-# -------------------------------
-col_l, col_c, col_r = st.columns([1, 1, 1])  # center area
+# ===============================
+# NEW: Encapsulated, centered container (Current + Change basket)
+# ===============================
+col_l, col_c, col_r = st.columns([1, 1, 1])  # center area  ⟵ columns to center content
 with col_c:
-    # Green current basket label (centered)
-    st.markdown(
-        f"<div style='text-align:center; margin-top:4px; margin-bottom:8px;'>"
-        f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
-        f"<code style='color:#16a34a;'>{active_basket_name}</code>"
-        f"</div>",
-        unsafe_allow_html=True
-    )
-    # Popover button centered
-    with st.popover("🧺 Change basket (GitHub)"):
-        st.caption("Pick a CSV from the repository and click Apply.")
-        options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
-        try:
-            idx = options.index(active_basket_name)
-        except ValueError:
-            idx = 0
-        sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
-        apply = st.button("Apply", type="primary")
-        if apply:
-            st.session_state["basket"] = sel
-            if hasattr(st, "query_params"):
-                st.query_params["basket"] = sel
-            else:
-                try:
-                    st.experimental_set_query_params(basket=sel)
-                except Exception:
-                    pass
-            st.rerun()
+    # a single container, soft bordered and uniform margins
+    with st.container(border=True):
+        # label "Current basket" (green)
+        st.markdown(
+            f"<div style='text-align:center; margin-top:4px; margin-bottom:8px;'>"
+            f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
+            f"<code style='color:#16a34a;'>{active_basket_name}</code>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+        # a little spacing to keep margins consistent
+        st.markdown("<div style='height:2px;'></div>", unsafe_allow_html=True)
+
+        # popover button to change basket (kept inside the same container)
+        with st.popover("🧺 Change basket (GitHub)"):
+            st.caption("Pick a CSV from the repository and click Apply.")
+            options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
+            try:
+                idx = options.index(active_basket_name)
+            except ValueError:
+                idx = 0
+            sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
+            apply = st.button("Apply", type="primary")
+            if apply:
+                st.session_state["basket"] = sel
+                if hasattr(st, "query_params"):
+                    st.query_params["basket"] = sel
+                else:
+                    try:
+                        st.experimental_set_query_params(basket=sel)
+                    except Exception:
+                        pass
+                st.rerun()
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
@@ -395,6 +401,9 @@ st.caption("Filter the table and download the filtered data as CSV.")
 
 asin_options = ["All"] + sorted(prepared_df["asin"].dropna().unique().tolist())
 discount_options = ["All", "Discounted", "No Discount"]
+
+wk_min_glob = int(prepared_df["week_number"].min())
+wk_max_glob = int(prepared_df["week_number"].max())
 
 table_week_range = st.slider(
     "Filter by week (range)",
