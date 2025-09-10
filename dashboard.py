@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import requests  # NEW: para consultar la GitHub API
+from typing import Dict, List
 
 # -------------------------------
 # Page config
@@ -14,15 +16,59 @@ st.set_page_config(
 )
 
 # -------------------------------
+# Constantes del repositorio (ajusta si cambias)
+# -------------------------------
+GITHUB_OWNER = "leonelmoreno-cmd"
+GITHUB_REPO = "tracking2"
+GITHUB_PATH = "data"      # carpeta donde están los CSV
+GITHUB_BRANCH = "main"    # rama por defecto
+DEFAULT_BASKET = "synthethic3.csv"  # basket inicial por defecto
+
+# -------------------------------
+# Utilidades: listar CSVs del repo (cacheado)
+# -------------------------------
+@st.cache_data(show_spinner=False)
+def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
+    """
+    Devuelve una lista de dicts con {name, download_url, path} para archivos .csv
+    en la carpeta 'path' de un repo público (o privado con token).
+    """
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
+    headers = {"Accept": "application/vnd.github+json"}
+    # Si configuras un token opcional en st.secrets["GITHUB_TOKEN"], se usará.
+    token = st.secrets.get("GITHUB_TOKEN", None)
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    resp = requests.get(url, headers=headers, timeout=15)
+    resp.raise_for_status()
+    items = resp.json()
+    csvs = []
+    for it in items:
+        if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv"):
+            # La GitHub API entrega download_url apuntando al raw.
+            csvs.append({
+                "name": it["name"],
+                "download_url": it["download_url"],
+                "path": it.get("path", "")
+            })
+    # Orden alfabético por nombre de archivo
+    csvs = sorted(csvs, key=lambda x: x["name"])
+    return csvs
+
+def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
+    """Construye una raw URL directa como fallback si hiciera falta."""
+    return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
+
+# -------------------------------
 # Data loading
 # -------------------------------
-@st.cache_data
-def fetch_data():
-    url = "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/synthethic3.csv"
+@st.cache_data(show_spinner=False)
+def fetch_data(url: str) -> pd.DataFrame:
+    # pandas puede leer directamente desde URL (incluye http/https)
     df = pd.read_csv(url)
     return df
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -36,12 +82,12 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # -------------------------------
-# NEW: Overview chart (by brand)
+# Overview chart (by brand)
 # -------------------------------
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
-    week_range=None,   # will be ignored if None
+    week_range=None,
     use_markers=False
 ) -> go.Figure:
     # Brand filter
@@ -92,7 +138,7 @@ def create_overview_graph(
     fig.update_layout(
         title=f"Overview — Weekly Price by Brand (Weeks {min_week}–{max_week})",
         height=420,
-        hovermode="x unified",  # unified tooltip across traces
+        hovermode="x unified",
         legend_title_text="Brand",
         margin=dict(l=20, r=20, t=50, b=40)
     )
@@ -170,9 +216,33 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Main UI
+# Resolución de selección de basket (URL activa)
 # -------------------------------
-df = fetch_data()
+# 1) Obtenemos lista de CSVs del repo (cacheado)
+csv_items = list_repo_csvs(GITHUB_OWNER, GITHUB_REPO, GITHUB_PATH, GITHUB_BRANCH)
+name_to_url: Dict[str, str] = {it["name"]: it["download_url"] for it in csv_items}
+
+# 2) Leer 'basket' desde query params si existe; si no, usar session_state o default
+#    (st.query_params es dict-like; .get devuelve lista o str según versión)
+qp = st.query_params.to_dict() if hasattr(st, "query_params") else {}
+qp_basket = qp.get("basket")
+if isinstance(qp_basket, list):  # por si viene como lista
+    qp_basket = qp_basket[0] if qp_basket else None
+
+if "basket" not in st.session_state:
+    st.session_state["basket"] = qp_basket if qp_basket else DEFAULT_BASKET
+
+# 3) Determinar URL activa a partir del nombre elegido (fallback a raw si no aparece)
+active_basket_name = st.session_state["basket"]
+active_url = name_to_url.get(
+    active_basket_name,
+    _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
+)
+
+# -------------------------------
+# Main UI - carga de datos según basket activa
+# -------------------------------
+df = fetch_data(active_url)
 prepared_df = prepare_data(df)
 
 # Last update
@@ -190,6 +260,40 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# -------------------------------
+# Botón/Popover: Seleccionar basket (GitHub) — justo debajo de Last update
+# -------------------------------
+with st.popover("🧺 Seleccionar basket (GitHub)"):
+    st.caption("Elige un CSV de la carpeta del repositorio y confirma para aplicar.")
+    options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
+    # indice seguro
+    try:
+        idx = options.index(active_basket_name)
+    except ValueError:
+        idx = 0
+    sel = st.selectbox("Archivo (CSV) en el repo", options=options, index=idx, key="basket_select")
+    apply = st.button("Usar esta basket", type="primary")
+    if apply:
+        st.session_state["basket"] = sel
+        # reflejar en la URL para compartir/reproducir
+        if hasattr(st, "query_params"):
+            st.query_params["basket"] = sel
+        else:
+            # fallback legacy: experimental_set_query_params (para versiones antiguas)
+            try:
+                st.experimental_set_query_params(basket=sel)
+            except Exception:
+                pass
+        st.rerun()
+
+# Info rápida de la fuente activa (debajo del popover)
+with st.container(border=True):
+    st.markdown(
+        f"**Basket activa:** `{active_basket_name}`  \n"
+        f"**Filas x Columnas:** {prepared_df.shape[0]} x {prepared_df.shape[1]}  \n"
+        f"**Fuente:** {active_url}"
+    )
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
@@ -305,18 +409,17 @@ with right_col:
             else:
                 st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
 
-# Overview chart (uses the selections above; no week-range filter anymore)
+# Overview chart
 overview_fig = create_overview_graph(
     prepared_df,
     brands_to_plot=selected_brands,
-    use_markers=False  # fijo: sin marcadores
+    use_markers=False
 )
 st.plotly_chart(overview_fig, use_container_width=True)
 
 # -------- Subplots by brand/ASIN --------
 st.subheader("By Brand — Individual ASINs")
 st.caption("Each small chart tracks a single ASIN. Subplot titles link to the product pages.")
-
 price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
