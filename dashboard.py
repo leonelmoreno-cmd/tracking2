@@ -134,7 +134,7 @@ def create_overview_graph(
     return fig
 
 # -------------------------------
-# Subplots per ASIN
+# Subplots per ASIN (UPDATED WITH LEGEND)
 # -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df["asin"].dropna().unique()
@@ -158,12 +158,16 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
 
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
 
+    # ---- real traces (hidden in legend, grouped by discount status)
     for i, asin in enumerate(asins):
         asin_data = df[df["asin"] == asin].sort_values("date")
         if asin_data.empty:
             continue
 
-        dashed = "dot" if (asin_data["discount"] == "Discounted").any() else "solid"
+        is_discounted_any = (asin_data["discount"] == "Discounted").any()
+        dashed = "dot" if is_discounted_any else "solid"
+        legend_group = "discounted" if is_discounted_any else "no_discount"
+
         r = i // cols + 1
         c = i % cols + 1
 
@@ -174,6 +178,8 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
                 mode="lines+markers",
                 name=str(asin),
                 line=dict(dash=dashed),
+                legendgroup=legend_group,   # group by status
+                showlegend=False,           # hide per-ASIN legend entries
                 hovertemplate=(
                     "ASIN: %{text}<br>" +
                     "Price: $%{y:.2f}<br>" +
@@ -183,9 +189,25 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
                 ),
                 text=asin_data["asin"],
                 customdata=asin_data["price_change"],
-                showlegend=False
             ),
             row=r, col=c
+        )
+
+    # ---- legend-only items that explain line style
+    legend_items = [
+        ("No discount — solid line", "solid", "no_discount"),
+        ("Discounted — dotted line", "dot", "discounted")
+    ]
+    for label, dash, group in legend_items:
+        fig.add_trace(
+            go.Scatter(
+                x=[None], y=[None],         # no visible data; legend only
+                mode="lines",
+                line=dict(dash=dash, width=3),
+                name=label,
+                legendgroup=group,
+                showlegend=True
+            )
         )
 
     fig.update_yaxes(range=[0, max_price])
@@ -196,7 +218,15 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         height=max(400, 280 * rows),
         xaxis_title="Week Number",
         yaxis_title="Product Price (USD)",
-        margin=dict(l=20, r=20, t=50, b=50)
+        margin=dict(l=20, r=20, t=50, b=50),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom", y=1.02,
+            xanchor="right",  x=1.0,
+            title_text="Line style"
+        ),
+        # You can use "togglegroup" to toggle all traces in a legendgroup at once.
+        legend_groupclick="togglegroup"
     )
     return fig
 
