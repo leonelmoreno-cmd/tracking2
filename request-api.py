@@ -261,7 +261,7 @@ def main() -> None:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
 
-    # sales_volume permanece como string original
+    # sales_volume permanece como string originals
     df.to_csv(output_with_suffix, mode="a", index=False, header=write_header)
 
     print("Wrote rows:", len(df))
