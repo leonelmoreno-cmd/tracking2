@@ -153,8 +153,14 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                     rank = int(rank.replace(",", ""))
                 except ValueError:
                     rank = None
+                    print(f"DEBUG: Failed to convert rank to integer for ASIN {asin}: {rank}", file=sys.stderr)
+            else:
+                print(f"DEBUG: Invalid Best Sellers Rank format for ASIN {asin}: {best_seller_rank}", file=sys.stderr)
 
         unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
+        if unit_price == "NA":
+            print(f"DEBUG: unit_price not found for ASIN: {asin}", file=sys.stderr)
+        
         if not raw:
             rows.append({
                 "asin": asin,
@@ -261,7 +267,7 @@ def main() -> None:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
 
-    # sales_volume permanece como string originals
+    # sales_volume permanece como string original
     df.to_csv(output_with_suffix, mode="a", index=False, header=write_header)
 
     print("Wrote rows:", len(df))
