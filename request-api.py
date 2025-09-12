@@ -133,9 +133,10 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
     week_num = today_dt.isocalendar().week
 
     rows: List[Dict[str, Any]] = []
-
+    
     for asin in requested_asins:
         raw = by_asin.get(asin)
+        unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
         if not raw:
             rows.append({
                 "asin": asin,
@@ -152,6 +153,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "product_url": None,
                 "date": today,
                 "week": week_num,
+                "unit_price": unit_price,
             })
             continue
 
