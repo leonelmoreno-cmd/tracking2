@@ -136,6 +136,24 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
     
     for asin in requested_asins:
         raw = by_asin.get(asin)
+        # Extract Best Sellers Rank
+        best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "")
+        sub_category_name = None
+        rank = None
+
+        if best_seller_rank:
+            # Split the Best Sellers Rank by '#' to find the subcategory and rank
+            parts = best_seller_rank.split('#')
+            if len(parts) > 1:
+                # Extract subcategory (the part after the second '#')
+                sub_category_name = parts[-1].split(' in ')[-1].strip()
+                # Extract rank (the part between the second '#' and ' in')
+                rank = parts[-2].strip()
+                try:
+                    # Convert rank to integer if possible
+                    rank = int(rank.replace(",", ""))
+                except ValueError:
+                    rank = None
         unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
         if not raw:
             rows.append({
@@ -154,6 +172,8 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "date": today,
                 "week": week_num,
                 "unit_price": unit_price,
+                "sub_category_name": sub_category_name,  # Added sub_category_name
+                "rank": rank,  # Added rank
             })
             continue
 
