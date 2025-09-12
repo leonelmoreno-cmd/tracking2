@@ -1,5 +1,3 @@
-# request-api.py
-
 import os
 import re
 import sys
@@ -136,6 +134,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
     
     for asin in requested_asins:
         raw = by_asin.get(asin)
+        
         # Extract Best Sellers Rank
         best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "")
         sub_category_name = None
@@ -154,6 +153,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                     rank = int(rank.replace(",", ""))
                 except ValueError:
                     rank = None
+
         unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
         if not raw:
             rows.append({
@@ -206,6 +206,9 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "product_url": product_url,
             "date": today,
             "week": week_num,
+            "unit_price": unit_price,
+            "sub_category_name": sub_category_name,  # Added sub_category_name
+            "rank": rank,  # Added rank
         })
 
     return rows
