@@ -136,35 +136,44 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
         raw = by_asin.get(asin)
         
         # Extract Best Sellers Rank
-        if raw and isinstance(raw, dict):
-            best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "")
-        else:
-            best_seller_rank = ""
-        
+        best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "Not Available")
         sub_category_name = None
         rank = None
-
-        if best_seller_rank:
-            # Split the Best Sellers Rank by '#' to find the subcategory and rank
+        
+        unit_price = raw.get("unit_price", "N/A")
+        
+        if best_seller_rank != "Not Available":
+            # Separar el texto de Best Sellers Rank usando el caracter '#'
             parts = best_seller_rank.split('#')
+            
+            # Si tiene más de una parte, intentamos extraer el rank y la subcategoría
             if len(parts) > 1:
-                # Extract subcategory (the part after the second '#')
+                # Extraemos la subcategoría de la última parte después de ' in '
                 sub_category_name = parts[-1].split(' in ')[-1].strip()
-                # Extract rank (the part between the second '#' and ' in')
-                rank = parts[-2].strip()
+                
+                # Aquí, el rank está antes del 'in', por lo que extraemos el número antes de la palabra 'in'
+                rank_part = parts[-1].split(' in ')[0].strip()
+                rank = rank_part.split()[0]  # Extrae el primer número que es el rank
+                
                 try:
-                    # Convert rank to integer if possible
-                    rank = int(rank.replace(",", ""))
+                    rank = int(rank.replace(",", ""))  # Convertir a número
                 except ValueError:
                     rank = None
                     print(f"DEBUG: Failed to convert rank to integer for ASIN {asin}: {rank}", file=sys.stderr)
             else:
-                print(f"DEBUG: Invalid Best Sellers Rank format for ASIN {asin}: {best_seller_rank}", file=sys.stderr)
+                # Si solo hay una parte, es la categoría general
+                sub_category_name = parts[0].strip()
 
-        unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
-        if unit_price == "NA":
+        # Si no se encuentra un Best Sellers Rank, asignar valores por defecto
+        if not sub_category_name:
+            sub_category_name = "Not Available"
+        if not rank:
+            rank = "Not Available"
+
+        # Si el precio no es válido, asignar un valor por defecto
+        if unit_price == "N/A":
             print(f"DEBUG: unit_price not found for ASIN: {asin}", file=sys.stderr)
-        
+
         if not raw:
             rows.append({
                 "asin": asin,
@@ -182,8 +191,8 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "date": today,
                 "week": week_num,
                 "unit_price": unit_price,
-                "sub_category_name": sub_category_name,  # Added sub_category_name
-                "rank": rank,  # Added rank
+                "sub_category_name": sub_category_name,
+                "rank": rank,
             })
             continue
 
@@ -217,8 +226,8 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "date": today,
             "week": week_num,
             "unit_price": unit_price,
-            "sub_category_name": sub_category_name,  # Added sub_category_name
-            "rank": rank,  # Added rank
+            "sub_category_name": sub_category_name,
+            "rank": rank,
         })
 
     return rows
