@@ -135,51 +135,90 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
     for asin in requested_asins:
         raw = by_asin.get(asin)
         
-        # Inicializar valores por defecto
-        best_seller_rank = ""
-        sub_category_name = ""
-        rank = None
-        unit_price = "NA"
-
+        # Extract Best Sellers Rank
         if raw and isinstance(raw, dict):
-            # Extraer Best Sellers Rank
             best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "")
-            if best_seller_rank:
-                parts = best_seller_rank.split('#')
-                if len(parts) > 1:
-                    sub_category_name = parts[-1].split(' in ')[-1].strip()
-                    rank = parts[-2].strip()
-                    try:
-                        rank = int(rank.replace(",", ""))
-                    except ValueError:
-                        rank = None
-                        print(f"DEBUG: Failed to convert rank to integer for ASIN {asin}: {rank}", file=sys.stderr)
+        else:
+            best_seller_rank = ""
+        
+        sub_category_name = None
+        rank = None
+
+        if best_seller_rank:
+            # Split the Best Sellers Rank by '#' to find the subcategory and rank
+            parts = best_seller_rank.split('#')
+            if len(parts) > 1:
+                # Extract subcategory (the part after the second '#')
+                sub_category_name = parts[-1].split(' in ')[-1].strip()
+                # Extract rank (the part between the second '#' and ' in')
+                rank = parts[-2].strip()
+                try:
+                    # Convert rank to integer if possible
+                    rank = int(rank.replace(",", ""))
+                except ValueError:
+                    rank = None
+                    print(f"DEBUG: Failed to convert rank to integer for ASIN {asin}: {rank}", file=sys.stderr)
             else:
                 print(f"DEBUG: Invalid Best Sellers Rank format for ASIN {asin}: {best_seller_rank}", file=sys.stderr)
 
-            # Obtener unit_price
-            unit_price = raw.get("unit_price", "NA")
-            if unit_price == "NA":
-                print(f"DEBUG: unit_price not found for ASIN: {asin}", file=sys.stderr)
+        unit_price = raw.get("unit_price", "NA")  # Adds 'unit_price' or 'NA' if not present
+        if unit_price == "NA":
+            print(f"DEBUG: unit_price not found for ASIN: {asin}", file=sys.stderr)
+        
+        if not raw:
+            rows.append({
+                "asin": asin,
+                "product_title": None,
+                "product_price": None,
+                "product_original_price": None,
+                "product_star_rating": None,
+                "product_num_ratings": None,
+                "is_amazon_choice": None,
+                "is_best_seller": None,
+                "sales_volume": None,   # se deja tal cual venga
+                "discount": None,
+                "brand": None,
+                "product_url": None,
+                "date": today,
+                "week": week_num,
+                "unit_price": unit_price,
+                "sub_category_name": sub_category_name,  # Added sub_category_name
+                "rank": rank,  # Added rank
+            })
+            continue
+
+        price = parse_money(raw.get("product_price"))
+        orig = parse_money(raw.get("product_original_price"))
+        rating = to_float(raw.get("product_star_rating"))
+        num_ratings = to_int_from_text(raw.get("product_num_ratings"))
+        is_choice = safe_bool(raw.get("is_amazon_choice"))
+        is_best = safe_bool(raw.get("is_best_seller"))
+        sales_vol = raw.get("sales_volume")  # <-- mantener texto original del API
+        brand = extract_brand(raw)
+        product_url = raw.get("product_url")
+
+        discount = None
+        if price is not None and orig is not None and orig > 0 and price < orig:
+            discount = round((1 - (price / orig)) * 100, 2)  # numérico 0–100
 
         rows.append({
             "asin": asin,
-            "product_title": raw.get("product_title") if raw else None,
-            "product_price": parse_money(raw.get("product_price")) if raw else None,
-            "product_original_price": parse_money(raw.get("product_original_price")) if raw else None,
-            "product_star_rating": to_float(raw.get("product_star_rating")) if raw else None,
-            "product_num_ratings": to_int_from_text(raw.get("product_num_ratings")) if raw else None,
-            "is_amazon_choice": safe_bool(raw.get("is_amazon_choice")) if raw else None,
-            "is_best_seller": safe_bool(raw.get("is_best_seller")) if raw else None,
-            "sales_volume": raw.get("sales_volume") if raw else None,
-            "discount": None,
-            "brand": extract_brand(raw) if raw else None,
-            "product_url": raw.get("product_url") if raw else None,
+            "product_title": raw.get("product_title"),
+            "product_price": price,
+            "product_original_price": orig,
+            "product_star_rating": rating,
+            "product_num_ratings": num_ratings,
+            "is_amazon_choice": is_choice,
+            "is_best_seller": is_best,
+            "sales_volume": sales_vol,
+            "discount": discount,
+            "brand": brand,
+            "product_url": product_url,
             "date": today,
             "week": week_num,
             "unit_price": unit_price,
-            "sub_category_name": sub_category_name,
-            "rank": rank,
+            "sub_category_name": sub_category_name,  # Added sub_category_name
+            "rank": rank,  # Added rank
         })
 
     return rows
