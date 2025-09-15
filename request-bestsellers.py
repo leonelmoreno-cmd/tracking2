@@ -25,7 +25,7 @@ OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "data/sub-categories"))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 API_HOST = "real-time-amazon-data.p.rapidapi.com"
-BEST_URL = f"https://{API_HOST}/best-sellers"  # endpoint de Best Sellers
+BEST_URL = "https://real-time-amazon-data.p.rapidapi.com/best-sellers"  # endpoint de Best Sellers
 
 # -------------------------
 # Helpers
