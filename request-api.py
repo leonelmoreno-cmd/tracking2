@@ -4,7 +4,7 @@ import sys
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple  # <- añadimos Tuple
 
 import requests
 import pandas as pd
@@ -85,6 +85,35 @@ def extract_brand(item: Dict[str, Any]) -> Optional[str]:
                 return str(d[key]).strip()
     return None
 
+# --- NUEVOS helpers para Best Sellers Rank (desde el código funcional) ---
+def parse_best_sellers_rank_text(bsr_text: Optional[str]) -> Tuple[Optional[str], Optional[int]]:
+    """
+    Devuelve (sub_category_name, rank) a partir del texto 'Best Sellers Rank'.
+    Soporta variantes con varios '#' y paréntesis como '(See Top 100 in ...)'.
+    """
+    if not bsr_text or str(bsr_text).strip().lower() in {"not available", "n/a"}:
+        return None, None
+
+    parts = [p.strip() for p in str(bsr_text).split('#') if p.strip()]
+    # Recorremos de derecha a izquierda para tomar la categoría más específica
+    for part in reversed(parts):
+        if " in " in part:
+            left, right = part.split(" in ", 1)
+            # rank = primer número en 'left' (acepta comas)
+            m = re.search(r"\d[\d,]*", left)
+            rank = int(m.group(0).replace(",", "")) if m else None
+            # subcat = texto antes de cualquier paréntesis extra
+            subcat = right.split(" (", 1)[0].strip()
+            return (subcat or None), rank
+    # Fallback si no hay " in "
+    return (parts[-1] if parts else None), None
+
+def get_best_sellers_rank_fields(item: Dict[str, Any]) -> Tuple[Optional[str], Optional[int]]:
+    info = (item or {}).get("product_information") or {}
+    details = (item or {}).get("product_details") or {}
+    bsr_text = info.get("Best Sellers Rank") or details.get("Best Sellers Rank")
+    return parse_best_sellers_rank_text(bsr_text)
+
 
 # -------------------------
 # Fetch
@@ -134,46 +163,9 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
     
     for asin in requested_asins:
         raw = by_asin.get(asin)
-        
-        # Extract Best Sellers Rank
-        best_seller_rank = raw.get("product_details", {}).get("Best Sellers Rank", "Not Available")
-        sub_category_name = None
-        rank = None
-        
-        unit_price = raw.get("unit_price", "N/A")
-        
-        if best_seller_rank != "Not Available":
-            # Separar el texto de Best Sellers Rank usando el caracter '#'
-            parts = best_seller_rank.split('#')
-            
-            # Si tiene más de una parte, intentamos extraer el rank y la subcategoría
-            if len(parts) > 1:
-                # Extraemos la subcategoría de la última parte después de ' in '
-                sub_category_name = parts[-1].split(' in ')[-1].strip()
-                
-                # Aquí, el rank está antes del 'in', por lo que extraemos el número antes de la palabra 'in'
-                rank_part = parts[-1].split(' in ')[0].strip()
-                rank = rank_part.split()[0]  # Extrae el primer número que es el rank
-                
-                try:
-                    rank = int(rank.replace(",", ""))  # Convertir a número
-                except ValueError:
-                    rank = None
-                    print(f"DEBUG: Failed to convert rank to integer for ASIN {asin}: {rank}", file=sys.stderr)
-            else:
-                # Si solo hay una parte, es la categoría general
-                sub_category_name = parts[0].strip()
 
-        # Si no se encuentra un Best Sellers Rank, asignar valores por defecto
-        if not sub_category_name:
-            sub_category_name = "Not Available"
-        if not rank:
-            rank = "Not Available"
-
-        # Si el precio no es válido, asignar un valor por defecto
-        if unit_price == "N/A":
-            print(f"DEBUG: unit_price not found for ASIN: {asin}", file=sys.stderr)
-
+        # --- Control cuando falta el item del ASIN (desde el código funcional) ---
+        # Si no hay datos para el ASIN, fila con defaults y continuar
         if not raw:
             rows.append({
                 "asin": asin,
@@ -190,25 +182,35 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "product_url": None,
                 "date": today,
                 "week": week_num,
-                "unit_price": unit_price,
-                "sub_category_name": sub_category_name,
-                "rank": rank,
+                "unit_price": "N/A",
+                "sub_category_name": "Not Available",
+                "rank": "Not Available",
             })
             continue
 
+        # --- Extracción robusta de BSR y Unit Price (helpers dedicados) ---
+        sub_category_name, rank = get_best_sellers_rank_fields(raw)
+        unit_price = raw.get("unit_price", "N/A")
+
+        if not sub_category_name:
+            sub_category_name = "Not Available"
+        if rank is None:
+            rank = "Not Available"
+
+        # Resto de campos
         price = parse_money(raw.get("product_price"))
         orig = parse_money(raw.get("product_original_price"))
         rating = to_float(raw.get("product_star_rating"))
         num_ratings = to_int_from_text(raw.get("product_num_ratings"))
         is_choice = safe_bool(raw.get("is_amazon_choice"))
         is_best = safe_bool(raw.get("is_best_seller"))
-        sales_vol = raw.get("sales_volume")  # <-- mantener texto original del API
+        sales_vol = raw.get("sales_volume")  # mantener texto original del API
         brand = extract_brand(raw)
         product_url = raw.get("product_url")
 
         discount = None
         if price is not None and orig is not None and orig > 0 and price < orig:
-            discount = round((1 - (price / orig)) * 100, 2)  # numérico 0–100
+            discount = round((1 - (price / orig)) * 100, 2)  # 0–100
 
         rows.append({
             "asin": asin,
@@ -270,10 +272,16 @@ def main() -> None:
         "product_num_ratings",
         "discount",
         "week",
+        # --- Conversión opcional de rank (comentada, como en el código funcional) ---
+        # "rank",
     ]
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Si quieres convertir rank numéricamente, descomenta esta parte:
+    # if "rank" in df.columns:
+    #     df["rank"] = pd.to_numeric(df["rank"], errors="coerce")
 
     # Booleans con NA
     for col in ["is_amazon_choice", "is_best_seller"]:
