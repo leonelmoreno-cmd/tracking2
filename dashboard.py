@@ -135,6 +135,7 @@ def create_overview_graph(
 
 # -------------------------------
 # Subplots per ASIN (legend explained below the caption)
+# *** IMPORTANTE: esta función debe definirse ANTES de llamarla ***
 # -------------------------------
 def create_price_graph(df: pd.DataFrame) -> go.Figure:
     asins = df["asin"].dropna().unique()
@@ -203,7 +204,7 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Resolve active basket (URL & session)ss
+# Resolve active basket (URL & session)
 # -------------------------------
 csv_items = list_repo_csvs(GITHUB_OWNER, GITHUB_REPO, GITHUB_PATH, GITHUB_BRANCH)
 name_to_url: Dict[str, str] = {it["name"]: it["download_url"] for it in csv_items}
@@ -243,13 +244,12 @@ st.markdown(
 )
 
 # ===============================
-# NEW: Encapsulated, centered container (Current + Change basket)
+# Encapsulated, centered container (Current + Change basket)
 # ===============================
 col_l, col_c, col_r = st.columns([1, 1, 1])  # center the card
 with col_c:
     with st.container(border=True):
-        # --- same row: left (Current basket), right (Change basket button) ---
-        left, right = st.columns([3, 2])  # tune ratios if you want more/less space
+        left, right = st.columns([3, 2])
         with left:
             st.markdown(
                 f"<div style='text-align:left; margin:4px 0;'>"
@@ -280,7 +280,6 @@ with col_c:
                             pass
                     st.rerun()
 
-
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
 st.caption("Use the controls below to filter the overview. The metrics summarize the latest ISO week across selected brands.")
@@ -291,6 +290,10 @@ all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
 wk_min_glob = int(prepared_df["week_number"].min())
 wk_max_glob = int(prepared_df["week_number"].max())
 
+# --- rango de fechas global para overview ---
+date_min = prepared_df["date"].dropna().min()
+date_max = prepared_df["date"].dropna().max()
+
 with left_col:
     with st.container(border=True):
         st.caption("Select the brands to filter the overview chart.")
@@ -300,15 +303,41 @@ with left_col:
             default=all_brands,
             help="Select the brands you want to compare in the overview chart."
         )
+        # Calendario (rango) para overview — pasa tupla para habilitar rango
+        overview_date_range = None
+        if pd.notna(date_min) and pd.notna(date_max):
+            overview_date_range = st.date_input(
+                "Filter by date (overview)",
+                value=(date_min.date(), date_max.date()),
+                min_value=date_min.date(),
+                max_value=date_max.date(),
+                help="Choose a start/end date to constrain the overview."
+            )
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
 with right_col:
     with st.container(border=True):
-        last_week = int(prepared_df["week_number"].max())
-        df_week = prepared_df[
-            (prepared_df["week_number"] == last_week) &
-            (prepared_df["brand"].isin(selected_brands))
-        ].copy()
+        # df para overview aplicando filtros de fecha y marca
+        df_overview = prepared_df.copy()
+        if overview_date_range:
+            if isinstance(overview_date_range, tuple):
+                dstart, dend = overview_date_range
+            else:
+                dstart = dend = overview_date_range
+            df_overview = df_overview[
+                (df_overview["date"].dt.date >= dstart) & (df_overview["date"].dt.date <= dend)
+            ]
+
+        if selected_brands:
+            df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
+
+        # Métricas de "last week" dentro del rango/brands actuales
+        if not df_overview.empty:
+            last_week = int(df_overview["week_number"].max())
+            df_week = df_overview[df_overview["week_number"] == last_week].copy()
+        else:
+            last_week = wk_max_glob
+            df_week = pd.DataFrame()
 
         df_week["discount_pct"] = np.where(
             df_week["product_original_price"].notna() & (df_week["product_original_price"] != 0),
@@ -319,8 +348,8 @@ with right_col:
         row_max_disc = df_week.loc[df_week["discount_pct"].idxmax()] if df_week["discount_pct"].notna().any() else None
         row_min_disc = df_week.loc[df_week["discount_pct"].idxmin()] if df_week["discount_pct"].notna().any() else None
 
-        row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() else None
-        row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() else None
+        row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() and not df_week.empty else None
+        row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() and not df_week.empty else None
 
         if not df_week.empty:
             latest_by_brand = df_week.loc[df_week.groupby("brand")["date"].idxmax()].copy()
@@ -381,8 +410,9 @@ with right_col:
             else:
                 st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
 
+# Gráfico de overview usando el df filtrado
 overview_fig = create_overview_graph(
-    prepared_df,
+    df_overview if 'df_overview' in locals() else prepared_df,
     brands_to_plot=selected_brands,
     use_markers=False
 )
@@ -392,7 +422,6 @@ st.plotly_chart(overview_fig, use_container_width=True)
 st.subheader("By Brand — Individual ASINs")
 st.caption("Each small chart tracks a single ASIN. Subplot titles link to the product pages.")
 
-# <<< LEGEND JUST BELOW THE CAPTION >>>
 st.markdown(
     """
     <div style="margin-top:-4px; margin-bottom:8px; font-size:0.95rem;">
@@ -406,20 +435,35 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# *** Aquí SÍ existe la función porque está definida arriba ***
 price_graph = create_price_graph(prepared_df)
 st.plotly_chart(price_graph, use_container_width=True)
 
 # -------------------------------
-# Table + filters
+# Table + filters (ACTUALIZADA)
 # -------------------------------
 st.subheader("Detailed Product Information")
 st.caption("Filter the table and download the filtered data as CSV.")
 
-asin_options = ["All"] + sorted(prepared_df["asin"].dropna().unique().tolist())
+# Opciones por brand (sustituye ASIN)
+brand_options = ["All"] + sorted(prepared_df["brand"].dropna().unique().tolist())
 discount_options = ["All", "Discounted", "No Discount"]
 
 wk_min_glob = int(prepared_df["week_number"].min())
 wk_max_glob = int(prepared_df["week_number"].max())
+
+# Calendario (rango) para la tabla
+date_min_tbl = prepared_df["date"].dropna().min()
+date_max_tbl = prepared_df["date"].dropna().max()
+table_date_range = None
+if pd.notna(date_min_tbl) and pd.notna(date_max_tbl):
+    table_date_range = st.date_input(
+        "Filter by date (range)",
+        value=(date_min_tbl.date(), date_max_tbl.date()),
+        min_value=date_min_tbl.date(),
+        max_value=date_max_tbl.date(),
+        help="Pick a start and end date to filter the table."
+    )
 
 table_week_range = st.slider(
     "Filter by week (range)",
@@ -429,19 +473,47 @@ table_week_range = st.slider(
     help="Pick an ISO week range to filter the table."
 )
 
-asin_filter = st.selectbox("Filter by ASIN", options=asin_options, index=0, help="Narrow the table to a single ASIN.")
-discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0, help="Show only discounted or non-discounted items.")
+# Reemplazo del filtro por ASIN -> BRAND
+brand_filter = st.selectbox(
+    "Filter by Brand",
+    options=brand_options,
+    index=0,
+    help="Narrow the table to a single brand."
+)
+
+discount_filter = st.selectbox(
+    "Filter by Discount Status",
+    options=discount_options,
+    index=0,
+    help="Show only discounted or non-discounted items."
+)
 
 filtered_df = prepared_df.copy()
-if asin_filter != "All":
-    filtered_df = filtered_df[filtered_df["asin"] == asin_filter]
+
+# 1) brand
+if brand_filter != "All":
+    filtered_df = filtered_df[filtered_df["brand"] == brand_filter]
+
+# 2) discount
 if discount_filter != "All":
     filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
 
+# 3) semanas
 filtered_df = filtered_df[
     (filtered_df["week_number"] >= table_week_range[0]) &
     (filtered_df["week_number"] <= table_week_range[1])
 ]
+
+# 4) fechas (rango del calendario de la tabla)
+if table_date_range:
+    if isinstance(table_date_range, tuple):
+        start_date, end_date = table_date_range
+    else:
+        start_date = end_date = table_date_range
+    filtered_df = filtered_df[
+        (filtered_df["date"].dt.date >= start_date) &
+        (filtered_df["date"].dt.date <= end_date)
+    ]
 
 st.dataframe(filtered_df)
 
