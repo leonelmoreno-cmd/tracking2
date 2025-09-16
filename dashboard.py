@@ -324,20 +324,6 @@ with col3:
         help="When ON, all charts use daily prices; when OFF, weekly averages."
     )
     period = "day" if aggregate_daily else "week"
-
-st.markdown("""
-    <style>
-        div[data-testid="stColumn"] {
-            width: fit-content !important;
-            flex: unset;
-        }
-        div[data-testid="stColumn"] * {
-            width: fit-content !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
 st.caption("Use the controls below to filter the overview. The metrics summarize the latest period across selected brands.")
