@@ -297,6 +297,7 @@ with col_c:
                 unsafe_allow_html=True
             )
         with right:
+            # Button as a popover, on the same row
             with st.popover("🧺 Change basket"):
                 st.caption("Pick a CSV from the list and click Apply.")
                 options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
@@ -317,14 +318,14 @@ with col_c:
                             pass
                     st.rerun()
 
-        # --- Global granularity toggle (affects all charts) ---  # <<< NEW
-        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-        aggregate_daily = st.toggle(
-            "Aggregate by day (instead of week)",
-            value=False,
-            help="When ON, all charts use daily prices; when OFF, weekly averages."
-        )
-        period = "day" if aggregate_daily else "week"
+            # <<< NUEVO: Agregar el toggle aquí
+            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+            aggregate_daily = st.toggle(
+                "Aggregate by day (instead of week)",
+                value=False,
+                help="When ON, all charts use daily prices; when OFF, weekly averages."
+            )
+            period = "day" if aggregate_daily else "week"
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
