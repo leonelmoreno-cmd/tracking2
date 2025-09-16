@@ -284,7 +284,8 @@ st.markdown(
 # ===============================
 # Centered container (Current + Change basket + Global toggle)
 # ===============================
-col1, col2, col3 = st.columns([3, 2, 2])
+col1, col2, col3 = st.columns([3, 2, 2], gap="small")
+
 
 with col1:
     st.markdown(
