@@ -2,8 +2,8 @@ name: Amazon Best Sellers Tracker (Monthly)
 
 on:
   schedule:
-    - cron: "0 8 1 * *"   # corre el día 1 de cada mes a las 08:00 UTC
-  workflow_dispatch: {}    # permite ejecución manual desde la UI
+    - cron: "0 8 1 * *"
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -52,6 +52,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ⬇️ MOVIDO AQUÍ: rebase ANTES de generar archivos, para evitar "untracked would be overwritten"
+      - name: Sync main (rebase)
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -70,13 +78,6 @@ jobs:
           OUTPUT_DIR: data/sub-categories
         run: |
           python request-bestsellers.py
-
-      - name: Sync main (rebase)
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git fetch origin main
-          git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
 
       - name: UTC timestamp
         id: ts
