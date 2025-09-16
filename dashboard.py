@@ -284,47 +284,59 @@ st.markdown(
 # ===============================
 # Centered container (Current + Change basket + Global toggle)
 # ===============================
-col_l, col_c, col_r = st.columns([1, 1, 1])
-with col_c:
-    with st.container(border=True):
-        left, right = st.columns([3, 2])
-        with left:
-            st.markdown(
-                f"<div style='text-align:left; margin:4px 0;'>"
-                f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
-                f"<code style='color:#16a34a;'>{active_basket_name}</code>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-        with right:
-            with st.popover("🧺 Change basket"):
-                st.caption("Pick a CSV from the list and click Apply.")
-                options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
-                try:
-                    idx = options.index(active_basket_name)
-                except ValueError:
-                    idx = 0
-                sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
-                apply = st.button("Apply", type="primary")
-                if apply:
-                    st.session_state["basket"] = sel
-                    if hasattr(st, "query_params"):
-                        st.query_params["basket"] = sel
-                    else:
-                        try:
-                            st.experimental_set_query_params(basket=sel)
-                        except Exception:
-                            pass
-                    st.rerun()
+col1, col2, col3 = st.columns([3, 2, 2])
 
-        # --- Global granularity toggle (affects all charts) ---  # <<< NEW
-        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-        aggregate_daily = st.toggle(
-            "Aggregate by day (instead of week)",
-            value=False,
-            help="When ON, all charts use daily prices; when OFF, weekly averages."
-        )
-        period = "day" if aggregate_daily else "week"
+with col1:
+    st.markdown(
+        f"<div style='text-align:left; margin:4px 0;'>"
+        f"<span style='color:#16a34a; font-weight:600;'>Current basket:</span> "
+        f"<code style='color:#16a34a;'>{active_basket_name}</code>"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+
+with col2:
+    with st.popover("🧺 Change basket"):
+        st.caption("Pick a CSV from the list and click Apply.")
+        options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
+        try:
+            idx = options.index(active_basket_name)
+        except ValueError:
+            idx = 0
+        sel = st.selectbox("File (CSV) in repo", options=options, index=idx, key="basket_select")
+        apply = st.button("Apply", type="primary")
+        if apply:
+            st.session_state["basket"] = sel
+            if hasattr(st, "query_params"):
+                st.query_params["basket"] = sel
+            else:
+                try:
+                    st.experimental_set_query_params(basket=sel)
+                except Exception:
+                    pass
+            st.rerun()
+
+with col3:
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+    aggregate_daily = st.toggle(
+        "Aggregate by day (instead of week)",
+        value=False,
+        help="When ON, all charts use daily prices; when OFF, weekly averages."
+    )
+    period = "day" if aggregate_daily else "week"
+
+st.markdown("""
+    <style>
+        div[data-testid="stColumn"] {
+            width: fit-content !important;
+            flex: unset;
+        }
+        div[data-testid="stColumn"] * {
+            width: fit-content !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
