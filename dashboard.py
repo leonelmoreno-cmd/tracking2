@@ -324,16 +324,18 @@ with col_c:
 
         # Right column: Add the toggle button for "Day/Week"
         with right:
-            # Change the label dynamically based on toggle status
-            toggle_label = "Day" if not aggregate_daily else "Week"  # Show Day if toggle is off, Week if on
-
-            # Add the toggle button for changing the view from week to day
+            # Define the toggle first before using it in the label
             aggregate_daily = st.toggle(
-                f"Show data by {toggle_label}?",  # Dynamically update the label
+                "Aggregate by day (instead of week)",
                 value=False,
                 help="When ON, all charts use daily prices; when OFF, weekly averages."
             )
-            period = "day" if aggregate_daily else "week"
+
+            # Change the label dynamically based on the toggle's status
+            toggle_label = "Day" if not aggregate_daily else "Week"  # Show Day if toggle is off, Week if on
+
+            # Add the toggle button for changing the view from week to day
+            st.markdown(f"**Show data by {toggle_label}?**", unsafe_allow_html=True)
 
             # Optional: Add some margin to visually separate the toggle
             st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
