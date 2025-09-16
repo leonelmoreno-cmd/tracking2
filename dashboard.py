@@ -284,10 +284,15 @@ st.markdown(
 # ===============================
 # Centered container (Current + Change basket + Global toggle)
 # ===============================
-col_l, col_c, col_r = st.columns([1, 1, 1])
+# ===============================
+# Centered container (Current Basket + Global toggle in the same row)
+# ===============================
+col_l, col_c, col_r = st.columns([1, 3, 1])  # Adjust column proportions for layout
 with col_c:
     with st.container(border=True):
-        left, right = st.columns([3, 2])
+        left, right = st.columns([3, 1])  # Divide the container into two parts for "Current Basket" and "Toggle"
+        
+        # Left column: Display the Current Basket
         with left:
             st.markdown(
                 f"<div style='text-align:left; margin:4px 0;'>"
@@ -296,17 +301,21 @@ with col_c:
                 f"</div>",
                 unsafe_allow_html=True
             )
-        
-            # <<< NUEVO: Agregar el toggle aquí
-            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
+        # Right column: Add the toggle button for "Week/Day"
+        with right:
+            # Add the toggle button for changing the view from week to day
             aggregate_daily = st.toggle(
                 "Aggregate by day (instead of week)",
                 value=False,
                 help="When ON, all charts use daily prices; when OFF, weekly averages."
             )
             period = "day" if aggregate_daily else "week"
-        with right:
-            # Button as a popover, on the same row
+
+            # Optional: Add some margin to visually separate the toggle
+            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+            
+            # Add the 'Change basket' popover button
             with st.popover("🧺 Change basket"):
                 st.caption("Pick a CSV from the list and click Apply.")
                 options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
@@ -326,7 +335,6 @@ with col_c:
                         except Exception:
                             pass
                     st.rerun()
-
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
 st.caption("Use the controls below to filter the overview. The metrics summarize the latest period across selected brands.")
