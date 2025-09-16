@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import requests  # Para consultar la GitHub API
+import requests  # GitHub API
 from typing import Dict, List
 
 # -------------------------------
@@ -67,6 +67,7 @@ def fetch_data(url: str) -> pd.DataFrame:
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    # ISO week number (recommended by pandas; old .week is deprecated)
     df["week_number"] = df["date"].dt.isocalendar().week
     df = df.sort_values(by=["asin", "week_number"])
     df["discount"] = df.apply(
@@ -82,50 +83,75 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
-    week_range=None,   # ignored if None
-    use_markers=False
+    week_range=None,     # kept for compatibility (ignored for daily)
+    use_markers=False,
+    period: str = "week"  # <<< NEW: "week" or "day"
 ) -> go.Figure:
     if brands_to_plot is not None and len(brands_to_plot) > 0:
         df = df[df["brand"].isin(brands_to_plot)]
 
-    if week_range is not None:
+    if week_range is not None and period == "week":
         wk_min, wk_max = week_range
         df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
 
-    max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
-    min_week = int(df["week_number"].min())
-    max_week = int(df["week_number"].max())
+    max_price = float(np.nanmax([
+        df["product_price"].max(),
+        df["product_original_price"].max()
+    ]))
+
+    # Group key and labels depend on period
+    if period == "day":
+        group_key = "date"
+        x_title = "Date"
+        title_label = "Daily"
+    else:
+        group_key = "week_number"
+        x_title = "Week Number"
+        title_label = "Weekly"
 
     fig = go.Figure()
     trace_mode = "lines+markers" if use_markers else "lines"
 
-    brand_week = (
+    brand_period = (
         df.sort_values("date")
-          .groupby(["brand", "week_number"], as_index=False)["product_price"].mean()
+          .groupby(["brand", group_key], as_index=False)["product_price"].mean()
     )
-    for brand, g in brand_week.groupby("brand"):
+
+    # Human-friendly hover label
+    hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
+
+    for brand, g in brand_period.groupby("brand"):
         fig.add_trace(go.Scatter(
-            x=g["week_number"],
+            x=g[group_key],
             y=g["product_price"],
             mode=trace_mode,
             name=str(brand),
             hovertemplate=(
                 "Brand: %{text}<br>" +
                 "Price: $%{y:.2f}<br>" +
-                "Week: %{x}<extra></extra>"
+                f"{hover_x}<extra></extra>"
             ),
             text=g["brand"],
             showlegend=True
         ))
 
+    # Axes
     fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
-    fig.update_xaxes(
-        range=[min_week, max_week],
-        tickmode="linear", tick0=min_week, dtick=1,
-        title_text="Week Number"
-    )
+    if period == "week":
+        min_week = int(df["week_number"].min())
+        max_week = int(df["week_number"].max())
+        fig.update_xaxes(
+            range=[min_week, max_week],
+            tickmode="linear", tick0=min_week, dtick=1,
+            title_text=x_title
+        )
+        title_suffix = f"(Weeks {min_week}–{max_week})"
+    else:
+        fig.update_xaxes(title_text=x_title)
+        title_suffix = ""
+
     fig.update_layout(
-        title=f"Overview — Weekly Price by Brand (Weeks {min_week}–{max_week})",
+        title=f"Overview — {title_label} Price by Brand {title_suffix}",
         height=420,
         hovermode="x unified",
         legend_title_text="Brand",
@@ -135,9 +161,8 @@ def create_overview_graph(
 
 # -------------------------------
 # Subplots per ASIN (legend explained below the caption)
-# *** IMPORTANTE: esta función debe definirse ANTES de llamarla ***
 # -------------------------------
-def create_price_graph(df: pd.DataFrame) -> go.Figure:
+def create_price_graph(df: pd.DataFrame, period: str = "week") -> go.Figure:  # <<< NEW
     asins = df["asin"].dropna().unique()
     num_asins = len(asins)
     cols = 3 if num_asins >= 3 else max(1, num_asins)
@@ -153,13 +178,18 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         ]
     )
 
-    max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
-    min_week = int(df["week_number"].min())
-    max_week = int(df["week_number"].max())
+    max_price = float(np.nanmax([
+        df["product_price"].max(),
+        df["product_original_price"].max()
+    ]))
+
+    # Precompute for week axis when needed
+    if period == "week":
+        min_week = int(df["week_number"].min())
+        max_week = int(df["week_number"].max())
 
     fig.for_each_xaxis(lambda ax: ax.update(showticklabels=True))
 
-    # ---- traces (no legend inside the figure)
     for i, asin in enumerate(asins):
         asin_data = df[df["asin"] == asin].sort_values("date")
         if asin_data.empty:
@@ -169,17 +199,21 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         r = i // cols + 1
         c = i % cols + 1
 
+        x_vals = asin_data["date"] if period == "day" else asin_data["week_number"]
+        hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
+        x_title = "Date" if period == "day" else "Week Number"
+
         fig.add_trace(
             go.Scatter(
-                x=asin_data["week_number"],
+                x=x_vals,
                 y=asin_data["product_price"],
                 mode="lines+markers",
                 name=str(asin),
-                line=dict(dash=dashed),   # 'solid' or 'dot'
+                line=dict(dash=dashed),
                 hovertemplate=(
                     "ASIN: %{text}<br>" +
                     "Price: $%{y:.2f}<br>" +
-                    "Week: %{x}<br>" +
+                    f"{hover_x}<br>" +
                     "Price Change: %{customdata:.2f}%<br>" +
                     "<extra></extra>"
                 ),
@@ -191,15 +225,19 @@ def create_price_graph(df: pd.DataFrame) -> go.Figure:
         )
 
     fig.update_yaxes(range=[0, max_price])
-    fig.update_xaxes(range=[min_week, max_week])
-    fig.for_each_xaxis(lambda ax: ax.update(tickmode="linear", tick0=min_week, dtick=1))
+    if period == "week":
+        fig.update_xaxes(range=[min_week, max_week])
+        fig.for_each_xaxis(lambda ax: ax.update(tickmode="linear", tick0=min_week, dtick=1))
+        x_title = "Week Number"
+    else:
+        x_title = "Date"
 
     fig.update_layout(
         height=max(400, 280 * rows),
-        xaxis_title="Week Number",
+        xaxis_title=x_title,
         yaxis_title="Product Price (USD)",
         margin=dict(l=20, r=20, t=50, b=50),
-        showlegend=False  # aseguramos que no salga leyenda dentro del gráfico
+        showlegend=False
     )
     return fig
 
@@ -237,16 +275,16 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom:-15px;">Competitor Price Monitoring</h1>
-        <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - v.2.0 </h6>
+        <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - v.2.1</h6>
     </div>
     """,
     unsafe_allow_html=True
 )
 
 # ===============================
-# Encapsulated, centered container (Current + Change basket)
+# Centered container (Current + Change basket + Global toggle)
 # ===============================
-col_l, col_c, col_r = st.columns([1, 1, 1])  # center the card
+col_l, col_c, col_r = st.columns([1, 1, 1])
 with col_c:
     with st.container(border=True):
         left, right = st.columns([3, 2])
@@ -259,7 +297,6 @@ with col_c:
                 unsafe_allow_html=True
             )
         with right:
-            # Button as a popover, on the same row
             with st.popover("🧺 Change basket"):
                 st.caption("Pick a CSV from the list and click Apply.")
                 options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
@@ -280,9 +317,18 @@ with col_c:
                             pass
                     st.rerun()
 
+        # --- Global granularity toggle (affects all charts) ---  # <<< NEW
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+        aggregate_daily = st.toggle(
+            "Aggregate by day (instead of week)",
+            value=False,
+            help="When ON, all charts use daily prices; when OFF, weekly averages."
+        )
+        period = "day" if aggregate_daily else "week"
+
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
-st.caption("Use the controls below to filter the overview. The metrics summarize the latest ISO week across selected brands.")
+st.caption("Use the controls below to filter the overview. The metrics summarize the latest period across selected brands.")
 
 left_col, right_col = st.columns([0.7, 2.3], gap="large")
 
@@ -290,7 +336,7 @@ all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
 wk_min_glob = int(prepared_df["week_number"].min())
 wk_max_glob = int(prepared_df["week_number"].max())
 
-# --- rango de fechas global para overview ---
+# Global date range for overview
 date_min = prepared_df["date"].dropna().min()
 date_max = prepared_df["date"].dropna().max()
 
@@ -303,7 +349,7 @@ with left_col:
             default=all_brands,
             help="Select the brands you want to compare in the overview chart."
         )
-        # Calendario (rango) para overview — pasa tupla para habilitar rango
+        # Date range picker for overview
         overview_date_range = None
         if pd.notna(date_min) and pd.notna(date_max):
             overview_date_range = st.date_input(
@@ -317,7 +363,7 @@ with left_col:
 
 with right_col:
     with st.container(border=True):
-        # df para overview aplicando filtros de fecha y marca
+        # Overview dataframe with date/brand filters
         df_overview = prepared_df.copy()
         if overview_date_range:
             if isinstance(overview_date_range, tuple):
@@ -331,28 +377,37 @@ with right_col:
         if selected_brands:
             df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
 
-        # Métricas de "last week" dentro del rango/brands actuales
+        # Last period subset for KPIs
         if not df_overview.empty:
-            last_week = int(df_overview["week_number"].max())
-            df_week = df_overview[df_overview["week_number"] == last_week].copy()
+            if period == "week":
+                last_period = int(df_overview["week_number"].max())
+                df_period = df_overview[df_overview["week_number"] == last_period].copy()
+                label = f"week {last_period}"
+            else:
+                last_day_ts = df_overview["date"].max()
+                last_day = last_day_ts.date()
+                df_period = df_overview[df_overview["date"].dt.date == last_day].copy()
+                label = last_day.strftime("%Y-%m-%d")
         else:
-            last_week = wk_max_glob
-            df_week = pd.DataFrame()
+            last_period = None
+            df_period = pd.DataFrame()
+            label = "N/A"
 
-        df_week["discount_pct"] = np.where(
-            df_week["product_original_price"].notna() & (df_week["product_original_price"] != 0),
-            (df_week["product_original_price"] - df_week["product_price"]) / df_week["product_original_price"] * 100.0,
+        # KPI computations
+        df_period["discount_pct"] = np.where(
+            df_period["product_original_price"].notna() & (df_period["product_original_price"] != 0),
+            (df_period["product_original_price"] - df_period["product_price"]) / df_period["product_original_price"] * 100.0,
             np.nan
         )
 
-        row_max_disc = df_week.loc[df_week["discount_pct"].idxmax()] if df_week["discount_pct"].notna().any() else None
-        row_min_disc = df_week.loc[df_week["discount_pct"].idxmin()] if df_week["discount_pct"].notna().any() else None
+        row_max_disc = df_period.loc[df_period["discount_pct"].idxmax()] if df_period["discount_pct"].notna().any() else None
+        row_min_disc = df_period.loc[df_period["discount_pct"].idxmin()] if df_period["discount_pct"].notna().any() else None
 
-        row_max_price = df_week.loc[df_week["product_price"].idxmax()] if not df_week["product_price"].isna().all() and not df_week.empty else None
-        row_min_price = df_week.loc[df_week["product_price"].idxmin()] if not df_week["product_price"].isna().all() and not df_week.empty else None
+        row_max_price = df_period.loc[df_period["product_price"].idxmax()] if not df_period["product_price"].isna().all() and not df_period.empty else None
+        row_min_price = df_period.loc[df_period["product_price"].idxmin()] if not df_period["product_price"].isna().all() and not df_period.empty else None
 
-        if not df_week.empty:
-            latest_by_brand = df_week.loc[df_week.groupby("brand")["date"].idxmax()].copy()
+        if not df_period.empty:
+            latest_by_brand = df_period.loc[df_period.groupby("brand")["date"].idxmax()].copy()
         else:
             latest_by_brand = pd.DataFrame()
 
@@ -367,54 +422,55 @@ with right_col:
             else None
         )
 
-        st.markdown("### Last week highlights")
+        st.markdown("### Last period highlights")
 
         dcol, pcol, ccol = st.columns(3)
 
         with dcol:
             if row_max_disc is not None:
-                st.metric(f"🏷️ Highest discount — week {last_week} — {row_max_disc['brand']}", f"{row_max_disc['discount_pct']:.1f}%")
+                st.metric(f"🏷️ Highest discount — {label} — {row_max_disc['brand']}", f"{row_max_disc['discount_pct']:.1f}%")
             else:
-                st.metric(f"🏷️ Highest discount — week {last_week}", "N/A")
+                st.metric(f"🏷️ Highest discount — {label}", "N/A")
 
             if row_min_disc is not None:
-                st.metric(f"🏷️ Lowest discount — week {last_week} — {row_min_disc['brand']}", f"{row_min_disc['discount_pct']:.1f}%")
+                st.metric(f"🏷️ Lowest discount — {label} — {row_min_disc['brand']}", f"{row_min_disc['discount_pct']:.1f}%")
             else:
-                st.metric(f"🏷️ Lowest discount — week {last_week}", "N/A")
+                st.metric(f"🏷️ Lowest discount — {label}", "N/A")
 
         with pcol:
             if row_max_price is not None:
-                st.metric(f"💲 Highest price — week {last_week} — {row_max_price['brand']}", f"${row_max_price['product_price']:.2f}")
+                st.metric(f"💲 Highest price — {label} — {row_max_price['brand']}", f"${row_max_price['product_price']:.2f}")
             else:
-                st.metric(f"💲 Highest price — week {last_week}", "N/A")
+                st.metric(f"💲 Highest price — {label}", "N/A")
 
             if row_min_price is not None:
-                st.metric(f"💲 Lowest price — week {last_week} — {row_min_price['brand']}", f"${row_min_price['product_price']:.2f}")
+                st.metric(f"💲 Lowest price — {label} — {row_min_price['brand']}", f"${row_min_price['product_price']:.2f}")
             else:
-                st.metric(f"💲 Lowest price — week {last_week}", "N/A")
+                st.metric(f"💲 Lowest price — {label}", "N/A")
 
         with ccol:
             if row_max_change is not None:
                 st.metric(
-                    f"🔺 Largest price change (last update) — week {last_week} — {row_max_change['brand']}",
+                    f"🔺 Largest price change (last update) — {label} — {row_max_change['brand']}",
                     f"{row_max_change['price_change']:+.1f}%"
                 )
             else:
-                st.metric(f"🔺 Largest price change (last update) — week {last_week}", "N/A")
+                st.metric(f"🔺 Largest price change (last update) — {label}", "N/A")
 
             if row_min_change is not None:
                 st.metric(
-                    f"🔻 Lowest price change (last update) — week {last_week} — {row_min_change['brand']}",
+                    f"🔻 Lowest price change (last update) — {label} — {row_min_change['brand']}",
                     f"{row_min_change['price_change']:+.1f}%"
                 )
             else:
-                st.metric(f"🔻 Lowest price change (last update) — week {last_week}", "N/A")
+                st.metric(f"🔻 Lowest price change (last update) — {label}", "N/A")
 
-# Gráfico de overview usando el df filtrado
+# Overview chart with the selected period
 overview_fig = create_overview_graph(
     df_overview if 'df_overview' in locals() else prepared_df,
     brands_to_plot=selected_brands,
-    use_markers=False
+    use_markers=False,
+    period=period  # <<< NEW
 )
 st.plotly_chart(overview_fig, use_container_width=True)
 
@@ -435,24 +491,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# *** Aquí SÍ existe la función porque está definida arriba ***
-price_graph = create_price_graph(prepared_df)
+price_graph = create_price_graph(prepared_df, period=period)  # <<< NEW
 st.plotly_chart(price_graph, use_container_width=True)
 
 # -------------------------------
-# Table + filters (ACTUALIZADA)
+# Table + filters (unchanged)
 # -------------------------------
 st.subheader("Detailed Product Information")
 st.caption("Filter the table and download the filtered data as CSV.")
 
-# Opciones por brand (sustituye ASIN)
 brand_options = ["All"] + sorted(prepared_df["brand"].dropna().unique().tolist())
 discount_options = ["All", "Discounted", "No Discount"]
 
 wk_min_glob = int(prepared_df["week_number"].min())
 wk_max_glob = int(prepared_df["week_number"].max())
 
-# Calendario (rango) para la tabla
 date_min_tbl = prepared_df["date"].dropna().min()
 date_max_tbl = prepared_df["date"].dropna().max()
 table_date_range = None
@@ -465,7 +518,6 @@ if pd.notna(date_min_tbl) and pd.notna(date_max_tbl):
         help="Pick a start and end date to filter the table."
     )
 
-# Reemplazo del filtro por ASIN -> BRAND
 brand_filter = st.selectbox(
     "Filter by Brand",
     options=brand_options,
@@ -482,15 +534,12 @@ discount_filter = st.selectbox(
 
 filtered_df = prepared_df.copy()
 
-# 1) brand
 if brand_filter != "All":
     filtered_df = filtered_df[filtered_df["brand"] == brand_filter]
 
-# 2) discount
 if discount_filter != "All":
     filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
 
-# 4) fechas (rango del calendario de la tabla)
 if table_date_range:
     if isinstance(table_date_range, tuple):
         start_date, end_date = table_date_range
