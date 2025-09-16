@@ -296,6 +296,15 @@ with col_c:
                 f"</div>",
                 unsafe_allow_html=True
             )
+        
+            # <<< NUEVO: Agregar el toggle aquí
+            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+            aggregate_daily = st.toggle(
+                "Aggregate by day (instead of week)",
+                value=False,
+                help="When ON, all charts use daily prices; when OFF, weekly averages."
+            )
+            period = "day" if aggregate_daily else "week"
         with right:
             # Button as a popover, on the same row
             with st.popover("🧺 Change basket"):
@@ -317,15 +326,6 @@ with col_c:
                         except Exception:
                             pass
                     st.rerun()
-
-            # <<< NUEVO: Agregar el toggle aquí
-            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-            aggregate_daily = st.toggle(
-                "Aggregate by day (instead of week)",
-                value=False,
-                help="When ON, all charts use daily prices; when OFF, weekly averages."
-            )
-            period = "day" if aggregate_daily else "week"
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
