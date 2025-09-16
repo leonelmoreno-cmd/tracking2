@@ -282,16 +282,13 @@ st.markdown(
 )
 
 # ===============================
-# Centered container (Current + Change basket + Global toggle)
-# ===============================
-# ===============================
 # Centered container (Current Basket + Change Basket + Global toggle in the same row)
 # ===============================
 col_l, col_c, col_r = st.columns([1, 3, 1])  # Adjust column proportions for layout
 with col_c:
     with st.container(border=True):
-        # Subdivide the container into three parts
-        left, center, right = st.columns([3, 2, 1])  # 3 for Current Basket, 2 for Change Basket, 1 for Toggle
+        # Subdivide the container into three parts with smaller gaps between columns
+        left, center, right = st.columns([3, 2, 1], gap="small")  # Smaller gap between columns
         
         # Left column: Display the Current Basket
         with left:
@@ -325,11 +322,14 @@ with col_c:
                             pass
                     st.rerun()
 
-        # Right column: Add the toggle button for "Week/Day"
+        # Right column: Add the toggle button for "Day/Week"
         with right:
+            # Change the label dynamically based on toggle status
+            toggle_label = "Day" if not aggregate_daily else "Week"  # Show Day if toggle is off, Week if on
+
             # Add the toggle button for changing the view from week to day
             aggregate_daily = st.toggle(
-                "Aggregate by day (instead of week)",
+                f"Show data by {toggle_label}?",  # Dynamically update the label
                 value=False,
                 help="When ON, all charts use daily prices; when OFF, weekly averages."
             )
@@ -337,6 +337,7 @@ with col_c:
 
             # Optional: Add some margin to visually separate the toggle
             st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
