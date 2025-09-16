@@ -282,15 +282,12 @@ st.markdown(
 )
 
 # ===============================
-# Centered container (Current Basket + Change Basket + Global toggle in the same row)
+# Centered container (Current + Change basket + Global toggle)
 # ===============================
-col_l, col_c, col_r = st.columns([1, 3, 1])  # Adjust column proportions for layout
+col_l, col_c, col_r = st.columns([1, 1, 1])
 with col_c:
     with st.container(border=True):
-        # Subdivide the container into three parts with smaller gaps between columns
-        left, center, right = st.columns([3, 2, 1], gap="small")  # Smaller gap between columns
-        
-        # Left column: Display the Current Basket
+        left, right = st.columns([3, 2])
         with left:
             st.markdown(
                 f"<div style='text-align:left; margin:4px 0;'>"
@@ -299,9 +296,7 @@ with col_c:
                 f"</div>",
                 unsafe_allow_html=True
             )
-
-        # Center column: Add the 'Change Basket' button
-        with center:
+        with right:
             with st.popover("🧺 Change basket"):
                 st.caption("Pick a CSV from the list and click Apply.")
                 options = list(name_to_url.keys()) if name_to_url else [DEFAULT_BASKET]
@@ -322,24 +317,14 @@ with col_c:
                             pass
                     st.rerun()
 
-        # Right column: Add the toggle button for "Day/Week"
-        with right:
-            # Define the toggle first before using it in the label
-            aggregate_daily = st.toggle(
-                "Aggregate by day (instead of week)",
-                value=False,
-                help="When ON, all charts use daily prices; when OFF, weekly averages."
-            )
-
-            # Change the label dynamically based on the toggle's status
-            toggle_label = "Day" if not aggregate_daily else "Week"  # Show Day if toggle is off, Week if on
-
-            # Add the toggle button for changing the view from week to day
-            st.markdown(f"**Show data by {toggle_label}?**", unsafe_allow_html=True)
-
-            # Optional: Add some margin to visually separate the toggle
-            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
+        # --- Global granularity toggle (affects all charts) ---  # <<< NEW
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+        aggregate_daily = st.toggle(
+            "Aggregate by day (instead of week)",
+            value=False,
+            help="When ON, all charts use daily prices; when OFF, weekly averages."
+        )
+        period = "day" if aggregate_daily else "week"
 
 # -------- Overview (by brand) --------
 st.subheader("Overview — All Brands")
