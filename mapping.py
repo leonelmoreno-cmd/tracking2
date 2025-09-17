@@ -30,7 +30,7 @@ csv_mapping = {
         "sub": "sub_UR.csv"
     },
     "Synthetic": {
-        "history": "synthethic3.csv",
+        "history": "data/synthetic3.csv",
         "sub": "sub_SYN.csv"
     }
 }
