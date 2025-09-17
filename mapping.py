@@ -1,36 +1,34 @@
-# mapping.py (script aparte)
-# Diccionario que vincula cada CSV principal con su CSV de best sellers
 csv_mapping = {
     "BL": {
-        "history": "competitors_history - BL.csv",
-        "sub": "sub_BL.csv"
+        "history": "data/competitors_history - BL.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_BL.csv"          # Ruta ajustada
     },
     "GS": {
-        "history": "competitors_history - GS.csv",
-        "sub": "sub_GS.csv"
+        "history": "data/competitors_history - GS.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_GS.csv"          # Ruta ajustada
     },
     "IC": {
-        "history": "competitors_history - IC.csv",
-        "sub": "sub_IC.csv"
+        "history": "data/competitors_history - IC.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_IC.csv"          # Ruta ajustada
     },
     "LGM": {
-        "history": "competitors_history - LGM.csv",
-        "sub": "sub_LGM.csv"
+        "history": "data/competitors_history - LGM.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_LGM.csv"          # Ruta ajustada
     },
     "QC": {
-        "history": "competitors_history - QC.csv",
-        "sub": "sub_QC.csv"
+        "history": "data/competitors_history - QC.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_QC.csv"          # Ruta ajustada
     },
     "RIO": {
-        "history": "competitors_history - RIO.csv",
-        "sub": "sub_RIO.csv"
+        "history": "data/competitors_history - RIO.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_RIO.csv"          # Ruta ajustada
     },
     "UR": {
-        "history": "competitors_history - UR.csv",
-        "sub": "sub_UR.csv"
+        "history": "data/competitors_history - UR.csv",  # Ruta ajustada
+        "sub": "data/sub-categories/sub_UR.csv"          # Ruta ajustada
     },
     "Synthetic": {
-        "history": "data/synthetic3.csv",
-        "sub": "sub_SYN.csv"
+        "history": "data/synthetic3.csv",                # Ruta ajustada
+        "sub": "data/sub-categories/sub_SYN.csv"         # Ruta ajustada
     }
 }
