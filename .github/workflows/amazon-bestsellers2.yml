@@ -75,7 +75,7 @@ jobs:
           RAPIDAPI_KEY: ${{ secrets.AMAZON_API_KEY }}
           COUNTRY: US
           SUBCATS_DIR: sub-categories
-          OUTPUT_DIR: data/sub-categories
+          OUTPUT_DIR: data/sub-categories2
         run: |
           python request-bestsellers2.py
 
