@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import requests  # GitHub API
 from typing import Dict, List
-
+from mapping import COMPETITOR_TO_SUBCATEGORY_MAP
 # -------------------------------
 # Page config - 
 # -------------------------------
@@ -247,6 +247,7 @@ def create_price_graph(df: pd.DataFrame, period: str = "week") -> go.Figure:  # 
 csv_items = list_repo_csvs(GITHUB_OWNER, GITHUB_REPO, GITHUB_PATH, GITHUB_BRANCH)
 name_to_url: Dict[str, str] = {it["name"]: it["download_url"] for it in csv_items}
 
+# Obtén el parámetro de la cesta desde la URL o la sesión
 qp = st.query_params.to_dict() if hasattr(st, "query_params") else {}
 qp_basket = qp.get("basket")
 if isinstance(qp_basket, list):
@@ -255,11 +256,27 @@ if isinstance(qp_basket, list):
 if "basket" not in st.session_state:
     st.session_state["basket"] = qp_basket if qp_basket else DEFAULT_BASKET
 
+# El nombre de la cesta activa seleccionada
 active_basket_name = st.session_state["basket"]
+
+# Obtener la URL del archivo de la cesta activa
 active_url = name_to_url.get(
     active_basket_name,
     _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
 )
+
+# Obtener el nombre del archivo de sub-categoría correspondiente
+sub_category_csv = COMPETITOR_TO_SUBCATEGORY_MAP.get(active_basket_name)
+
+# Si se encuentra un archivo de sub-categoría, asignamos su URL
+if sub_category_csv:
+    active_url = name_to_url.get(sub_category_csv, _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, sub_category_csv))
+else:
+    st.error(f"Error: No se encontró un archivo de sub-categoría para {active_basket_name}")
+
+# Ahora, tenemos la URL correcta en `active_url` para cargar los datos correspondientes
+
+
 # -------------------------------
 # Main UI - load data
 # -------------------------------
