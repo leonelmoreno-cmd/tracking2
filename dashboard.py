@@ -563,7 +563,8 @@ if table_date_range:
         (filtered_df["date"].dt.date <= end_date)
     ]
 
-st.dataframe(filtered_df)
+st.dataframe(filtered_df, use_container_width=True)
+
 
 csv_data = filtered_df.to_csv(index=False).encode("utf-8")
 st.download_button(
