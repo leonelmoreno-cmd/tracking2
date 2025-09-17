@@ -52,7 +52,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ⬇️ MOVIDO AQUÍ: rebase ANTES de generar archivos, para evitar "untracked would be overwritten"
+      # Mover el rebase AQUÍ, antes de generar los archivos
       - name: Sync main (rebase)
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
