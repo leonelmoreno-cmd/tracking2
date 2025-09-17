@@ -273,6 +273,8 @@ if sub_category_csv:
     active_url = name_to_url.get(sub_category_csv, _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, sub_category_csv))
 else:
     st.error(f"Error: No se encontró un archivo de sub-categoría para {active_basket_name}")
+# Verificar la URL generada
+st.write(f"Intentando cargar los datos desde: {active_url}")
 
 # Ahora, tenemos la URL correcta en `active_url` para cargar los datos correspondientes
 
