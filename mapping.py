@@ -28,7 +28,7 @@ csv_mapping = {
         "sub": "data/sub-categories/sub_UR.csv"          # Ruta ajustada
     },
     "Synthetic": {
-        "history": "data/synthetic3.csv",                # Ruta ajustada
+        "history": "data/synthethic3.csv",                # Ruta ajustada
         "sub": "data/sub-categories/sub_SYN.csv"         # Ruta ajustada
     }
 }
