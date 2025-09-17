@@ -22,7 +22,7 @@ GITHUB_OWNER = "leonelmoreno-cmd"
 GITHUB_REPO = "tracking2"
 GITHUB_PATH = "data"
 GITHUB_BRANCH = "main"
-DEFAULT_BASKET = "synthethic3.csv"
+DEFAULT_BASKET = "Synthetic"
 
 # -------------------------------
 # List repo CSVs (cached)
