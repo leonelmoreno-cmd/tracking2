@@ -28,5 +28,9 @@ csv_mapping = {
     "UR": {
         "history": "competitors_history - UR.csv",
         "sub": "sub_UR.csv"
+    },
+    "Synthetic": {
+        "history": "synthetic3.csv",
+        "sub": "sub_SYN.csv"
     }
 }
