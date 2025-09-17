@@ -56,14 +56,15 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
     """
     Construye una URL de GitHub para acceder a un archivo en el repositorio especificado.
     Si el archivo tiene una subcategoría asociada, ajusta la ruta para incluir la subcarpeta correspondiente.
+    Si no, devuelve el archivo principal directamente.
     """
-    # Verificar si el archivo tiene una subcategoría asociada
+    # Si no existe una subcategoría asociada, simplemente usar el archivo principal
     subcategory_file = COMPETITOR_TO_SUBCATEGORY_MAP.get(fname)
     if subcategory_file:
         # Si existe una subcategoría, construir la URL incluyendo la subcarpeta
         return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{subcategory_file}"
     else:
-        # Si no existe una subcategoría, construir la URL sin la subcarpeta
+        # Si no existe una subcategoría, simplemente usar el archivo principal
         return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
 
 # -------------------------------
@@ -269,25 +270,14 @@ if "basket" not in st.session_state:
 # El nombre de la cesta activa seleccionada
 active_basket_name = st.session_state["basket"]
 
-# Obtener la URL del archivo de la cesta activa
+# Obtener la URL del archivo de la cesta activa directamente, sin buscar una subcategoría automáticamente
 active_url = name_to_url.get(
     active_basket_name,
     _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
 )
 
-# Obtener el nombre del archivo de sub-categoría correspondiente
-sub_category_csv = COMPETITOR_TO_SUBCATEGORY_MAP.get(active_basket_name)
-
-# Si se encuentra un archivo de sub-categoría, asignamos su URL
-if sub_category_csv:
-    active_url = name_to_url.get(sub_category_csv, _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, sub_category_csv))
-else:
-    st.error(f"Error: No se encontró un archivo de sub-categoría para {active_basket_name}")
-# Verificar la URL generada
+# Mostrar la URL que se está cargando
 st.write(f"Intentando cargar los datos desde: {active_url}")
-
-# Ahora, tenemos la URL correcta en `active_url` para cargar los datos correspondientes
-
 
 # -------------------------------
 # Main UI - load data
