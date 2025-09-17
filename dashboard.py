@@ -275,10 +275,6 @@ active_url = name_to_url.get(
     active_basket_name,
     _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
 )
-
-# Mostrar la URL que se está cargando
-st.write(f"Intentando cargar los datos desde: {active_url}")
-
 # -------------------------------
 # Main UI - load data
 # -------------------------------
