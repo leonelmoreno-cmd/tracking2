@@ -53,8 +53,18 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     return csvs
 
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
-    """Build a raw URL as fallback."""
-    return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/sub-categories/{fname}"
+    """
+    Construye una URL de GitHub para acceder a un archivo en el repositorio especificado.
+    Si el archivo tiene una subcategoría asociada, ajusta la ruta para incluir la subcarpeta correspondiente.
+    """
+    # Verificar si el archivo tiene una subcategoría asociada
+    subcategory_file = COMPETITOR_TO_SUBCATEGORY_MAP.get(fname)
+    if subcategory_file:
+        # Si existe una subcategoría, construir la URL incluyendo la subcarpeta
+        return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{subcategory_file}"
+    else:
+        # Si no existe una subcategoría, construir la URL sin la subcarpeta
+        return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
 
 # -------------------------------
 # Data loading
