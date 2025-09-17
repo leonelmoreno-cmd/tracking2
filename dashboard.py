@@ -7,7 +7,7 @@ import requests  # GitHub API
 from typing import Dict, List
 
 # -------------------------------
-# Page config
+# Page config - 
 # -------------------------------
 st.set_page_config(
     page_title="Competitor Price Monitoring",
