@@ -260,6 +260,23 @@ active_url = name_to_url.get(
     active_basket_name,
     _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
 )
+# -------------------------------
+# Integrar el código para cargar los CSVs relacionados
+# -------------------------------
+from mapping import csv_mapping
+
+# Obtener la selección del archivo CSV
+user_selected = st.session_state.get("basket", "IC")  # Obtiene el valor actual de la selección del usuario
+
+# Usar el mapeo para obtener los archivos CSV correspondientes
+history_csv = csv_mapping[user_selected]["history"]
+sub_csv = csv_mapping[user_selected]["sub"]
+
+# Cargar los CSVs correspondientes
+df_history = pd.read_csv(history_csv)  # Cargar CSV principal
+df_sub = pd.read_csv(sub_csv)          # Cargar CSV de subcategoría (best-sellers)
+
+# Ahora puedes usar df_history y df_sub en tu dashboard
 
 # -------------------------------
 # Main UI - load data
