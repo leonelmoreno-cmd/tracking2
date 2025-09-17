@@ -266,8 +266,7 @@ active_url = name_to_url.get(
 from mapping import csv_mapping
 
 # Obtener la selección del archivo CSV
-user_selected = st.session_state.get("basket", "Synthetic")  # Cambiar el valor por defecto
-
+user_selected = st.session_state.get("basket", "Synthetic")  # Esta es la clave, no el archivo
 
 # Usar el mapeo para obtener los archivos CSV correspondientes
 history_csv = csv_mapping[user_selected]["history"]
