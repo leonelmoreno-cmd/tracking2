@@ -29,7 +29,7 @@ csv_mapping = {
         "history": "competitors_history - UR.csv",
         "sub": "sub_UR.csv"
     },
-    "synthethic3.csv": {
+    "Synthetic": {
         "history": "synthethic3.csv",
         "sub": "sub_SYN.csv"
     }
