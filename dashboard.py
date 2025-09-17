@@ -10,7 +10,7 @@ from typing import Dict, List
 # Page config - 
 # -------------------------------
 st.set_page_config(
-    page_title="Competitor Price Monitoring",
+    page_title="Competitor Price Monitoring - JC",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
