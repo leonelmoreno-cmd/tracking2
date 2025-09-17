@@ -54,7 +54,7 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
 
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
     """Build a raw URL as fallback."""
-    return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
+    return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/sub-categories/{fname}"
 
 # -------------------------------
 # Data loading
