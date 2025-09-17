@@ -1,0 +1,91 @@
+name: Amazon Best Sellers Tracker (Monthly)
+
+on:
+  schedule:
+    - cron: "0 8 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: amazon-bestsellers-tracker
+  cancel-in-progress: false
+
+jobs:
+  discover-subcats:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build matrix from sub-categories/*.txt
+        id: build-matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find sub-categories -type f -name "*.txt" | sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          json=$(jq -n -c '[ $ARGS.positional[] | {subcat_file: .} ]' --args "${files[@]}")
+          echo "matrix=$json" >> "$GITHUB_OUTPUT"
+
+  fetch-and-commit-subcats:
+    needs: discover-subcats
+    if: ${{ needs.discover-subcats.outputs.matrix != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJson(needs.discover-subcats.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Mover el rebase AQUÍ, antes de generar los archivos
+      - name: Sync main (rebase)
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git fetch origin main
+          git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install deps
+        run: |
+          pip install requests pandas
+
+      - name: Run Best Sellers snapshot
+        env:
+          RAPIDAPI_KEY: ${{ secrets.AMAZON_API_KEY }}
+          COUNTRY: US
+          SUBCATS_DIR: sub-categories
+          OUTPUT_DIR: data/sub-categories
+        run: |
+          python request-bestsellers.py
+
+      - name: UTC timestamp
+        id: ts
+        run: echo "utc=$(date -u +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_OUTPUT"
+
+      - name: Commit & push data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(data): update sub-category best sellers (UTC ${{ steps.ts.outputs.utc }})"
+          branch: main
+          push_options: --force-with-lease
