@@ -34,7 +34,7 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     """
     Return the top 10 best-selling products based on the rank column.
     """
-    df_top = df_latest.sort_values("rank").head(10)
+    df_top = df_latest.sort_values("rank").head(10)  # Ahora usamos "rank" en lugar de "best_seller_rank"
     return df_top
 
 # -------------------------------
@@ -45,8 +45,8 @@ def create_best_sellers_bar(df_top: pd.DataFrame) -> go.Figure:
     Create a horizontal bar chart for the top 10 best sellers.
     """
     fig = go.Figure(go.Bar(
-        x=df_top["rank"][::-1],  # invert for horizontal bar
-        y=df_top["asin"][::-1],  # Use ASIN as the label on the Y-axis
+        x=df_top["rank"][::-1],  # invertimos para que las barras sean horizontales
+        y=df_top["asin"][::-1],  # Usamos "asin" como las etiquetas en el eje Y
         orientation='h',
         text=df_top["rank"][::-1],
         textposition='auto',
