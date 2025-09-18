@@ -63,14 +63,8 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         hovertemplate=(
             '<b>ASIN:</b> %{y}<br>'            # Display ASIN
             '<b>Rank:</b> %{x}<br>'            # Display Rank
-            '<b>Title:</b> %{customdata[0]}<br>'  # Display Product Title
-            '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
-            '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
-            '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
-            '<b>Image:</b><br><img src="%{customdata[4]}" width="100"><br>'  # Display Product Image
-            '<extra></extra>'  # Hide the trace name in the hover label
-        ),
-        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_photo"]].values  # Pass additional data for hover
+            '<extra></extra>'                  # Hide the trace name in the hover label
+        )
     ))
 
     fig.update_layout(
@@ -106,3 +100,23 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     # Display the data table below the chart
     st.subheader("Top 10 Best-sellers Data")
     st.dataframe(df_top10)  # Show the table with the top 10 ASINs and their ranks
+
+    # Display the product image when hovering over an ASIN
+    hover_data = st.empty()  # Placeholder for displaying the image
+
+    # JavaScript to handle hover event
+    hover_js = """
+    <script>
+    var plot = document.getElementsByClassName('js-plotly-plot')[0];
+    plot.on('plotly_hover', function(event) {
+        var asin = event.points[0].y;
+        var image_url = 'https://images-na.ssl-images-amazon.com/images/I/' + asin + '.jpg';
+        var img = '<img src="' + image_url + '" width="200">';
+        document.getElementById('hover-image').innerHTML = img;
+    });
+    </script>
+    """
+    st.markdown(hover_js, unsafe_allow_html=True)
+
+    # Container to display the image
+    st.markdown('<div id="hover-image"></div>', unsafe_allow_html=True)
