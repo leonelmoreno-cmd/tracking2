@@ -120,3 +120,62 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     # Container to display the image
     st.markdown('<div id="hover-image"></div>', unsafe_allow_html=True)
+
+    # Generate unique CSS for each image
+    for i, row in df_top10.iterrows():
+        image_url = f"https://images-na.ssl-images-amazon.com/images/I/{row['asin']}.jpg"
+        hover_class = f"hoverable_{i}"
+        tooltip_class = f"tooltip_{i}"
+        image_popup_class = f"image-popup_{i}"
+
+        hover_css = f"""
+        <style>
+        .{hover_class} {{
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }}
+        .{hover_class} .{tooltip_class} {{
+            opacity: 0;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.5s;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }}
+        .{hover_class}:hover .{tooltip_class} {{
+            opacity: 1;
+        }}
+        .{image_popup_class} {{
+            position: absolute;
+            display: none;
+            background-image: url({image_url});
+            background-size: cover;
+            width: 200px;
+            height: 200px;
+            top: -220px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+        }}
+        .{hover_class}:hover .{image_popup_class} {{
+            display: block;
+        }}
+        </style>
+        """
+        st.markdown(hover_css, unsafe_allow_html=True)
+
+        # Add hoverable div for each ASIN
+        hover_html = f"""
+        <div class="{hover_class}">
+            <div class="{tooltip_class}">Image {i}</div>
+            <div class="{image_popup_class}"></div>
+        </div>
+        """
+        st.markdown(hover_html, unsafe_allow_html=True)
