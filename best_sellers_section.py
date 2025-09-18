@@ -101,81 +101,47 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Top 10 Best-sellers Data")
     st.dataframe(df_top10)  # Show the table with the top 10 ASINs and their ranks
 
-    # Display the product image when hovering over an ASIN
-    hover_data = st.empty()  # Placeholder for displaying the image
+    # Display image in tooltip using HTML & CSS
+    for index, row in df_top10.iterrows():
+        image_url = row['product_photo']  # Assuming 'product_photo' is the column with image URLs
 
-    # JavaScript to handle hover event
-    hover_js = """
-    <script>
-    var plot = document.getElementsByClassName('js-plotly-plot')[0];
-    plot.on('plotly_hover', function(event) {
-        var asin = event.points[0].y;
-        var image_url = 'https://images-na.ssl-images-amazon.com/images/I/' + asin + '.jpg';
-        var img = '<img src="' + image_url + '" width="200">';
-        document.getElementById('hover-image').innerHTML = img;
-    });
-    </script>
-    """
-    st.markdown(hover_js, unsafe_allow_html=True)
-
-    # Container to display the image
-    st.markdown('<div id="hover-image"></div>', unsafe_allow_html=True)
-
-    # Generate unique CSS for each image
-    for i, row in df_top10.iterrows():
-        image_url = f"https://images-na.ssl-images-amazon.com/images/I/{row['asin']}.jpg"
-        hover_class = f"hoverable_{i}"
-        tooltip_class = f"tooltip_{i}"
-        image_popup_class = f"image-popup_{i}"
-
-        hover_css = f"""
+        # HTML and CSS to display the image when hovering over an ASIN
+        html_content = f"""
         <style>
-        .{hover_class} {{
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
+        .tooltip {{
+          position: relative;
+          display: inline-block;
+          cursor: pointer;
         }}
-        .{hover_class} .{tooltip_class} {{
-            opacity: 0;
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            transition: opacity 0.5s;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 4px;
-            border-radius: 4px;
-            text-align: center;
-            white-space: nowrap;
+
+        .tooltip .tooltiptext {{
+          visibility: hidden;
+          width: 200px;
+          background-color: black;
+          color: white;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px 0;
+          position: absolute;
+          z-index: 1;
+          top: 100%;
+          left: 50%;
+          margin-left: -100px;
+          opacity: 0;
+          transition: opacity 0.3s;
         }}
-        .{hover_class}:hover .{tooltip_class} {{
-            opacity: 1;
-        }}
-        .{image_popup_class} {{
-            position: absolute;
-            display: none;
-            background-image: url({image_url});
-            background-size: cover;
-            width: 200px;
-            height: 200px;
-            top: -220px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 999;
-        }}
-        .{hover_class}:hover .{image_popup_class} {{
-            display: block;
+
+        .tooltip:hover .tooltiptext {{
+          visibility: visible;
+          opacity: 1;
         }}
         </style>
-        """
-        st.markdown(hover_css, unsafe_allow_html=True)
 
-        # Add hoverable div for each ASIN
-        hover_html = f"""
-        <div class="{hover_class}">
-            <div class="{tooltip_class}">Image {i}</div>
-            <div class="{image_popup_class}"></div>
+        <div class="tooltip">
+          <img src="{image_url}" alt="Image" style="width:200px;height:auto;">
+          <span class="tooltiptext">Product Image</span>
         </div>
         """
-        st.markdown(hover_html, unsafe_allow_html=True)
+
+        # Display HTML content for each product
+        st.markdown(html_content, unsafe_allow_html=True)
