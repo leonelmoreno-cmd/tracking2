@@ -34,10 +34,7 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     Remove duplicate ASINs and return the top 10 best-selling products based on the 'rank' column.
     Since rank 1 is the best, we sort in ascending order and get the top 10.
     """
-    # Remove duplicates based on 'asin' and 'rank', keeping only the first occurrence
     df_cleaned = df_latest.drop_duplicates(subset=['asin'], keep='first')
-
-    # Sort by rank (ascending) and get top 10
     df_top = df_cleaned.sort_values("rank").head(10)
     return df_top
 
@@ -47,15 +44,16 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
 def create_best_sellers_vertical_bar(df_top: pd.DataFrame) -> go.Figure:
     """
     Create a vertical bar chart for the top 10 best sellers with product images.
+    Each bar represents an ASIN with an associated image at the top.
     """
     fig = go.Figure()
 
-    # Create vertical bars, each with an ASIN and associated product image
+    # Add a trace for each ASIN as a vertical bar
     fig.add_trace(go.Bar(
         x=df_top["asin"],                    # ASIN on the x-axis
         y=df_top["rank"],                    # Rank on the y-axis (lower rank means better)
         text=df_top["asin"],                 # ASIN as text on bars
-        textposition='outside',              # Text outside the bars
+        textposition='outside',              # Place text outside the bars
         marker_color='orange',               # Bar color
         name="Best-sellers",                 # Trace name for legend
         hovertemplate=(
@@ -65,18 +63,29 @@ def create_best_sellers_vertical_bar(df_top: pd.DataFrame) -> go.Figure:
             '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
             '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
             '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
-            '<b>Product Image:</b><br><img src="%{customdata[4]}" width="90px"><br>'  # Display Product Image
             '<extra></extra>'  # Hide the trace name in the hover label
         ),
-        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_image_url"]].values  # Pass image URL as part of hover info
+        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings"]].values  # Pass additional data for hover
     ))
+
+    # Add images on top of the bars (as a separate scatter plot)
+    for index, row in df_top.iterrows():
+        image_url = row["product_url"]  # Assuming product_url contains image URL
+        fig.add_trace(go.Scatter(
+            x=[row["asin"]],               # ASIN for positioning the image
+            y=[row["rank"] + 0.2],         # Position image slightly above the bar
+            mode="markers+text",           # Show image and text
+            text=["<img src='" + image_url + "' width='90px' />"],  # Product image
+            textposition="bottom center",  # Position of the image
+            marker=dict(size=0)            # No marker, only the image
+        ))
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",      # Chart title
         xaxis_title="ASIN",                    # X-axis label (ASIN)
         yaxis_title="Rank",                    # Y-axis label (Rank)
         yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
-        height=500,
+        height=600,                            # Adjust height to accommodate images
         margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
         showlegend=False                       # Hide the legend
     )
@@ -98,7 +107,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")  # Display the latest date
 
     # Plot the chart
-    best_sellers_fig = create_best_sellers_vertical_bar(df_top10)  # Create the vertical bar chart
+    best_sellers_fig = create_best_sellers_vertical_bar(df_top10)  # Create the vertical bar chart with images
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
 
     # Display the data table below the chart
