@@ -67,9 +67,10 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
             '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
             '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
             '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
+            '<b>Image:</b><br><img src="%{customdata[4]}" width="100"><br>'  # Display Product Image
             '<extra></extra>'  # Hide the trace name in the hover label
         ),
-        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_photo"]].values  # Pass additional data for hover
+        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_url"]].values  # Pass additional data for hover
     ))
 
     fig.update_layout(
