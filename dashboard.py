@@ -7,7 +7,7 @@ import requests  # GitHub API
 from typing import Dict, List
 from mapping import COMPETITOR_TO_SUBCATEGORY_MAP
 from best_sellers_section import render_best_sellers_section  # Importa la sección de Best-sellers
-
+from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data
 # -------------------------------
 # Page config - 
 # -------------------------------
