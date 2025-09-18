@@ -27,14 +27,18 @@ def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
     return df_latest, latest_date
 
 # -------------------------------
-# Step 3: Top 10 best sellers
+# Step 3: Remove duplicates and get top 10 best sellers
 # -------------------------------
 def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     """
-    Return the top 10 best-selling products based on the 'rank' column.
+    Remove duplicate ASINs and return the top 10 best-selling products based on the 'rank' column.
     Since rank 1 is the best, we sort in ascending order and get the top 10.
     """
-    df_top = df_latest.sort_values("rank").head(10)  # Sort by rank (ascending) and get top 10
+    # Remove duplicates based on 'asin' and 'rank', keeping only the first occurrence
+    df_cleaned = df_latest.drop_duplicates(subset=['asin'], keep='first')
+
+    # Sort by rank (ascending) and get top 10
+    df_top = df_cleaned.sort_values("rank").head(10)
     return df_top
 
 # -------------------------------
