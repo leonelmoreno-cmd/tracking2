@@ -16,6 +16,7 @@ def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
     df_sub["date"] = pd.to_datetime(df_sub["date"], errors="coerce")
     return df_sub
 
+
 # -------------------------------
 # Step 2: Get latest date data
 # -------------------------------
@@ -27,42 +28,43 @@ def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
     df_latest = df[df["date"] == latest_date].copy()
     return df_latest, latest_date
 
+
 # -------------------------------
 # Step 3: Top 10 best sellers
 # -------------------------------
 def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     """
-    Return the top 10 best-selling products based on the rank column.
-    Here we use 'rank' instead of 'best_seller_rank'.
+    Return the top 10 best-selling products based on the 'rank' column.
     """
-    # Sort by rank and get top 10
     df_top = df_latest.sort_values("rank").head(10)
     return df_top
 
+
 # -------------------------------
-# Step 4: Create Plotly bar chart
+# Step 4: Create Plotly column chart
 # -------------------------------
 def create_best_sellers_bar(df_top: pd.DataFrame) -> go.Figure:
     """
-    Create a horizontal bar chart for the top 10 best sellers.
+    Create a vertical bar chart (columns) for the top 10 best sellers.
     """
     fig = go.Figure(go.Bar(
-        x=df_top["rank"],  # Use 'rank' for horizontal bars
-        y=df_top["asin"],  # Use 'asin' as the label for each bar
-        orientation='h',
-        text=df_top["rank"],  # Show rank on the bars
+        x=df_top["asin"],      # ASIN on x-axis
+        y=df_top["rank"],      # Rank on y-axis
+        text=df_top["rank"],   # Show rank above each bar
         textposition='auto',
         marker_color='orange'
     ))
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",
-        xaxis_title="Rank",
-        yaxis_title="ASIN",
+        xaxis_title="ASIN",
+        yaxis_title="Rank",
+        yaxis_autorange="reversed",  # So rank 1 is on top
         height=500,
-        margin=dict(l=150, r=20, t=50, b=50)
+        margin=dict(l=80, r=20, t=50, b=100)
     )
     return fig
+
 
 # -------------------------------
 # Step 5: Streamlit section
