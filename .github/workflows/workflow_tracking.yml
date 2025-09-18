@@ -87,13 +87,12 @@ jobs:
           echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
-      # ✅ Nuevo: Revisa si hay cambios sin confirmar
       - name: Check for unstaged changes
         run: |
           git status
           git diff --name-only
-          
-      # ✅ Rebase contra el último origin/main antes de commitear/pushear
+        continue-on-error: true
+
       - name: Sync main (rebase)
         shell: bash
         run: |
@@ -101,7 +100,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git fetch origin main
-          # Rebase limpio; si falla, aborta y hace un pull --rebase
           git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
 
       - name: Get UTC timestamp
@@ -114,5 +112,4 @@ jobs:
         with:
           commit_message: "chore(data): update competitors CSVs (UTC ${{ steps.ts.outputs.utc }})"
           branch: main
-          # Backup por si otro job comiteó entre rebase y push (no debería suceder con max-parallel:1)
           push_options: --force-with-lease
