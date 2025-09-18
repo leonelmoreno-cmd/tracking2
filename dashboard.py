@@ -7,7 +7,6 @@ from typing import Dict, List  # Importar Dict y List desde typing
 from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data, list_repo_csvs
 from best_sellers_section import render_best_sellers_section_with_table
 
-
 # -------------------------------
 # Page config 
 # -------------------------------
