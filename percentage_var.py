@@ -80,6 +80,6 @@ def main():
         plot_price_variation(df)
     elif chart_option == "Ranking Evolution":
         plot_ranking_evolution(df)
-
+active_basket_name = st.session_state.get("basket", "synthethic3.csv")
 if __name__ == "__main__":
     main()
