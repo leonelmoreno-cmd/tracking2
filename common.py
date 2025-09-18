@@ -22,14 +22,14 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
     Si no, devuelve el archivo principal directamente.
     """
     COMPETITOR_TO_SUBCATEGORY_MAP = {
-        "competitors_history - BL.csv": "sub-categories/sub_BL.csv",
-        "competitors_history - GS.csv": "sub-categories/sub_GS.csv",
-        "competitors_history - IC.csv": "sub-categories/sub_IC.csv",
-        "competitors_history - LGM.csv": "sub-categories/sub_LGM.csv",
-        "competitors_history - QC.csv": "sub-categories/sub_QC.csv",
-        "competitors_history - RIO.csv": "sub-categories/sub_RIO.csv",
-        "competitors_history - UR.csv": "sub-categories/sub_UR.csv",
-        "synthethic3.csv": "sub-categories/sub_SYN.csv"
+        "competitors_history - BL.csv": "sub-categories2/sub_BL.csv",
+        "competitors_history - GS.csv": "sub-categories2/sub_GS.csv",
+        "competitors_history - IC.csv": "sub-categories2/sub_IC.csv",
+        "competitors_history - LGM.csv": "sub-categories2/sub_LGM.csv",
+        "competitors_history - QC.csv": "sub-categories2/sub_QC.csv",
+        "competitors_history - RIO.csv": "sub-categories2/sub_RIO.csv",
+        "competitors_history - UR.csv": "sub-categories2/sub_UR.csv",
+        "synthethic3.csv": "sub-categories2/sub_SYN.csv"
     }
 
     subcategory_file = COMPETITOR_TO_SUBCATEGORY_MAP.get(fname)
