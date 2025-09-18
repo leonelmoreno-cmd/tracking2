@@ -41,56 +41,82 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
 # -------------------------------
 # Step 4: Create Vertical Bar Chart with Product Images
 # -------------------------------
-def create_best_sellers_vertical_bar(df_top: pd.DataFrame) -> go.Figure:
+import plotly.graph_objects as go
+import pandas as pd
+
+def create_best_sellers_vertical_bar(df_top: pd.DataFrame, basket_name: str) -> go.Figure:
     """
-    Create a vertical bar chart for the top 10 best sellers with product images.
-    Each bar represents an ASIN with an associated image at the top.
+    Crea un gráfico de barras verticales para los 10 mejores vendedores con imágenes de productos.
+    Cada barra representa un ASIN con una imagen asociada en la parte superior.
     """
     fig = go.Figure()
 
-    # Add a trace for each ASIN as a vertical bar
-    fig.add_trace(go.Bar(
-        x=df_top["asin"],                    # ASIN on the x-axis
-        y=df_top["rank"],                    # Rank on the y-axis (lower rank means better)
-        text=df_top["asin"],                 # ASIN as text on bars
-        textposition='outside',              # Place text outside the bars
-        marker_color='orange',               # Bar color
-        name="Best-sellers",                 # Trace name for legend
-        hovertemplate=(
-            '<b>ASIN:</b> %{x}<br>'            # Display ASIN
-            '<b>Rank:</b> %{y}<br>'            # Display Rank
-            '<b>Title:</b> %{customdata[0]}<br>'  # Display Product Title
-            '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
-            '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
-            '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
-            '<extra></extra>'  # Hide the trace name in the hover label
-        ),
-        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings"]].values  # Pass additional data for hover
-    ))
+    # Ruta del archivo CSV correspondiente a la cesta activa
+    subcategory_csv = f"data/sub-categories2/{basket_name}"
 
-    # Add images on top of the bars (as a separate scatter plot)
-    for index, row in df_top.iterrows():
-        image_url = row["product_url"]  # Assuming product_url contains image URL
-        fig.add_trace(go.Scatter(
-            x=[row["asin"]],               # ASIN for positioning the image
-            y=[row["rank"] + 0.2],         # Position image slightly above the bar
-            mode="markers+text",           # Show image and text
-            text=["<img src='" + image_url + "' width='90px' />"],  # Product image
-            textposition="bottom center",  # Position of the image
-            marker=dict(size=0)            # No marker, only the image
+    # Cargar los datos del archivo CSV
+    df_sub = pd.read_csv(subcategory_csv)
+
+    # Crear un diccionario para mapear ASIN a URL de imagen
+    asin_to_image = dict(zip(df_sub["asin"], df_sub["product_photo"]))
+
+    # Añadir una traza para cada ASIN como una barra vertical
+    for _, row in df_top.iterrows():
+        asin = row["asin"]
+        rank = row["rank"]
+        title = row["product_title"]
+        price = row["product_price"]
+        rating = row["product_star_rating"]
+        num_ratings = row["product_num_ratings"]
+
+        # Obtener la URL de la imagen del producto
+        image_url = asin_to_image.get(asin, "")
+
+        # Añadir la barra al gráfico
+        fig.add_trace(go.Bar(
+            x=[asin],
+            y=[rank],
+            text=[asin],
+            textposition='outside',
+            marker_color='orange',
+            hovertemplate=(
+                f'<b>ASIN:</b> {asin}<br>'
+                f'<b>Rank:</b> {rank}<br>'
+                f'<b>Title:</b> {title}<br>'
+                f'<b>Price:</b> ${price:.2f}<br>'
+                f'<b>Rating:</b> {rating}<br>'
+                f'<b>Reviews:</b> {num_ratings}<br>'
+                '<extra></extra>'
+            ),
+            customdata=[[title, price, rating, num_ratings]],
+            name="Best-sellers"
         ))
 
+        # Añadir la imagen sobre la barra
+        if image_url:
+            fig.add_trace(go.Scatter(
+                x=[asin],
+                y=[rank + 0.2],  # Posicionar la imagen ligeramente por encima de la barra
+                mode="markers+text",
+                text=[f"<img src='{image_url}' width='90px' />"],
+                textposition="bottom center",
+                marker=dict(size=0),
+                showlegend=False
+            ))
+
+    # Configuración del diseño del gráfico
     fig.update_layout(
-        title="Top 10 Best-sellers Rank",      # Chart title
-        xaxis_title="ASIN",                    # X-axis label (ASIN)
-        yaxis_title="Rank",                    # Y-axis label (Rank)
-        yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
-        height=600,                            # Adjust height to accommodate images
-        margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
-        showlegend=False                       # Hide the legend
+        title="Top 10 Best-sellers Rank",
+        xaxis_title="ASIN",
+        yaxis_title="Rank",
+        yaxis_autorange="reversed",
+        height=600,
+        margin=dict(l=80, r=20, t=50, b=100),
+        showlegend=False
     )
 
     return fig
+
 
 # -------------------------------
 # Step 5: Streamlit sections
