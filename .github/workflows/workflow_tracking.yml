@@ -87,7 +87,13 @@ jobs:
           echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
-      # ✅ Nuevo: rebase contra el último origin/main antes de commitear/pushear
+      # ✅ Nuevo: Revisa si hay cambios sin confirmar
+      - name: Check for unstaged changes
+        run: |
+          git status
+          git diff --name-only
+          
+      # ✅ Rebase contra el último origin/main antes de commitear/pushear
       - name: Sync main (rebase)
         shell: bash
         run: |
