@@ -74,8 +74,8 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
                 yref="y",  # Align with y-axis
                 x=df_top["rank"].iloc[i] + 0.5,  # Position it to the right of the bar
                 y=row['asin'],  # Place it next to the corresponding ASIN
-                sizex=0.5,  # Adjust the size of the image
-                sizey=0.5,  # Adjust the size of the image
+                sizex=0.1,  # Adjust the size of the image
+                sizey=0.1,  # Adjust the size of the image
                 opacity=0.8,  # Set the opacity for the image
                 layer="above"  # Ensure the image is above the bars
             )
