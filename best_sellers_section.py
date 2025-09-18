@@ -59,13 +59,27 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         textposition='inside',               # Text inside the bars
         marker_color='orange',               # Bar color
         orientation='h',                     # Horizontal bars
-        name="Best-sellers",                 # Trace name for legend
-        hovertemplate=(
-            '<b>ASIN:</b> %{y}<br>'            # Display ASIN
-            '<b>Rank:</b> %{x}<br>'            # Display Rank
-            '<extra></extra>'                  # Hide the trace name in the hover label
-        )
+        name="Best-sellers"                  # Trace name for legend
     ))
+
+    # Adding images as annotations
+    for i, row in df_top.iterrows():
+        image_url = row['product_photo']  # Assuming the column is 'product_photo'
+        
+        # Add annotations for images to be shown at the right of the bars
+        fig.add_layout_image(
+            dict(
+                source=image_url,  # URL of the image
+                xref="x",  # Align with x-axis
+                yref="y",  # Align with y-axis
+                x=df_top["rank"].iloc[i] + 0.5,  # Position it to the right of the bar
+                y=row['asin'],  # Place it next to the corresponding ASIN
+                sizex=0.1,  # Adjust the size of the image
+                sizey=0.1,  # Adjust the size of the image
+                opacity=0.8,  # Set the opacity for the image
+                layer="above"  # Ensure the image is above the bars
+            )
+        )
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",      # Chart title
@@ -73,7 +87,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         yaxis_title="ASIN",                    # Y-axis label (ASIN)
         yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
         height=500,
-        margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
+        margin=dict(l=80, r=100, t=50, b=100),  # Adjust margins to fit images
         showlegend=False                       # Hide the legend
     )
 
@@ -100,48 +114,3 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     # Display the data table below the chart
     st.subheader("Top 10 Best-sellers Data")
     st.dataframe(df_top10)  # Show the table with the top 10 ASINs and their ranks
-
-    # Display image in tooltip using HTML & CSS
-    for index, row in df_top10.iterrows():
-        image_url = row['product_photo']  # Assuming 'product_photo' is the column with image URLs
-
-        # HTML and CSS to display the image when hovering over an ASIN
-        html_content = f"""
-        <style>
-        .tooltip {{
-          position: relative;
-          display: inline-block;
-          cursor: pointer;
-        }}
-
-        .tooltip .tooltiptext {{
-          visibility: hidden;
-          width: 200px;
-          background-color: black;
-          color: white;
-          text-align: center;
-          border-radius: 6px;
-          padding: 5px 0;
-          position: absolute;
-          z-index: 1;
-          top: 100%;
-          left: 50%;
-          margin-left: -100px;
-          opacity: 0;
-          transition: opacity 0.3s;
-        }}
-
-        .tooltip:hover .tooltiptext {{
-          visibility: visible;
-          opacity: 1;
-        }}
-        </style>
-
-        <div class="tooltip">
-          <img src="{image_url}" alt="Image" style="width:200px;height:auto;">
-          <span class="tooltiptext">Product Image</span>
-        </div>
-        """
-
-        # Display HTML content for each product
-        st.markdown(html_content, unsafe_allow_html=True)
