@@ -85,7 +85,6 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
 
     return fig
 
-
 # -------------------------------
 # Step 5: Streamlit section
 # -------------------------------
