@@ -29,10 +29,7 @@ DEFAULT_BASKET = "synthethic3.csv"
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
-    """
-    Returns a list of dicts {name, download_url, path} for .csv files in
-    the given repo/path. Uses GitHub Contents API.
-    """
+    """ Retorna una lista de archivos principales (no subcategorías) en el repo/path. """
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
     headers = {"Accept": "application/vnd.github+json"}
     token = st.secrets.get("GITHUB_TOKEN", None)
@@ -42,13 +39,21 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     resp.raise_for_status()
     items = resp.json()
     csvs = []
+    
+    # Obtener solo las claves del diccionario que mapea a las subcategorías
+    main_files = list(COMPETITOR_TO_SUBCATEGORY_MAP.keys())
+    
     for it in items:
         if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv"):
-            csvs.append({
-                "name": it["name"],
-                "download_url": it["download_url"],
-                "path": it.get("path", "")
-            })
+            # Solo agregar archivos que estén en la lista de archivos principales
+            if it["name"] in main_files:
+                csvs.append({
+                    "name": it["name"],
+                    "download_url": it["download_url"],
+                    "path": it.get("path", "")
+                })
+    
+    # Ordenar los archivos por nombre
     csvs = sorted(csvs, key=lambda x: x["name"])
     return csvs
 
