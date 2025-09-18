@@ -87,10 +87,11 @@ jobs:
           echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
-      - name: Check for unstaged changes
+      - name: Stash unstaged changes
         run: |
           git status
           git diff --name-only
+          git stash push -m "Stashing changes before rebase"
         continue-on-error: true
 
       - name: Sync main (rebase)
@@ -101,6 +102,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git fetch origin main
           git rebase origin/main || (git rebase --abort && git pull --rebase origin main)
+
+      - name: Apply stashed changes
+        run: |
+          git stash pop || echo "No changes to apply"
 
       - name: Get UTC timestamp
         id: ts
