@@ -59,27 +59,18 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         textposition='inside',               # Text inside the bars
         marker_color='orange',               # Bar color
         orientation='h',                     # Horizontal bars
-        name="Best-sellers"                  # Trace name for legend
+        name="Best-sellers",                 # Trace name for legend
+        hovertemplate=(
+            '<b>ASIN:</b> %{y}<br>'            # Display ASIN
+            '<b>Rank:</b> %{x}<br>'            # Display Rank
+            '<b>Title:</b> %{customdata[0]}<br>'  # Display Product Title
+            '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
+            '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
+            '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
+            '<extra></extra>'  # Hide the trace name in the hover label
+        ),
+        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_photo"]].values  # Pass additional data for hover
     ))
-
-    # Adding images as annotations
-    for i, row in df_top.iterrows():
-        image_url = row['product_photo']  # Assuming the column is 'product_photo'
-        
-        # Add annotations for images to be shown at the right of the bars
-        fig.add_layout_image(
-            dict(
-                source=image_url,  # URL of the image
-                xref="x",  # Align with x-axis
-                yref="y",  # Align with y-axis
-                x=df_top["rank"].iloc[i] ,  # Position it to the right of the bar
-                y=row['asin'],  # Place it next to the corresponding ASIN
-                sizex=1,  # Adjust the size of the image
-                sizey=1,  # Adjust the size of the image
-                opacity=0.8,  # Set the opacity for the image
-                layer="above"  # Ensure the image is above the bars
-            )
-        )
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",      # Chart title
@@ -87,7 +78,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         yaxis_title="ASIN",                    # Y-axis label (ASIN)
         yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
         height=500,
-        margin=dict(l=80, r=100, t=50, b=100),  # Adjust margins to fit images
+        margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
         showlegend=False                       # Hide the legend
     )
 
