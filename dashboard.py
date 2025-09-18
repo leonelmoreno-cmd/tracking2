@@ -6,6 +6,8 @@ from plotly.subplots import make_subplots
 import requests  # GitHub API
 from typing import Dict, List
 from mapping import COMPETITOR_TO_SUBCATEGORY_MAP
+from best_sellers_section import render_best_sellers_section  # Importa la sección de Best-sellers
+
 # -------------------------------
 # Page config - 
 # -------------------------------
@@ -493,6 +495,9 @@ overview_fig = create_overview_graph(
     period=period  # <<< NEW
 )
 st.plotly_chart(overview_fig, use_container_width=True)
+
+# Best seller leonel
+render_best_sellers_section(active_basket_name)
 
 # -------- Subplots by brand/ASIN --------
 st.subheader("By Brand — Individual ASINs")
