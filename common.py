@@ -31,14 +31,16 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
         "competitors_history - UR.csv": "sub-categories/sub_UR.csv",
         "synthethic3.csv": "sub-categories/sub_SYN.csv"
     }
-    
+
     subcategory_file = COMPETITOR_TO_SUBCATEGORY_MAP.get(fname)
     if subcategory_file:
-        # Si existe una subcategoría, construir la URL incluyendo la subcarpeta
-        return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{subcategory_file}"
+        url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{subcategory_file}"
     else:
-        # Si no existe una subcategoría, simplemente usar el archivo principal
-        return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
+        url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
+
+    # Agregar un print o st.write para verificar la URL
+    print(f"Generated URL: {url}")
+    return url
 
 def fetch_data(url: str) -> pd.DataFrame:
     """
