@@ -69,7 +69,7 @@ def plot_ranking_evolution(df: pd.DataFrame):
     st.plotly_chart(fig)
 
 def main():
-    df = prepare_data(st.session_state['df'])
+     active_basket_name = st.session_state["basket"]
     chart_option = st.selectbox(
         "Select Chart",
         ("Rating Evolution", "Price Percentage Variation", "Ranking Evolution")
@@ -80,6 +80,5 @@ def main():
         plot_price_variation(df)
     elif chart_option == "Ranking Evolution":
         plot_ranking_evolution(df)
-active_basket_name = st.session_state.get("basket", "synthethic3.csv")
 if __name__ == "__main__":
     main()
