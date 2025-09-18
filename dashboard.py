@@ -448,3 +448,87 @@ render_best_sellers_section(active_basket_name)
 # -------- Subplots by brand/ASIN --------
 st.subheader("By Brand — Individual ASINs")
 st.caption("Each small chart tracks a single ASIN. Subplot titles link to the product pages.")
+
+st.markdown(
+    """
+    <div style="margin-top:-4px; margin-bottom:8px; font-size:0.95rem;">
+        <strong>Legend:</strong>
+        <span style="border-bottom:3px solid currentColor; padding-bottom:2px;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        No discount &nbsp; | &nbsp;
+        <span style="border-bottom:3px dotted currentColor; padding-bottom:2px;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        Discounted
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+price_graph = create_price_graph(prepared_df, period=period)  # <<< NEW
+st.plotly_chart(price_graph, use_container_width=True)
+
+# -------------------------------
+# Table + filters (unchanged)
+# -------------------------------
+st.subheader("Detailed Product Information")
+st.caption("Filter the table and download the filtered data as CSV.")
+
+brand_options = ["All"] + sorted(prepared_df["brand"].dropna().unique().tolist())
+discount_options = ["All", "Discounted", "No Discount"]
+
+wk_min_glob = int(prepared_df["week_number"].min())
+wk_max_glob = int(prepared_df["week_number"].max())
+
+date_min_tbl = prepared_df["date"].dropna().min()
+date_max_tbl = prepared_df["date"].dropna().max()
+table_date_range = None
+if pd.notna(date_min_tbl) and pd.notna(date_max_tbl):
+    table_date_range = st.date_input(
+        "Filter by date (range)",
+        value=(date_min_tbl.date(), date_max_tbl.date()),
+        min_value=date_min_tbl.date(),
+        max_value=date_max_tbl.date(),
+        help="Pick a start and end date to filter the table."
+    )
+
+brand_filter = st.selectbox(
+    "Filter by Brand",
+    options=brand_options,
+    index=0,
+    help="Narrow the table to a single brand."
+)
+
+discount_filter = st.selectbox(
+    "Filter by Discount Status",
+    options=discount_options,
+    index=0,
+    help="Show only discounted or non-discounted items."
+)
+
+filtered_df = prepared_df.copy()
+
+if brand_filter != "All":
+    filtered_df = filtered_df[filtered_df["brand"] == brand_filter]
+
+if discount_filter != "All":
+    filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
+
+if table_date_range:
+    if isinstance(table_date_range, tuple):
+        start_date, end_date = table_date_range
+    else:
+        start_date = end_date = table_date_range
+    filtered_df = filtered_df[
+        (filtered_df["date"].dt.date >= start_date) &
+        (filtered_df["date"].dt.date <= end_date)
+    ]
+
+st.dataframe(filtered_df, use_container_width=True)
+
+
+csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+st.download_button(
+    "Download filtered table as CSV",
+    data=csv_data,
+    file_name="product_details_filtered.csv",
+    mime="text/csv",
+    help="Click to download the current filtered table."
+)
