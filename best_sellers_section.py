@@ -67,7 +67,9 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
             '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
             '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
             '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
-            '<b>Image:</b><br><img src="%{customdata[4]}" width="100"><br>'  # Display Product Image
+            '<b>Image:</b><br><div class="tooltip" style="position:relative; display:inline-block; cursor:pointer;">'
+            '<div class="tooltiptext" style="visibility:hidden; width:200px; height:150px; background-image:url(\'%{customdata[4]}\'); background-size:cover; position:absolute; top:100%; left:50%; margin-left:-100px; opacity:0; transition:opacity 0.3s;"></div>'
+            '</div>'
             '<extra></extra>'  # Hide the trace name in the hover label
         ),
         customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_url"]].values  # Pass additional data for hover
@@ -86,7 +88,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Step 5: Streamlit sections
+# Step 5: Streamlit section
 # -------------------------------
 def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")  # Section header
