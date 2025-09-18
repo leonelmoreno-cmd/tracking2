@@ -38,38 +38,42 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     return df_top
 
 # -------------------------------
-# Step 4: Create Plotly column chart
+# Step 4: Create Horizontal Stacked Bar Chart
 # -------------------------------
-def create_best_sellers_column(df_top: pd.DataFrame) -> go.Figure:
+def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
     """
-    Create a horizontal bar chart for the top 10 best sellers.
-    Each ASIN gets its own bar, ranked from 1 to 10.
+    Create a horizontal stacked bar chart for the top 10 best sellers.
+    Each bar represents an ASIN, stacked according to its rank.
     """
-    fig = go.Figure(go.Bar(
-        y=df_top["asin"],                # ASIN on y-axis (horizontal bars)
-        x=df_top["rank"],                # Rank on x-axis (lower rank means better)
-        text=df_top["asin"],             # Show ASIN as text on the bars
-        textposition='inside',           # Place ASIN text inside the bars
-        marker_color='orange',           # Bar color
-        orientation='h'                  # Horizontal bars
+    fig = go.Figure()
+
+    # Create a stacked bar chart, where each ASIN gets its own "stack"
+    fig.add_trace(go.Bar(
+        y=df_top["asin"],                    # ASIN on the y-axis
+        x=df_top["rank"],                    # Rank on the x-axis (lower rank means better)
+        text=df_top["asin"],                 # ASIN as text on bars
+        textposition='inside',               # Text inside the bars
+        marker_color='orange',               # Bar color
+        orientation='h',                     # Horizontal bars
+        name="Best-sellers"                  # Trace name for legend
     ))
 
     fig.update_layout(
-        title="Top 10 Best-sellers Rank",  # Chart title
-        xaxis_title="Rank",                 # X-axis label (Rank)
-        yaxis_title="ASIN",                 # Y-axis label (ASIN)
-        yaxis_autorange="reversed",         # Reverse Y-axis so rank 1 is at the top
+        title="Top 10 Best-sellers Rank",      # Chart title
+        xaxis_title="Rank",                    # X-axis label (Rank)
+        yaxis_title="ASIN",                    # Y-axis label (ASIN)
+        yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
         height=500,
         margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
-        showlegend=False                   # Hide the legend (it's not needed here)
+        showlegend=False                       # Hide the legend
     )
-    return fig
 
+    return fig
 
 # -------------------------------
 # Step 5: Streamlit section
 # -------------------------------
-def render_best_sellers_section(active_basket_name: str):
+def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")  # Section header
     st.caption("Top 10 products based on the latest available date from the sub-category file.")
 
@@ -81,5 +85,9 @@ def render_best_sellers_section(active_basket_name: str):
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")  # Display the latest date
 
     # Plot the chart
-    best_sellers_fig = create_best_sellers_column(df_top10)  # Create the column chart
+    best_sellers_fig = create_best_sellers_stacked_bar(df_top10)  # Create the stacked bar chart
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
+
+    # Display the data table below the chart
+    st.subheader("Top 10 Best-sellers Data")
+    st.dataframe(df_top10)  # Show the table with the top 10 ASINs and their ranks
