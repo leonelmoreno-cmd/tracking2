@@ -3,13 +3,19 @@ import pandas as pd
 import plotly.graph_objects as go
 
 @st.cache_data(show_spinner=False)
-def load_data():
-    # Replace with the actual path to your CSV file
-    df = pd.read_csv("path_to_your_data.csv")
-    df['date'] = pd.to_datetime(df['date'])
+def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["week_number"] = df["date"].dt.isocalendar().week
+    df = df.sort_values(by=["asin", "week_number"])
+    df["discount"] = df.apply(
+        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
+        axis=1
+    )
+    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
     return df
 
-def plot_rating_evolution(df):
+def plot_rating_evolution(df: pd.DataFrame):
     fig = go.Figure()
     for asin in df['asin'].unique():
         asin_data = df[df['asin'] == asin]
@@ -26,7 +32,7 @@ def plot_rating_evolution(df):
     )
     st.plotly_chart(fig)
 
-def plot_price_variation(df):
+def plot_price_variation(df: pd.DataFrame):
     df['price_change'] = df.groupby('asin')['product_price'].pct_change() * 100
     fig = go.Figure()
     for asin in df['asin'].unique():
@@ -44,7 +50,7 @@ def plot_price_variation(df):
     )
     st.plotly_chart(fig)
 
-def plot_ranking_evolution(df):
+def plot_ranking_evolution(df: pd.DataFrame):
     df['ranking'] = df.groupby('date')['product_star_rating'].rank(method='first')
     fig = go.Figure()
     for date in df['date'].unique():
@@ -63,7 +69,7 @@ def plot_ranking_evolution(df):
     st.plotly_chart(fig)
 
 def main():
-    df = load_data()
+    df = prepare_data(st.session_state['df'])
     chart_option = st.selectbox(
         "Select Chart",
         ("Rating Evolution", "Price Percentage Variation", "Ranking Evolution")
