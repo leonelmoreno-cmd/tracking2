@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from typing import Dict, List  # Importar Dict y List desde typing
 from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data, list_repo_csvs
 from best_sellers_section import render_best_sellers_section  # Importa la sección de Best-sellers
+
 
 # -------------------------------
 # Page config 
