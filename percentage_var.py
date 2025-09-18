@@ -69,7 +69,7 @@ def plot_ranking_evolution(df: pd.DataFrame):
     st.plotly_chart(fig)
 
 def main():
-     active_basket_name = st.session_state["basket"]
+    active_basket_name = st.session_state["basket"]
     chart_option = st.selectbox(
         "Select Chart",
         ("Rating Evolution", "Price Percentage Variation", "Ranking Evolution")
