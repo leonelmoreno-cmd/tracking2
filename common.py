@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 from typing import Dict, List
-
+import streamlit as st  # Agregar esta importación
 # -------------------------------
 # Repo constants
 # -------------------------------
