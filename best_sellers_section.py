@@ -72,7 +72,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
                 source=image_url,  # URL of the image
                 xref="x",  # Align with x-axis
                 yref="y",  # Align with y-axis
-                x=df_top["rank"].iloc[i] + 0.5,  # Position it to the right of the bar
+                x=df_top["rank"].iloc[i] ,  # Position it to the right of the bar
                 y=row['asin'],  # Place it next to the corresponding ASIN
                 sizex=1,  # Adjust the size of the image
                 sizey=1,  # Adjust the size of the image
