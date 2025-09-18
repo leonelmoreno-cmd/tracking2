@@ -38,24 +38,26 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     resp = requests.get(url, headers=headers, timeout=15)
     resp.raise_for_status()
     items = resp.json()
-    csvs = []
     
     # Obtener solo las claves del diccionario que mapea a las subcategorías
-    main_files = list(COMPETITOR_TO_SUBCATEGORY_MAP.keys())
+    main_files = set(COMPETITOR_TO_SUBCATEGORY_MAP.keys())  # Usar set para mayor eficiencia
     
-    for it in items:
-        if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv"):
-            # Solo agregar archivos que estén en la lista de archivos principales
-            if it["name"] in main_files:
-                csvs.append({
-                    "name": it["name"],
-                    "download_url": it["download_url"],
-                    "path": it.get("path", "")
-                })
+    # Filtrar y ordenar archivos principales
+    csvs = [
+        {
+            "name": it["name"],
+            "download_url": it["download_url"],
+            "path": it.get("path", "")
+        }
+        for it in items
+        if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv") and it["name"] in main_files
+    ]
     
     # Ordenar los archivos por nombre
-    csvs = sorted(csvs, key=lambda x: x["name"])
+    csvs.sort(key=lambda x: x["name"])
+    
     return csvs
+
 
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
     """
