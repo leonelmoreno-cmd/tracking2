@@ -42,40 +42,39 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     return df_top
 
 # -------------------------------
-# Step 4: Create Horizontal Stacked Bar Chart
+# Step 4: Create Vertical Bar Chart with Product Images
 # -------------------------------
-def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
+def create_best_sellers_vertical_bar(df_top: pd.DataFrame) -> go.Figure:
     """
-    Create a horizontal stacked bar chart for the top 10 best sellers.
-    Each bar represents an ASIN, stacked according to its rank.
+    Create a vertical bar chart for the top 10 best sellers with product images.
     """
     fig = go.Figure()
 
-    # Create a stacked bar chart, where each ASIN gets its own "stack"
+    # Create vertical bars, each with an ASIN and associated product image
     fig.add_trace(go.Bar(
-        y=df_top["asin"],                    # ASIN on the y-axis
-        x=df_top["rank"],                    # Rank on the x-axis (lower rank means better)
+        x=df_top["asin"],                    # ASIN on the x-axis
+        y=df_top["rank"],                    # Rank on the y-axis (lower rank means better)
         text=df_top["asin"],                 # ASIN as text on bars
-        textposition='inside',               # Text inside the bars
+        textposition='outside',              # Text outside the bars
         marker_color='orange',               # Bar color
-        orientation='h',                     # Horizontal bars
         name="Best-sellers",                 # Trace name for legend
         hovertemplate=(
-            '<b>ASIN:</b> %{y}<br>'            # Display ASIN
-            '<b>Rank:</b> %{x}<br>'            # Display Rank
+            '<b>ASIN:</b> %{x}<br>'            # Display ASIN
+            '<b>Rank:</b> %{y}<br>'            # Display Rank
             '<b>Title:</b> %{customdata[0]}<br>'  # Display Product Title
             '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
             '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
             '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
+            '<b>Product Image:</b><br><img src="%{customdata[4]}" width="90px"><br>'  # Display Product Image
             '<extra></extra>'  # Hide the trace name in the hover label
         ),
-        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_url"]].values  # Pass additional data for hover
+        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_image_url"]].values  # Pass image URL as part of hover info
     ))
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",      # Chart title
-        xaxis_title="Rank",                    # X-axis label (Rank)
-        yaxis_title="ASIN",                    # Y-axis label (ASIN)
+        xaxis_title="ASIN",                    # X-axis label (ASIN)
+        yaxis_title="Rank",                    # Y-axis label (Rank)
         yaxis_autorange="reversed",            # Reverse Y-axis so rank 1 is at the top
         height=500,
         margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
@@ -99,7 +98,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")  # Display the latest date
 
     # Plot the chart
-    best_sellers_fig = create_best_sellers_stacked_bar(df_top10)  # Create the stacked bar chart
+    best_sellers_fig = create_best_sellers_vertical_bar(df_top10)  # Create the vertical bar chart
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
 
     # Display the data table below the chart
