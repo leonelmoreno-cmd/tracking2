@@ -59,7 +59,18 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
         textposition='inside',               # Text inside the bars
         marker_color='orange',               # Bar color
         orientation='h',                     # Horizontal bars
-        name="Best-sellers"                  # Trace name for legend
+        name="Best-sellers",                 # Trace name for legend
+        hovertemplate=(
+            '<b>ASIN:</b> %{y}<br>'            # Display ASIN
+            '<b>Rank:</b> %{x}<br>'            # Display Rank
+            '<b>Title:</b> %{customdata[0]}<br>'  # Display Product Title
+            '<b>Price:</b> $%{customdata[1]:.2f}<br>'  # Display Product Price
+            '<b>Rating:</b> %{customdata[2]}<br>'  # Display Product Rating
+            '<b>Reviews:</b> %{customdata[3]}<br>'  # Display Number of Reviews
+            '<b>Image:</b><br><img src="%{customdata[4]}" width="100"><br>'  # Display Product Image
+            '<extra></extra>'  # Hide the trace name in the hover label
+        ),
+        customdata=df_top[["product_title", "product_price", "product_star_rating", "product_num_ratings", "product_photo"]].values  # Pass additional data for hover
     ))
 
     fig.update_layout(
@@ -73,6 +84,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
     )
 
     return fig
+
 
 # -------------------------------
 # Step 5: Streamlit section
