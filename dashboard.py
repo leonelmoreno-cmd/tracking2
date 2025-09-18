@@ -442,7 +442,7 @@ st.plotly_chart(overview_fig, use_container_width=True)
 
 #percentage_var
 import percentage_var
-percentage_var.main()
+percentage_var.main(prepared_df)
 
 # Best seller leonel
 # Cambiar la llamada de la función
