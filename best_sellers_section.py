@@ -40,9 +40,9 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
 # -------------------------------
 # Step 4: Create Plotly column chart
 # -------------------------------
-def create_best_sellers_bar(df_top: pd.DataFrame) -> go.Figure:
+def create_best_sellers_column(df_top: pd.DataFrame) -> go.Figure:
     """
-    Create a vertical bar chart (columns) for the top 10 best sellers.
+    Create a vertical column chart for the top 10 best sellers.
     """
     fig = go.Figure(go.Bar(
         x=df_top["asin"],      # ASIN on x-axis
@@ -77,5 +77,5 @@ def render_best_sellers_section(active_basket_name: str):
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")  # Display the latest date
 
     # Plot the chart
-    best_sellers_fig = create_best_sellers_bar(df_top10)  # Create the bar chart
+    best_sellers_fig = create_best_sellers_column(df_top10)  # Create the column chart
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
