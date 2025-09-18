@@ -442,7 +442,7 @@ overview_fig = create_overview_graph(
 st.plotly_chart(overview_fig, use_container_width=True)
 
 # Best seller leonel
-render_best_sellers_section_with_table(active_basket_name: str)
+render_best_sellers_section_with_table 
 
 # -------- Subplots by brand/ASIN --------
 st.subheader("By Brand — Individual ASINs")
