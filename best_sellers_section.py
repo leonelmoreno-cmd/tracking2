@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data
 
+
 # -------------------------------
 # Step 1: Load subcategory data
 # -------------------------------
