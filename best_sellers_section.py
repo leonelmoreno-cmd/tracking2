@@ -86,7 +86,7 @@ def create_best_sellers_stacked_bar(df_top: pd.DataFrame) -> go.Figure:
     return fig
 
 # -------------------------------
-# Step 5: Streamlit section
+# Step 5: Streamlit sections
 # -------------------------------
 def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")  # Section header
