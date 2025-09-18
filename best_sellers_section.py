@@ -42,25 +42,29 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
 # -------------------------------
 def create_best_sellers_column(df_top: pd.DataFrame) -> go.Figure:
     """
-    Create a vertical column chart for the top 10 best sellers.
+    Create a horizontal bar chart for the top 10 best sellers.
+    Each ASIN gets its own bar, ranked from 1 to 10.
     """
     fig = go.Figure(go.Bar(
-        x=df_top["asin"],      # ASIN on x-axis
-        y=df_top["rank"],      # Rank on y-axis (lower rank means better)
-        text=df_top["asin"],   # Show ASIN as text above the bars
-        textposition='auto',
-        marker_color='orange'  # Bar color
+        y=df_top["asin"],                # ASIN on y-axis (horizontal bars)
+        x=df_top["rank"],                # Rank on x-axis (lower rank means better)
+        text=df_top["asin"],             # Show ASIN as text on the bars
+        textposition='inside',           # Place ASIN text inside the bars
+        marker_color='orange',           # Bar color
+        orientation='h'                  # Horizontal bars
     ))
 
     fig.update_layout(
         title="Top 10 Best-sellers Rank",  # Chart title
-        xaxis_title="ASIN",                 # X-axis label
-        yaxis_title="Rank",                 # Y-axis label
-        yaxis_autorange="reversed",         # So rank 1 is at the top (reversed Y-axis)
+        xaxis_title="Rank",                 # X-axis label (Rank)
+        yaxis_title="ASIN",                 # Y-axis label (ASIN)
+        yaxis_autorange="reversed",         # Reverse Y-axis so rank 1 is at the top
         height=500,
-        margin=dict(l=80, r=20, t=50, b=100)  # Adjust margins
+        margin=dict(l=80, r=20, t=50, b=100),  # Adjust margins
+        showlegend=False                   # Hide the legend (it's not needed here)
     )
     return fig
+
 
 # -------------------------------
 # Step 5: Streamlit section
