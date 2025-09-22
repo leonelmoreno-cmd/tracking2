@@ -78,7 +78,7 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
     return url
 
 # -------------------------------
-# List CSV files in repo
+# List CSV files in repos
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
