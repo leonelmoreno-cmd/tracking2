@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
-from typing import Dict, List  # Asegúrate de que Dict y List estén correctamente importados
-import streamlit as st  # Importa streamlit
+import streamlit as st
+from typing import Dict, List
 
 # -------------------------------
 # Repo constants
@@ -12,14 +12,50 @@ GITHUB_PATH = "data"
 GITHUB_BRANCH = "main"
 
 # -------------------------------
-# Helper functions
+# Page config
 # -------------------------------
+def set_page_config():
+    st.set_page_config(
+        page_title="Competitor Price Monitoring - JC",
+        page_icon=":chart_with_upwards_trend:",
+        layout="wide",
+    )
 
+# -------------------------------
+# Fetch CSV data
+# -------------------------------
+def fetch_data(url: str) -> pd.DataFrame:
+    """
+    Fetch CSV data from a URL and return a pandas DataFrame.
+    """
+    return pd.read_csv(url)
+
+# -------------------------------
+# Prepare data
+# -------------------------------
+def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare and clean data for analysis.
+    Adds week number, discount label, and price change.
+    """
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["week_number"] = df["date"].dt.isocalendar().week
+    df = df.sort_values(by=["asin", "week_number"])
+    df["discount"] = df.apply(
+        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
+        axis=1
+    )
+    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
+    return df
+
+# -------------------------------
+# GitHub URL helper
+# -------------------------------
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
     """
-    Construye una URL de GitHub para acceder a un archivo en el repositorio especificado.
-    Si el archivo tiene una subcategoría asociada, ajusta la ruta para incluir la subcarpeta correspondiente.
-    Si no, devuelve el archivo principal directamente.
+    Construct a raw GitHub URL for a given file.
+    Maps certain competitor files to sub-categories.
     """
     COMPETITOR_TO_SUBCATEGORY_MAP = {
         "competitors_history - BL.csv": "sub-categories2/sub_BL.csv",
@@ -38,20 +74,16 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
     else:
         url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
 
-    # Agregar un print o st.write para verificar la URL
     print(f"Generated URL: {url}")
     return url
 
-def fetch_data(url: str) -> pd.DataFrame:
-    """
-    Fetch CSV data from a URL and return it as a pandas DataFrame.
-    """
-    return pd.read_csv(url)
-
+# -------------------------------
+# List CSV files in repo
+# -------------------------------
 @st.cache_data(show_spinner=False)
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
     """
-    Returns a list of the main CSV files (not sub-categories) from a GitHub repository.
+    Return a list of main CSV files (not sub-categories) from a GitHub repository.
     """
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
     headers = {"Accept": "application/vnd.github+json"}
@@ -62,12 +94,17 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     resp.raise_for_status()
     items = resp.json()
 
-    main_files = set({
-        "competitors_history - BL.csv", "competitors_history - GS.csv", "competitors_history - IC.csv", 
-        "competitors_history - LGM.csv", "competitors_history - QC.csv", "competitors_history - RIO.csv", 
-        "competitors_history - UR.csv", "synthethic3.csv"
-    })
-    
+    main_files = {
+        "competitors_history - BL.csv",
+        "competitors_history - GS.csv",
+        "competitors_history - IC.csv",
+        "competitors_history - LGM.csv",
+        "competitors_history - QC.csv",
+        "competitors_history - RIO.csv",
+        "competitors_history - UR.csv",
+        "synthethic3.csv"
+    }
+
     csvs = [
         {
             "name": it["name"],
@@ -77,29 +114,5 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
         for it in items
         if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv") and it["name"] in main_files
     ]
-    
     csvs.sort(key=lambda x: x["name"])
-    
     return csvs
-
-def set_page_config():
-    st.set_page_config(
-        page_title="Competitor Price Monitoring - JC",
-        page_icon=":chart_with_upwards_trend:",
-        layout="wide",
-    )
-
-def fetch_data(url: str) -> pd.DataFrame:
-    return pd.read_csv(url)
-
-def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df["week_number"] = df["date"].dt.isocalendar().week
-    df = df.sort_values(by=["asin", "week_number"])
-    df["discount"] = df.apply(
-        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
-        axis=1
-    )
-    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
-    return df
