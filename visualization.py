@@ -31,18 +31,20 @@ def create_overview_graph(
 
     brand_period = df.sort_values("date").groupby(["brand", group_key], as_index=False)["product_price"].mean()
 
-    hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
+    hover_x = "Date: %%{x|%Y-%m-%d}" if period == "day" else "Week: %%{x}"
 
     for brand, g in brand_period.groupby("brand"):
-    fig.add_trace(go.Scatter(
-        x=g[group_key],
-        y=g["product_price"],
-        mode=trace_mode,
-        name=str(brand),
-        hovertemplate=f"Brand: %%{{text}}<br>Price: $%%{{y:.2f}}<br>{hover_x}<extra></extra>",
-        text=g["brand"],
-        showlegend=True
-    ))
+        fig.add_trace(
+            go.Scatter(
+                x=g[group_key],
+                y=g["product_price"],
+                mode=trace_mode,
+                name=str(brand),
+                hovertemplate=f"Brand: %%{{text}}<br>Price: $%%{{y:.2f}}<br>{hover_x}<extra></extra>",
+                text=g["brand"],
+                showlegend=True
+            )
+        )
 
     fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
 
@@ -101,7 +103,7 @@ def create_price_graph(df: pd.DataFrame, period: str = "week") -> go.Figure:
         c = i % cols + 1
 
         x_vals = asin_data["date"] if period == "day" else asin_data["week_number"]
-        hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
+        hover_x = "Date: %%{x|%Y-%m-%d}" if period == "day" else "Week: %%{x}"
 
         fig.add_trace(
             go.Scatter(
@@ -110,7 +112,7 @@ def create_price_graph(df: pd.DataFrame, period: str = "week") -> go.Figure:
                 mode="lines+markers",
                 name=str(asin),
                 line=dict(dash=dashed),
-                hovertemplate=f"ASIN: %{{text}}<br>Price: $%{{y:.2f}}<br>{hover_x}<br>Price Change: %{{customdata:.2f}}%<extra></extra>",
+                hovertemplate=f"ASIN: %%{{text}}<br>Price: $%%{{y:.2f}}<br>{hover_x}<br>Price Change: %%{{customdata:.2f}}%<extra></extra>",
                 text=asin_data["asin"],
                 customdata=asin_data["price_change"],
                 showlegend=False
