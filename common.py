@@ -55,6 +55,9 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     """
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
     headers = {"Accept": "application/vnd.github+json"}
+    token = st.secrets.get("GITHUB_TOKEN", None)
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     resp = requests.get(url, headers=headers, timeout=15)
     resp.raise_for_status()
     items = resp.json()
