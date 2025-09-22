@@ -34,15 +34,15 @@ def create_overview_graph(
     hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
 
     for brand, g in brand_period.groupby("brand"):
-        fig.add_trace(go.Scatter(
-            x=g[group_key],
-            y=g["product_price"],
-            mode=trace_mode,
-            name=str(brand),
-            hovertemplate=f"Brand: %{text}<br>Price: $%{{y:.2f}}<br>{hover_x}<extra></extra>",
-            text=g["brand"],
-            showlegend=True
-        ))
+    fig.add_trace(go.Scatter(
+        x=g[group_key],
+        y=g["product_price"],
+        mode=trace_mode,
+        name=str(brand),
+        hovertemplate=f"Brand: %%{{text}}<br>Price: $%%{{y:.2f}}<br>{hover_x}<extra></extra>",
+        text=g["brand"],
+        showlegend=True
+    ))
 
     fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
 
