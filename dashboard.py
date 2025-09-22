@@ -21,7 +21,7 @@ st.set_page_config(
 DEFAULT_BASKET = "synthethic3.csv"
 
 # -------------------------------
-# Data loading
+# Data loadings
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def fetch_data(url: str) -> pd.DataFrame:
