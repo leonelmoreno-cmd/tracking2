@@ -35,7 +35,7 @@ st.markdown(
     f"""
     <div style="text-align:center;">
         <h1 style="font-size: 36px; margin-bottom:-15px;">Competitor Price Monitoring</h1>
-        <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by JC Team</h6>
+        <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Team</h6>
     </div>
     """,
     unsafe_allow_html=True
