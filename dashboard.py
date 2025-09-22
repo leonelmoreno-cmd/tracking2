@@ -13,7 +13,7 @@ from product_table_section import render_product_table
 import percentage_var
 
 # -------------------------------
-# Page config
+# Page configs
 # -------------------------------
 set_page_config()
 
