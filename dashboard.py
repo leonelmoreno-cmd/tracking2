@@ -9,11 +9,11 @@ from common import (
 from visualization import create_overview_graph, create_price_graph
 from best_sellers_section import render_best_sellers_section_with_table
 from highlights_section import render_highlights
-from product_table_section import render_product_table
+from overview_section import render_overview_section  # <-- import modular
 import percentage_var
 
 # -------------------------------
-# Page configs
+# Page config
 # -------------------------------
 set_page_config()
 
@@ -104,43 +104,9 @@ with col3:
     period = "day" if aggregate_daily else "week"
 
 # ===============================
-# Overview chart
+# Modular Overview + Highlights
 # ===============================
-st.subheader("Overview — All Brands")
-st.caption("Use the controls below to filter the overview. The metrics summarize the latest period across selected brands.")
-
-left_col, right_col = st.columns([0.7, 2.3], gap="large")
-all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
-date_min, date_max = prepared_df["date"].dropna().min(), prepared_df["date"].dropna().max()
-
-with left_col:
-    st.caption("Select the brands to filter the overview chart.")
-    selected_brands = st.multiselect(
-        "Brands to display (overview)",
-        options=all_brands,
-        default=all_brands,
-        help="Select the brands you want to compare in the overview chart."
-    )
-    overview_date_range = None
-    if pd.notna(date_min) and pd.notna(date_max):
-        overview_date_range = st.date_input(
-            "Filter by date (overview)",
-            value=(date_min.date(), date_max.date()),
-            min_value=date_min.date(),
-            max_value=date_max.date(),
-            help="Choose a start/end date to constrain the overview."
-        )
-
-with right_col:
-    df_overview = prepared_df.copy()
-    if overview_date_range:
-        dstart, dend = overview_date_range if isinstance(overview_date_range, tuple) else (overview_date_range, overview_date_range)
-        df_overview = df_overview[(df_overview["date"].dt.date >= dstart) & (df_overview["date"].dt.date <= dend)]
-    if selected_brands:
-        df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
-
-    # ✅ Render highlights using the modular component
-    render_highlights(df_overview, period=period)
+df_overview, selected_brands = render_overview_section(prepared_df, period)
 
 # -------------------------------
 # Overview chart with Plotly
@@ -167,7 +133,40 @@ price_graph = create_price_graph(prepared_df, period=period)
 st.plotly_chart(price_graph, use_container_width=True)
 
 # ===============================
-# Detailed product table + filters (modular)
+# Detailed product table + filters
 # ===============================
-from product_table_section import render_product_table
-render_product_table(prepared_df, all_brands, date_min, date_max)
+st.subheader("Detailed Product Information")
+st.caption("Filter the table and download the filtered data as CSV.")
+
+all_brands = sorted(prepared_df["brand"].dropna().unique().tolist())
+brand_options = ["All"] + all_brands
+discount_options = ["All", "Discounted", "No Discount"]
+
+table_date_range = st.date_input(
+    "Filter by date (range)",
+    value=(prepared_df["date"].min().date(), prepared_df["date"].max().date()),
+    min_value=prepared_df["date"].min().date(),
+    max_value=prepared_df["date"].max().date(),
+    help="Pick a start and end date to filter the table."
+)
+
+brand_filter = st.selectbox("Filter by Brand", options=brand_options, index=0)
+discount_filter = st.selectbox("Filter by Discount Status", options=discount_options, index=0)
+
+filtered_df = prepared_df.copy()
+if brand_filter != "All":
+    filtered_df = filtered_df[filtered_df["brand"] == brand_filter]
+if discount_filter != "All":
+    filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
+
+start_date, end_date = table_date_range if isinstance(table_date_range, tuple) else (table_date_range, table_date_range)
+filtered_df = filtered_df[(filtered_df["date"].dt.date >= start_date) & (filtered_df["date"].dt.date <= end_date)]
+
+st.dataframe(filtered_df, use_container_width=True)
+st.download_button(
+    "Download filtered table as CSV",
+    data=filtered_df.to_csv(index=False).encode("utf-8"),
+    file_name="product_details_filtered.csv",
+    mime="text/csv",
+    help="Click to download the current filtered table."
+)
