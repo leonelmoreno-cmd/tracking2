@@ -1,7 +1,8 @@
 import pandas as pd
+import numpy as np
 import requests
-import streamlit as st
 from typing import Dict, List
+import streamlit as st
 
 # -------------------------------
 # Repo constants
@@ -25,9 +26,7 @@ def set_page_config():
 # Fetch CSV data
 # -------------------------------
 def fetch_data(url: str) -> pd.DataFrame:
-    """
-    Fetch CSV data from a URL and return a pandas DataFrame.
-    """
+    """Fetch CSV data from a URL and return a pandas DataFrame."""
     return pd.read_csv(url)
 
 # -------------------------------
@@ -53,10 +52,7 @@ def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
 # GitHub URL helper
 # -------------------------------
 def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> str:
-    """
-    Construct a raw GitHub URL for a given file.
-    Maps certain competitor files to sub-categories.
-    """
+    """Construct a raw GitHub URL for a given file."""
     COMPETITOR_TO_SUBCATEGORY_MAP = {
         "competitors_history - BL.csv": "sub-categories2/sub_BL.csv",
         "competitors_history - GS.csv": "sub-categories2/sub_GS.csv",
@@ -67,18 +63,16 @@ def _raw_url_for(owner: str, repo: str, branch: str, path: str, fname: str) -> s
         "competitors_history - UR.csv": "sub-categories2/sub_UR.csv",
         "synthethic3.csv": "sub-categories2/sub_SYN.csv"
     }
-
     subcategory_file = COMPETITOR_TO_SUBCATEGORY_MAP.get(fname)
     if subcategory_file:
         url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{subcategory_file}"
     else:
         url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/{fname}"
-
     print(f"Generated URL: {url}")
     return url
 
 # -------------------------------
-# List CSV files in repos
+# List CSV files in repo
 # -------------------------------
 @st.cache_data(show_spinner=False)
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
@@ -116,3 +110,49 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     ]
     csvs.sort(key=lambda x: x["name"])
     return csvs
+
+# -------------------------------
+# Compute highlights (last period KPIs)
+# -------------------------------
+def compute_highlights(df: pd.DataFrame, period: str = "week") -> dict:
+    """
+    Compute key highlights for the last period: max/min discount, price, price change.
+    Returns a dictionary with rows and labels.
+    """
+    if df.empty:
+        return {}
+
+    if period == "week":
+        last_period = int(df["week_number"].max())
+        df_period = df[df["week_number"] == last_period].copy()
+        label = f"week {last_period}"
+    else:
+        last_day = df["date"].max().date()
+        df_period = df[df["date"].dt.date == last_day].copy()
+        label = last_day.strftime("%Y-%m-%d")
+
+    df_period["discount_pct"] = np.where(
+        df_period["product_original_price"].notna() & (df_period["product_original_price"] != 0),
+        (df_period["product_original_price"] - df_period["product_price"]) / df_period["product_original_price"] * 100.0,
+        np.nan
+    )
+
+    row_max_disc = df_period.loc[df_period["discount_pct"].idxmax()] if df_period["discount_pct"].notna().any() else None
+    row_min_disc = df_period.loc[df_period["discount_pct"].idxmin()] if df_period["discount_pct"].notna().any() else None
+
+    row_max_price = df_period.loc[df_period["product_price"].idxmax()] if not df_period["product_price"].isna().all() else None
+    row_min_price = df_period.loc[df_period["product_price"].idxmin()] if not df_period["product_price"].isna().all() else None
+
+    latest_by_brand = df_period.loc[df_period.groupby("brand")["date"].idxmax()] if not df_period.empty else pd.DataFrame()
+    row_max_change = latest_by_brand.loc[latest_by_brand["price_change"].idxmax()] if not latest_by_brand.empty else None
+    row_min_change = latest_by_brand.loc[latest_by_brand["price_change"].idxmin()] if not latest_by_brand.empty else None
+
+    return {
+        "label": label,
+        "row_max_disc": row_max_disc,
+        "row_min_disc": row_min_disc,
+        "row_max_price": row_max_price,
+        "row_min_price": row_min_price,
+        "row_max_change": row_max_change,
+        "row_min_change": row_min_change
+    }
