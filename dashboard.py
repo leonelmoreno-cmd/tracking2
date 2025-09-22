@@ -1,11 +1,14 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
 from typing import Dict
-from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data, prepare_data, list_repo_csvs, set_page_config
+from common import (
+    GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH,
+    _raw_url_for, fetch_data, prepare_data, list_repo_csvs, set_page_config, compute_highlights
+)
 from visualization import create_overview_graph, create_price_graph
 from best_sellers_section import render_best_sellers_section_with_table
 import percentage_var
-import pandas as pd
-import numpy as np
 
 # -------------------------------
 # Page config
@@ -134,6 +137,50 @@ with right_col:
     if selected_brands:
         df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
 
+# -------------------------------
+# Highlights section
+# -------------------------------
+st.markdown("### Last period highlights")
+highlights = compute_highlights(df_overview, period=period)
+label = highlights.get("label", "N/A")
+
+dcol, pcol, ccol = st.columns(3)
+with dcol:
+    if highlights.get("row_max_disc") is not None:
+        st.metric(f"🏷️ Highest discount — {label} — {highlights['row_max_disc']['brand']}", f"{highlights['row_max_disc']['discount_pct']:.1f}%")
+    else:
+        st.metric(f"🏷️ Highest discount — {label}", "N/A")
+
+    if highlights.get("row_min_disc") is not None:
+        st.metric(f"🏷️ Lowest discount — {label} — {highlights['row_min_disc']['brand']}", f"{highlights['row_min_disc']['discount_pct']:.1f}%")
+    else:
+        st.metric(f"🏷️ Lowest discount — {label}", "N/A")
+
+with pcol:
+    if highlights.get("row_max_price") is not None:
+        st.metric(f"💲 Highest price — {label} — {highlights['row_max_price']['brand']}", f"${highlights['row_max_price']['product_price']:.2f}")
+    else:
+        st.metric(f"💲 Highest price — {label}", "N/A")
+
+    if highlights.get("row_min_price") is not None:
+        st.metric(f"💲 Lowest price — {label} — {highlights['row_min_price']['brand']}", f"${highlights['row_min_price']['product_price']:.2f}")
+    else:
+        st.metric(f"💲 Lowest price — {label}", "N/A")
+
+with ccol:
+    if highlights.get("row_max_change") is not None:
+        st.metric(f"🔺 Largest price change (last update) — {label} — {highlights['row_max_change']['brand']}", f"{highlights['row_max_change']['price_change']:+.1f}%")
+    else:
+        st.metric(f"🔺 Largest price change (last update) — {label}", "N/A")
+
+    if highlights.get("row_min_change") is not None:
+        st.metric(f"🔻 Lowest price change (last update) — {label} — {highlights['row_min_change']['brand']}", f"{highlights['row_min_change']['price_change']:+.1f}%")
+    else:
+        st.metric(f"🔻 Lowest price change (last update) — {label}", "N/A")
+
+# -------------------------------
+# Overview chart with Plotly
+# -------------------------------
 overview_fig = create_overview_graph(df_overview, brands_to_plot=selected_brands, period=period)
 st.plotly_chart(overview_fig, use_container_width=True)
 
@@ -180,6 +227,7 @@ if brand_filter != "All":
     filtered_df = filtered_df[filtered_df["brand"] == brand_filter]
 if discount_filter != "All":
     filtered_df = filtered_df[filtered_df["discount"] == discount_filter]
+
 start_date, end_date = table_date_range if isinstance(table_date_range, tuple) else (table_date_range, table_date_range)
 filtered_df = filtered_df[(filtered_df["date"].dt.date >= start_date) & (filtered_df["date"].dt.date <= end_date)]
 
