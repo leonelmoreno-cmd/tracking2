@@ -4,10 +4,11 @@ import numpy as np
 from typing import Dict
 from common import (
     GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH,
-    _raw_url_for, fetch_data, prepare_data, list_repo_csvs, set_page_config, compute_highlights
+    _raw_url_for, fetch_data, prepare_data, list_repo_csvs, set_page_config
 )
 from visualization import create_overview_graph, create_price_graph
 from best_sellers_section import render_best_sellers_section_with_table
+from highlights_section import render_highlights  # <-- nuevo import
 import percentage_var
 
 # -------------------------------
@@ -137,46 +138,8 @@ with right_col:
     if selected_brands:
         df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
 
-# -------------------------------
-# Highlights section
-# -------------------------------
-st.markdown("### Last period highlights")
-highlights = compute_highlights(df_overview, period=period)
-label = highlights.get("label", "N/A")
-
-dcol, pcol, ccol = st.columns(3)
-with dcol:
-    if highlights.get("row_max_disc") is not None:
-        st.metric(f"🏷️ Highest discount — {label} — {highlights['row_max_disc']['brand']}", f"{highlights['row_max_disc']['discount_pct']:.1f}%")
-    else:
-        st.metric(f"🏷️ Highest discount — {label}", "N/A")
-
-    if highlights.get("row_min_disc") is not None:
-        st.metric(f"🏷️ Lowest discount — {label} — {highlights['row_min_disc']['brand']}", f"{highlights['row_min_disc']['discount_pct']:.1f}%")
-    else:
-        st.metric(f"🏷️ Lowest discount — {label}", "N/A")
-
-with pcol:
-    if highlights.get("row_max_price") is not None:
-        st.metric(f"💲 Highest price — {label} — {highlights['row_max_price']['brand']}", f"${highlights['row_max_price']['product_price']:.2f}")
-    else:
-        st.metric(f"💲 Highest price — {label}", "N/A")
-
-    if highlights.get("row_min_price") is not None:
-        st.metric(f"💲 Lowest price — {label} — {highlights['row_min_price']['brand']}", f"${highlights['row_min_price']['product_price']:.2f}")
-    else:
-        st.metric(f"💲 Lowest price — {label}", "N/A")
-
-with ccol:
-    if highlights.get("row_max_change") is not None:
-        st.metric(f"🔺 Largest price change (last update) — {label} — {highlights['row_max_change']['brand']}", f"{highlights['row_max_change']['price_change']:+.1f}%")
-    else:
-        st.metric(f"🔺 Largest price change (last update) — {label}", "N/A")
-
-    if highlights.get("row_min_change") is not None:
-        st.metric(f"🔻 Lowest price change (last update) — {label} — {highlights['row_min_change']['brand']}", f"{highlights['row_min_change']['price_change']:+.1f}%")
-    else:
-        st.metric(f"🔻 Lowest price change (last update) — {label}", "N/A")
+    # ✅ Render highlights using the modular component
+    render_highlights(df_overview, period=period)
 
 # -------------------------------
 # Overview chart with Plotly
