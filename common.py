@@ -52,42 +52,22 @@ def fetch_data(url: str) -> pd.DataFrame:
 def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> List[dict]:
     """
     Returns a list of the main CSV files (not sub-categories) from a GitHub repository.
-    Repo público: NO enviar Authorization para evitar 401 por credenciales inválidas.
     """
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
-
-    # Headers recomendados por GitHub (User-Agent es obligatorio)
-    headers_base = {
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "streamlit-app",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-
-    # Para repos públicos no usamos token
-    headers = dict(headers_base)
-
-    # Si en el futuro activas un token, puedes leerlo así:
+    headers = {"Accept": "application/vnd.github+json"}
     token = st.secrets.get("GITHUB_TOKEN", None)
-    # Ejemplo opcional: activar token sólo si lo necesitas
-    # if token:
-    #     headers["Authorization"] = f"token {token}"
-
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     resp = requests.get(url, headers=headers, timeout=15)
-
-    # Si alguna vez habilitas token y recibes 401, reintenta sin Authorization
-    if resp.status_code == 401 and "Authorization" in headers:
-        headers.pop("Authorization", None)
-        resp = requests.get(url, headers=headers, timeout=15)
-
     resp.raise_for_status()
     items = resp.json()
 
     main_files = set({
-        "competitors_history - BL.csv", "competitors_history - GS.csv", "competitors_history - IC.csv",
-        "competitors_history - LGM.csv", "competitors_history - QC.csv", "competitors_history - RIO.csv",
+        "competitors_history - BL.csv", "competitors_history - GS.csv", "competitors_history - IC.csv", 
+        "competitors_history - LGM.csv", "competitors_history - QC.csv", "competitors_history - RIO.csv", 
         "competitors_history - UR.csv", "synthethic3.csv"
     })
-
+    
     csvs = [
         {
             "name": it["name"],
@@ -97,7 +77,7 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
         for it in items
         if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv") and it["name"] in main_files
     ]
-
+    
     csvs.sort(key=lambda x: x["name"])
-
+    
     return csvs
