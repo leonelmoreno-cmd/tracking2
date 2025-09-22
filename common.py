@@ -81,3 +81,25 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     csvs.sort(key=lambda x: x["name"])
     
     return csvs
+
+def set_page_config():
+    st.set_page_config(
+        page_title="Competitor Price Monitoring - JC",
+        page_icon=":chart_with_upwards_trend:",
+        layout="wide",
+    )
+
+def fetch_data(url: str) -> pd.DataFrame:
+    return pd.read_csv(url)
+
+def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["week_number"] = df["date"].dt.isocalendar().week
+    df = df.sort_values(by=["asin", "week_number"])
+    df["discount"] = df.apply(
+        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
+        axis=1
+    )
+    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
+    return df
