@@ -38,7 +38,7 @@ def render_basket_and_toggle(name_to_url: Dict[str, str], active_basket_name: st
                         st.experimental_set_query_params(basket=sel)
                     except Exception:
                         pass
-                st.experimental_rerun()  # usar rerun seguro
+                st.experimental_rerun()  # rerun seguro
 
     with col3:
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
