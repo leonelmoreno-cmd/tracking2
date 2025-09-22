@@ -6,123 +6,13 @@ from plotly.subplots import make_subplots
 from typing import Dict, List  # Importar Dict y List desde typing
 from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, fetch_data, list_repo_csvs
 from best_sellers_section import render_best_sellers_section_with_table
-# -------------------------------
-# Page config s
-# -------------------------------
-st.set_page_config(
-    page_title="Competitor Price Monitoring - JC",
-    page_icon=":chart_with_upwards_trend:",
-    layout="wide",
-)
+from common import set_page_config, fetch_data, prepare_data
+from visualization import create_overview_graph
 
 # -------------------------------
 # Repo constants (adjust if needed)
 # -------------------------------
 DEFAULT_BASKET = "synthethic3.csv"
-
-# -------------------------------
-# Data loadings
-# -------------------------------
-@st.cache_data(show_spinner=False)
-def fetch_data(url: str) -> pd.DataFrame:
-    return pd.read_csv(url)
-
-@st.cache_data(show_spinner=False)
-def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    # ISO week number (recommended by pandas; old .week is deprecated)
-    df["week_number"] = df["date"].dt.isocalendar().week
-    df = df.sort_values(by=["asin", "week_number"])
-    df["discount"] = df.apply(
-        lambda row: "Discounted" if pd.notna(row.get("product_original_price")) else "No Discount",
-        axis=1
-    )
-    df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
-    return df
-
-# -------------------------------
-# Overview chart (by brand)
-# -------------------------------
-def create_overview_graph(
-    df: pd.DataFrame,
-    brands_to_plot=None,
-    week_range=None,     # kept for compatibility (ignored for daily)
-    use_markers=False,
-    period: str = "week"  # <<< NEW: "week" or "day"
-) -> go.Figure:
-    if brands_to_plot is not None and len(brands_to_plot) > 0:
-        df = df[df["brand"].isin(brands_to_plot)]
-
-    if week_range is not None and period == "week":
-        wk_min, wk_max = week_range
-        df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
-
-    max_price = float(np.nanmax([
-        df["product_price"].max(),
-        df["product_original_price"].max()
-    ]))
-
-    # Group key and labels depend on period
-    if period == "day":
-        group_key = "date"
-        x_title = "Date"
-        title_label = "Daily"
-    else:
-        group_key = "week_number"
-        x_title = "Week Number"
-        title_label = "Weekly"
-
-    fig = go.Figure()
-    trace_mode = "lines+markers" if use_markers else "lines"
-
-    brand_period = (
-        df.sort_values("date")
-          .groupby(["brand", group_key], as_index=False)["product_price"].mean()
-    )
-
-    # Human-friendly hover label
-    hover_x = "Date: %{x|%Y-%m-%d}" if period == "day" else "Week: %{x}"
-
-    for brand, g in brand_period.groupby("brand"):
-        fig.add_trace(go.Scatter(
-            x=g[group_key],
-            y=g["product_price"],
-            mode=trace_mode,
-            name=str(brand),
-            hovertemplate=(
-                "Brand: %{text}<br>" +
-                "Price: $%{y:.2f}<br>" +
-                f"{hover_x}<extra></extra>"
-            ),
-            text=g["brand"],
-            showlegend=True
-        ))
-
-    # Axes
-    fig.update_yaxes(range=[0, max_price], title_text="Product Price (USD)")
-    if period == "week":
-        min_week = int(df["week_number"].min())
-        max_week = int(df["week_number"].max())
-        fig.update_xaxes(
-            range=[min_week, max_week],
-            tickmode="linear", tick0=min_week, dtick=1,
-            title_text=x_title
-        )
-        title_suffix = f"(Weeks {min_week}–{max_week})"
-    else:
-        fig.update_xaxes(title_text=x_title)
-        title_suffix = ""
-
-    fig.update_layout(
-        title=f"Overview — {title_label} Price by Brand {title_suffix}",
-        height=420,
-        hovermode="x unified",
-        legend_title_text="Brand",
-        margin=dict(l=20, r=20, t=50, b=40)
-    )
-    return fig
-
 # -------------------------------
 # Subplots per ASIN (legend explained below the caption)
 # -------------------------------
