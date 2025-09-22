@@ -53,31 +53,33 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     """
     Returns a list of the main CSV files (not sub-categories) from a GitHub repository.
     """
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
-    headers = {"Accept": "application/vnd.github+json"}
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    params = {"ref": branch}
+
+    # --- CABECERAS CON AUTENTICACIÓN Y BUENAS PRÁCTICAS ---
     token = st.secrets.get("GITHUB_TOKEN", None)
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",   # Versión explícita de la API
+        "User-Agent": "streamlit-tracking-app"  # Recomendado por GitHub
+    }
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    resp = requests.get(url, headers=headers, timeout=15)
+
+    resp = requests.get(url, headers=headers, params=params, timeout=15)
     resp.raise_for_status()
     items = resp.json()
 
-    main_files = set({
-        "competitors_history - BL.csv", "competitors_history - GS.csv", "competitors_history - IC.csv", 
-        "competitors_history - LGM.csv", "competitors_history - QC.csv", "competitors_history - RIO.csv", 
+    main_files = {
+        "competitors_history - BL.csv", "competitors_history - GS.csv", "competitors_history - IC.csv",
+        "competitors_history - LGM.csv", "competitors_history - QC.csv", "competitors_history - RIO.csv",
         "competitors_history - UR.csv", "synthethic3.csv"
-    })
-    
+    }
+
     csvs = [
-        {
-            "name": it["name"],
-            "download_url": it["download_url"],
-            "path": it.get("path", "")
-        }
+        {"name": it["name"], "download_url": it["download_url"], "path": it.get("path", "")}
         for it in items
         if it.get("type") == "file" and it.get("name", "").lower().endswith(".csv") and it["name"] in main_files
     ]
-    
     csvs.sort(key=lambda x: x["name"])
-    
     return csvs
