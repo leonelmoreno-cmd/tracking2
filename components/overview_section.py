@@ -1,7 +1,7 @@
 # overview_section.py
 import streamlit as st
 import pandas as pd
-from highlights_section import render_highlights
+from components.highlights_section import render_highlights
 
 def render_overview_section(df: pd.DataFrame, period: str):
     """
