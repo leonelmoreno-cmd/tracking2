@@ -21,7 +21,8 @@ def create_overview_graph(
         df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
 
     max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
-    st.write("DEBUG period:", period, type(period))
+    st.write("DEBUG period - leonel:", period, type(period))
+    
     group_key = "date" if period == "day" else "week_number"
     x_title = "Date" if period == "day" else "Week Number"
     title_label = "Daily" if period == "day" else "Weekly"
