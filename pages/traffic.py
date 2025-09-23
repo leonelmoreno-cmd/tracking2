@@ -10,8 +10,6 @@ import streamlit as st
 
 # ---------- Page config ----------
 st.set_page_config(page_title="Demand Analysis JC", layout="wide")
-st.title("Demand Analysis JC")
-st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Better decisions")
 
 # --- Guard: urllib3<2 recomendado para pytrends 4.9.2 ---
 try:
@@ -35,6 +33,9 @@ import plotly.express as px
 
 # ---------- UI + top matter ----------
 def _header():
+    st.title("Demand Analysis JC")
+    st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Better decisions")
+
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
     col_req, col_csv = st.columns(2)
     request_clicked = col_req.button("Request")
