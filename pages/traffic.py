@@ -8,6 +8,11 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+# ---------- Page config ----------
+st.set_page_config(page_title="Demand Analysis JC", layout="wide")
+st.title("Demand Analysis JC")
+st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Better decisions")
+
 # --- Guard: urllib3<2 recomendado para pytrends 4.9.2 ---
 try:
     import urllib3
@@ -28,21 +33,9 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 
-# ---------- Plotly config ----------
-PLOTLY_CONFIG = {
-    "displaylogo": False,
-    "scrollZoom": True,
-    "modeBarButtonsToRemove": ["autoScale2d", "select2d", "lasso2d", "toImage"],
-}
-
-
 # ---------- UI + top matter ----------
 def _header():
-    st.title("Demand Analysis")
-    st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Insights")
-
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
-
     col_req, col_csv = st.columns(2)
     request_clicked = col_req.button("Request")
     uploaded_file = col_csv.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
@@ -60,7 +53,6 @@ GEO = "US"
 # ---------- Helpers ----------
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trends(keyword: str) -> pd.DataFrame:
-    """Call Google Trends via pytrends and return a cleaned dataframe."""
     pytrends = TrendReq(
         hl=HL,
         tz=TZ,
@@ -72,12 +64,10 @@ def fetch_trends(keyword: str) -> pd.DataFrame:
     df = pytrends.interest_over_time()
     if df.empty:
         return df
-
     if len(df) > 0:
         df = df.iloc[:-1]
     if "isPartial" in df.columns:
         df = df.drop(columns=["isPartial"])
-
     df.index = pd.to_datetime(df.index)
     df = df.sort_index()
     return df
@@ -202,11 +192,11 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
 
     # Main figure
     fig = build_figure(df_plot, series_name)
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig, use_container_width=True)
 
     st.markdown(
-        "*How to read this:* the **Trend** shows the long-term direction, "
-        "**Seasonal** the recurring pattern, and **Residual** the short-term noise."
+        "*How to read this:* the **Trend** shows the long-term direction, **Seasonal** the recurring intra-year pattern, "
+        "and **Residual** the short-term irregular component (noise/outliers). Values are relative Google Trends interest."
     )
 
     with st.expander("Show data (original/trend/seasonal/residual)"):
@@ -235,7 +225,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_week.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_week.update_xaxes(dtick=4, title="ISO week (1–53)")
     fig_week.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_week, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_week, use_container_width=True)
+
+    st.markdown(
+        "*Interpretation:* this line shows the **average seasonal effect** at each ISO week across all years. "
+        "Peaks indicate weeks that are typically above the baseline; troughs indicate below-baseline weeks."
+    )
 
     month_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
     month_map = dict(zip(range(1, 13), month_labels))
@@ -252,7 +247,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_month_mean.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_month_mean.update_xaxes(title="Month")
     fig_month_mean.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_month_mean, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_month_mean, use_container_width=True)
+
+    st.markdown(
+        "*Interpretation:* this summarizes the **typical monthly seasonality**. "
+        "Use it to spot which months are usually stronger or weaker relative to the yearly baseline."
+    )
 
     df_box = df_plot.assign(
         month_num=df_plot["date"].dt.month,
@@ -265,7 +265,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_box.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_box.update_xaxes(title="Month")
     fig_box.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_box, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_box, use_container_width=True)
+
+    st.markdown(
+        "*Interpretation:* boxes show the **spread of seasonal values** for each month across years. "
+        "Wider boxes or longer whiskers mean more variability; outliers capture unusual months."
+    )
 
     df_plot = df_plot.copy()
     df_plot["year"] = df_plot["date"].dt.year
@@ -282,7 +287,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_yoy.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_yoy.update_xaxes(title="ISO week", dtick=4)
     fig_yoy.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_yoy, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_yoy, use_container_width=True)
+
+    st.markdown(
+        "*Interpretation:* this compares **seasonal curves across recent years** on the same ISO-week axis. "
+        "Look for alignment (stable seasonality) or divergences (shifts in timing or magnitude)."
+    )
 
 
 def _run_request_mode(kw: str):
