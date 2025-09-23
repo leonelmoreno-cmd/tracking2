@@ -45,4 +45,4 @@ def render_overview_section(df: pd.DataFrame, period: str):
         # Render highlights using the modular component
         render_highlights(df_overview, period=period)
 
-   return df_overview, selected_brands, period
+return df_overview, selected_brands, period
