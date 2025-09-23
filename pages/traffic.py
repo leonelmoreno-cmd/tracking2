@@ -190,10 +190,9 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
         "remainder": res.resid
     })
 
-    # Main figure
+    # ---- Main decomposition figure ----
     fig = build_figure(df_plot, series_name)
     st.plotly_chart(fig, use_container_width=True)
-
     st.markdown(
         "*How to read this:* the **Trend** shows the long-term direction, **Seasonal** the recurring intra-year pattern, "
         "and **Residual** the short-term irregular component (noise/outliers). Values are relative Google Trends interest."
@@ -208,9 +207,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
             mime="text/csv"
         )
 
-    # Extra analyses
+    # =========================
+    # Additional analyses
+    # =========================
     st.markdown("## Additional seasonal analyses")
 
+    # ---- Chart 2: Average seasonal pattern by ISO week ----
     semana_mean = (
         df_plot.assign(iso_week=df_plot["date"].dt.isocalendar().week.astype(int))
                .groupby("iso_week", as_index=False)["seasonal"].mean()
@@ -226,12 +228,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_week.update_xaxes(dtick=4, title="ISO week (1–53)")
     fig_week.update_yaxes(title="Seasonal value")
     st.plotly_chart(fig_week, use_container_width=True)
-
     st.markdown(
         "*Interpretation:* this line shows the **average seasonal effect** at each ISO week across all years. "
         "Peaks indicate weeks that are typically above the baseline; troughs indicate below-baseline weeks."
     )
 
+    # ---- Chart 3: Average seasonal pattern by month ----
     month_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
     month_map = dict(zip(range(1, 13), month_labels))
     mes_mean = (
@@ -248,12 +250,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_month_mean.update_xaxes(title="Month")
     fig_month_mean.update_yaxes(title="Seasonal value")
     st.plotly_chart(fig_month_mean, use_container_width=True)
-
     st.markdown(
         "*Interpretation:* this summarizes the **typical monthly seasonality**. "
         "Use it to spot which months are usually stronger or weaker relative to the yearly baseline."
     )
 
+    # ---- Chart 4: Seasonal distribution by month (box plot) ----
     df_box = df_plot.assign(
         month_num=df_plot["date"].dt.month,
         month_lab=lambda d: d["month_num"].map(month_map)
@@ -266,12 +268,12 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_box.update_xaxes(title="Month")
     fig_box.update_yaxes(title="Seasonal value")
     st.plotly_chart(fig_box, use_container_width=True)
-
     st.markdown(
         "*Interpretation:* boxes show the **spread of seasonal values** for each month across years. "
         "Wider boxes or longer whiskers mean more variability; outliers capture unusual months."
     )
 
+    # ---- Chart 5: Year-over-year seasonality comparison (last 3–4 years) ----
     df_plot = df_plot.copy()
     df_plot["year"] = df_plot["date"].dt.year
     df_plot["iso_week"] = df_plot["date"].dt.isocalendar().week.astype(int)
@@ -288,7 +290,6 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_yoy.update_xaxes(title="ISO week", dtick=4)
     fig_yoy.update_yaxes(title="Seasonal value")
     st.plotly_chart(fig_yoy, use_container_width=True)
-
     st.markdown(
         "*Interpretation:* this compares **seasonal curves across recent years** on the same ISO-week axis. "
         "Look for alignment (stable seasonality) or divergences (shifts in timing or magnitude)."
