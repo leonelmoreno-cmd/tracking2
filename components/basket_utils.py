@@ -1,6 +1,6 @@
 import streamlit as st
 from typing import Dict
-from common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, list_repo_csvs
+from components.common import GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, _raw_url_for, list_repo_csvs
 
 def resolve_active_basket(default_basket: str) -> (str, str, Dict[str, str]):
     """
