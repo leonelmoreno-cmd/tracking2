@@ -6,6 +6,8 @@ import pandas as pd
 # -------------------------------
 # Overview chart (by brand)
 # -------------------------------
+st.write("DEBUG period:", period, type(period))
+
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
