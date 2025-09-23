@@ -1,13 +1,13 @@
 import streamlit as st
-from common import set_page_config, fetch_data, prepare_data
-from visualization import create_overview_graph, create_price_graph
-from best_sellers_section import render_best_sellers_section_with_table
-from highlights_section import render_highlights
-from overview_section import render_overview_section
-from detailed_table_section import render_detailed_table
-from basket_utils import resolve_active_basket  # <-- modularizado
-from basket_and_toggle_section import render_basket_and_toggle  # <-- nuevo componente
-import percentage_var
+from components.common import set_page_config, fetch_data, prepare_data
+from components.visualization import create_overview_graph, create_price_graph
+from components.best_sellers_section import render_best_sellers_section_with_table
+from components.highlights_section import render_highlights
+from components.overview_section import render_overview_section
+from components.detailed_table_section import render_detailed_table
+from components.basket_utils import resolve_active_basket  # <-- modularizado
+from components.basket_and_toggle_section import render_basket_and_toggle  # <-- nuevo componente
+import components.percentage_var
 
 # -------------------------------
 # Page config
