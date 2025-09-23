@@ -9,7 +9,6 @@ import pandas as pd
 import streamlit as st
 
 # --- Guard: urllib3<2 recomendado para pytrends 4.9.2 ---
-# (urllib3 eliminó Retry(method_whitelist) en v2; varias libs aún lo esperan)
 try:
     import urllib3
     from packaging import version
@@ -29,20 +28,19 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 
-# ---------- Plotly/Streamlit config (evita el warning de kwargs) ----------
+# ---------- Plotly config ----------
 PLOTLY_CONFIG = {
-    # Usa el dict 'config' de Plotly para opciones del modo/zoom/etc.
     "displaylogo": False,
     "scrollZoom": True,
     "modeBarButtonsToRemove": ["autoScale2d", "select2d", "lasso2d", "toImage"],
 }
+
 
 # ---------- UI + top matter ----------
 def _header():
     st.title("Demand Analysis")
     st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Insights")
 
-    # Keyword + dual actions
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
 
     col_req, col_csv = st.columns(2)
@@ -75,7 +73,6 @@ def fetch_trends(keyword: str) -> pd.DataFrame:
     if df.empty:
         return df
 
-    # Clean: drop last row and 'isPartial' per usual workflow
     if len(df) > 0:
         df = df.iloc[:-1]
     if "isPartial" in df.columns:
@@ -87,7 +84,6 @@ def fetch_trends(keyword: str) -> pd.DataFrame:
 
 
 def infer_period(dt_index: pd.DatetimeIndex) -> int:
-    """Infer STL seasonal period from the median sampling interval."""
     if len(dt_index) < 3:
         return 12
     deltas = np.diff(dt_index.values).astype("timedelta64[D]").astype(int)
@@ -101,7 +97,6 @@ def infer_period(dt_index: pd.DatetimeIndex) -> int:
 
 
 def build_figure(df_plot: pd.DataFrame, title_kw: str) -> go.Figure:
-    """Build 4-panel Plotly figure."""
     fig = make_subplots(
         rows=4, cols=1, shared_xaxes=True,
         subplot_titles=("Original", "Trend", "Seasonal", "Residual")
@@ -130,10 +125,6 @@ def _clean_keyword_label(raw: str) -> str:
 
 
 def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
-    """
-    Parse a Google Trends CSV (en or es).
-    Returns (df, series_label) where df has a DatetimeIndex and a single numeric column.
-    """
     text = file_bytes.decode("utf-8-sig", errors="replace")
     lines = [ln for ln in text.splitlines() if ln.strip() != ""]
     header_idx = -1
@@ -182,7 +173,6 @@ def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
 
 
 def run_stl_pipeline(df: pd.DataFrame, series_name: str):
-    """Shared STL + charts pipeline for both modes."""
     if df.empty:
         st.warning("No data available after parsing. Please verify the file or keyword.")
         st.stop()
@@ -212,7 +202,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
 
     # Main figure
     fig = build_figure(df_plot, series_name)
-    st.plotly_chart(fig, config=PLOTLY_CONFIG, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     st.markdown(
         "*How to read this:* the **Trend** shows the long-term direction, "
@@ -220,7 +210,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     )
 
     with st.expander("Show data (original/trend/seasonal/residual)"):
-        st.dataframe(df_plot, width="stretch")
+        st.dataframe(df_plot, use_container_width=True)
         st.download_button(
             "Download CSV",
             df_plot.to_csv(index=False).encode("utf-8"),
@@ -245,7 +235,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_week.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_week.update_xaxes(dtick=4, title="ISO week (1–53)")
     fig_week.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_week, config=PLOTLY_CONFIG, width="stretch")
+    st.plotly_chart(fig_week, use_container_width=True, config=PLOTLY_CONFIG)
 
     month_labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
     month_map = dict(zip(range(1, 13), month_labels))
@@ -262,7 +252,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_month_mean.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_month_mean.update_xaxes(title="Month")
     fig_month_mean.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_month_mean, config=PLOTLY_CONFIG, width="stretch")
+    st.plotly_chart(fig_month_mean, use_container_width=True, config=PLOTLY_CONFIG)
 
     df_box = df_plot.assign(
         month_num=df_plot["date"].dt.month,
@@ -275,7 +265,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_box.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_box.update_xaxes(title="Month")
     fig_box.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_box, config=PLOTLY_CONFIG, width="stretch")
+    st.plotly_chart(fig_box, use_container_width=True, config=PLOTLY_CONFIG)
 
     df_plot = df_plot.copy()
     df_plot["year"] = df_plot["date"].dt.year
@@ -292,7 +282,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_yoy.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_yoy.update_xaxes(title="ISO week", dtick=4)
     fig_yoy.update_yaxes(title="Seasonal value")
-    st.plotly_chart(fig_yoy, config=PLOTLY_CONFIG, width="stretch")
+    st.plotly_chart(fig_yoy, use_container_width=True, config=PLOTLY_CONFIG)
 
 
 def _run_request_mode(kw: str):
@@ -320,7 +310,7 @@ def _run_upload_mode(uploaded_file):
     run_stl_pipeline(df_csv, series_label)
 
 
-# ---------- Entry point for router ----------
+# ---------- Entry point ----------
 def main():
     kw, request_clicked, uploaded_file, upload_clicked = _header()
     if request_clicked:
