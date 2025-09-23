@@ -6,8 +6,6 @@ import streamlit as st
 # -------------------------------
 # Overview chart (by brand)
 # -------------------------------
-st.write("DEBUG period:", period, type(period))
-
 def create_overview_graph(
     df: pd.DataFrame,
     brands_to_plot=None,
@@ -23,7 +21,7 @@ def create_overview_graph(
         df = df[(df["week_number"] >= wk_min) & (df["week_number"] <= wk_max)]
 
     max_price = float(np.nanmax([df["product_price"].max(), df["product_original_price"].max()]))
-
+    st.write("DEBUG period:", period, type(period))
     group_key = "date" if period == "day" else "week_number"
     x_title = "Date" if period == "day" else "Week Number"
     title_label = "Daily" if period == "day" else "Weekly"
