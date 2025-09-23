@@ -28,7 +28,7 @@ def main():
         unsafe_allow_html=True
     )
 
-   df_overview, selected_brands, period = render_overview_section(prepared_df, period=None)
+    df_overview, selected_brands, period = render_overview_section(prepared_df, period=None)
     overview_fig = create_overview_graph(prepared_df, brands_to_plot=None, period=period)
     st.plotly_chart(overview_fig, use_container_width=True)
 
