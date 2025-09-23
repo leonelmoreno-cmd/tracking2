@@ -11,10 +11,10 @@ def main():
 
     pages = [
         st.Page(home_page, title="Home", icon="🏠", default=True),
-        st.Page(summary_page, title="Summary", icon="📈"),
-        st.Page(best_sellers_page, title="Best Sellers", icon="⭐"),
-        st.Page(detailed_table_page, title="Detailed Table", icon="📋"),
-        st.Page(settings_page, title="Settings", icon="⚙️"),
+        st.Page(summary_page, title="Summary", icon="📈", url_path="summary"),
+        st.Page(best_sellers_page, title="Best Sellers", icon="⭐", url_path="best-sellers"),
+        st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
+        st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
     nav = st.navigation(pages, position="sidebar")
