@@ -9,3 +9,5 @@ plotly>=4
 pandas
 numpy
 packaging
+urllib3<2
+pytrends
