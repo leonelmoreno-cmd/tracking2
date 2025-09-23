@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import pandas as pd
+from components.basket_and_toggle_section.py import render_basket_and_toggle
 import streamlit as st
 # -------------------------------
 # Overview chart (by brand)
