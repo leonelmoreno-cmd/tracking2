@@ -9,14 +9,13 @@ import pandas as pd
 import streamlit as st
 
 # --- Guard: urllib3<2 recommended for pytrends 4.9.2 ---
-# (urllib3 removed Retry(method_whitelist) in v2; many libs still expect it)
 try:
     import urllib3
     from packaging import version
     if version.parse(urllib3.__version__) >= version.parse("2.0.0"):
         st.error(
             "Incompatible urllib3 version detected "
-            f"({urllib3.__version__}). Please pin urllib3<2 in requirements.txt."
+            f"({urllib3.__version__}). Please pin urllib3<2 in your environment."
         )
         st.stop()
 except Exception:
@@ -28,28 +27,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-
 # ---------- UI + top matter ----------
 def _header():
     st.title("Demand Analysis")
     st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Insights")
 
-    # Keyword + dual actions
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
 
     col_req, col_csv = st.columns(2)
     request_clicked = col_req.button("Request")
     uploaded_file = col_csv.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
     upload_clicked = col_csv.button("Upload CSV")
-    return kw, request_clicked, uploaded_file, upload_clicked
 
+    return kw, request_clicked, uploaded_file, upload_clicked
 
 # ---------- Config ----------
 HL = "en-US"
 TZ = 360
 TIMEFRAME = "today 5-y"
 GEO = "US"
-
 
 # ---------- Helpers ----------
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -67,7 +63,7 @@ def fetch_trends(keyword: str) -> pd.DataFrame:
     if df.empty:
         return df
 
-    # Clean: drop last row and 'isPartial' per usual workflow
+    # Clean: drop last row and drop 'isPartial'
     if len(df) > 0:
         df = df.iloc[:-1]
     if "isPartial" in df.columns:
@@ -77,9 +73,8 @@ def fetch_trends(keyword: str) -> pd.DataFrame:
     df = df.sort_index()
     return df
 
-
 def infer_period(dt_index: pd.DatetimeIndex) -> int:
-    """Infer STL seasonal period from the median sampling interval."""
+    """Infer STL seasonal period from median sampling interval."""
     if len(dt_index) < 3:
         return 12
     deltas = np.diff(dt_index.values).astype("timedelta64[D]").astype(int)
@@ -91,9 +86,7 @@ def infer_period(dt_index: pd.DatetimeIndex) -> int:
     else:
         return 12
 
-
 def build_figure(df_plot: pd.DataFrame, title_kw: str) -> go.Figure:
-    """Build 4-panel Plotly figure."""
     fig = make_subplots(
         rows=4, cols=1, shared_xaxes=True,
         subplot_titles=("Original", "Trend", "Seasonal", "Residual")
@@ -107,12 +100,10 @@ def build_figure(df_plot: pd.DataFrame, title_kw: str) -> go.Figure:
     fig.update_layout(height=900, title_text=f"STL Decomposition — {title_kw} — Google Trends (US, last 5y)")
     return fig
 
-
 def _looks_like_header(cols: list[str]) -> bool:
     if not cols or len(cols) < 2:
         return False
     return cols[0].strip().lower() in {"week", "semana", "date", "fecha"}
-
 
 def _clean_keyword_label(raw: str) -> str:
     label = raw.strip()
@@ -120,12 +111,7 @@ def _clean_keyword_label(raw: str) -> str:
     label = re.sub(r":\s*\(", " (", label)
     return label
 
-
 def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
-    """
-    Parse a Google Trends CSV (en or es).
-    Returns (df, series_label) where df has a DatetimeIndex and a single numeric column.
-    """
     text = file_bytes.decode("utf-8-sig", errors="replace")
     lines = [ln for ln in text.splitlines() if ln.strip() != ""]
     header_idx = -1
@@ -140,19 +126,19 @@ def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
             break
 
     if header_idx == -1:
-        raise ValueError("Could not locate a header row (expected columns like Week/Semana/Date/Fecha).")
+        raise ValueError("Could not locate a header row (expected Week/Semana/Date).")
 
     content = "\n".join(lines[header_idx:])
     df_raw = pd.read_csv(io.StringIO(content), sep=None, engine="python")
 
     date_candidates = [c for c in df_raw.columns if c.strip().lower() in {"week", "semana", "date", "fecha"}]
     if not date_candidates:
-        raise ValueError("Date column not found (looking for Week/Semana/Date/Fecha).")
+        raise ValueError("Date column not found.")
     date_col = date_candidates[0]
 
     value_cols = [c for c in df_raw.columns if c != date_col]
     if not value_cols:
-        raise ValueError("Value column not found (expected a keyword column).")
+        raise ValueError("Value column not found.")
 
     chosen = None
     for col in value_cols:
@@ -172,19 +158,17 @@ def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
     df = df.dropna(subset=[series_label]).set_index("date")
     return df, series_label
 
-
 def run_stl_pipeline(df: pd.DataFrame, series_name: str):
-    """Shared STL + charts pipeline for both modes."""
     if df.empty:
-        st.warning("No data available after parsing. Please verify the file or keyword.")
+        st.warning("No data available.")
         st.stop()
     if series_name not in df.columns:
-        st.error(f"Column '{series_name}' not found in the dataset.")
+        st.error(f"Column '{series_name}' not in dataset.")
         st.stop()
 
     y = df[series_name].astype(float)
     if y.size < 10:
-        st.error("Not enough points for STL decomposition. Provide more history.")
+        st.error("Not enough data points for STL decomposition.")
         st.stop()
 
     period = infer_period(y.index)
@@ -202,16 +186,14 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
         "remainder": res.resid
     })
 
-    # Main figure
     fig = build_figure(df_plot, series_name)
     st.plotly_chart(fig, width="stretch")
 
     st.markdown(
-        "*How to read this:* the **Trend** shows the long-term direction, "
-        "**Seasonal** the recurring pattern, and **Residual** the short-term noise."
+        "*How to read this:* the **Trend** shows the long-term direction, **Seasonal** the recurring pattern, and **Residual** the short-term noise.*"
     )
 
-    with st.expander("Show data (original/trend/seasonal/residual)"):
+    with st.expander("Show data (original/trend/seasonal/remainder)"):
         st.dataframe(df_plot, width="stretch")
         st.download_button(
             "Download CSV",
@@ -220,7 +202,6 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
             mime="text/csv"
         )
 
-    # Extra analyses
     st.markdown("## Additional seasonal analyses")
 
     semana_mean = (
@@ -230,8 +211,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
                .sort_values("iso_week")
                .reset_index(drop=True)
     )
-    fig_week = px.line(semana_mean, x="iso_week", y="mean_seasonal",
-                       title="Average seasonal pattern by ISO week (1–53)")
+    fig_week = px.line(semana_mean, x="iso_week", y="mean_seasonal", title="Average seasonal pattern by ISO week (1–53)")
     fig_week.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_week.update_xaxes(dtick=4, title="ISO week (1–53)")
     fig_week.update_yaxes(title="Seasonal value")
@@ -245,8 +225,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
                .rename(columns={"seasonal": "mean_seasonal"})
     )
     mes_mean["month_lab"] = mes_mean["month_num"].map(month_map)
-    fig_month_mean = px.line(mes_mean, x="month_lab", y="mean_seasonal", markers=True,
-                             title="Average seasonal pattern by month")
+    fig_month_mean = px.line(mes_mean, x="month_lab", y="mean_seasonal", markers=True, title="Average seasonal pattern by month")
     fig_month_mean.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_month_mean.update_xaxes(title="Month")
     fig_month_mean.update_yaxes(title="Seasonal value")
@@ -256,8 +235,7 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
         month_num=df_plot["date"].dt.month,
         month_lab=lambda d: d["month_num"].map(month_map)
     )
-    fig_box = px.box(df_box, x="month_lab", y="seasonal",
-                     title="Seasonal distribution by month")
+    fig_box = px.box(df_box, x="month_lab", y="seasonal", title="Seasonal distribution by month")
     fig_box.add_hline(y=0, line_dash="dash", line_color="gray")
     fig_box.update_xaxes(title="Month")
     fig_box.update_yaxes(title="Seasonal value")
@@ -278,15 +256,13 @@ def run_stl_pipeline(df: pd.DataFrame, series_name: str):
     fig_yoy.update_yaxes(title="Seasonal value")
     st.plotly_chart(fig_yoy, width="stretch")
 
-
 def _run_request_mode(kw: str):
     if not kw.strip():
         st.error("Please enter a keyword to use Request mode.")
         st.stop()
-    with st.spinner("Fetching Google Trends…"):
-        df = fetch_trends(kw.strip())
+    df = fetch_trends(kw.strip())
     if df.empty:
-        st.warning("No data returned by Google Trends for this keyword/timeframe/geo.")
+        st.warning("No data returned from Google Trends.")
         st.stop()
     col_name = kw.strip()
     if col_name not in df.columns:
@@ -294,17 +270,14 @@ def _run_request_mode(kw: str):
         st.stop()
     run_stl_pipeline(df, col_name)
 
-
 def _run_upload_mode(uploaded_file):
     if uploaded_file is None:
-        st.error("Please choose a CSV file exported from Google Trends.")
+        st.error("Please upload a Google Trends CSV.")
         st.stop()
     file_bytes = uploaded_file.read()
     df_csv, series_label = parse_trends_csv(file_bytes)
     run_stl_pipeline(df_csv, series_label)
 
-
-# ---------- Entry point for router ----------
 def main():
     kw, request_clicked, uploaded_file, upload_clicked = _header()
     if request_clicked:
@@ -315,7 +288,7 @@ def main():
     st.markdown(
         """
         <small>
-        Data source: Google Trends via <code>pytrends</code> • Decomposition: <code>statsmodels.STL</code> • Charts: Plotly • Host: Streamlit Community Cloud
+        Data source: Google Trends via <code>pytrends</code> • Decomposition: <code>statsmodels.STL</code> • Charts: Plotly • Host: Streamlit
         </small>
         """,
         unsafe_allow_html=True
