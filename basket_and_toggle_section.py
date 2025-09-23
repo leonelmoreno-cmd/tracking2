@@ -63,7 +63,7 @@ def render_basket_and_toggle(
     with col3:
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
         aggregate_daily = st.toggle(
-            "Aggregate by day (instead of week)",
+            "By day",
             value=False,
             help="When ON, all charts use daily prices; when OFF, weekly averages.",
         )
