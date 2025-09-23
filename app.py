@@ -6,14 +6,9 @@ from pages.detailed_table import main as detailed_table_page
 from pages.settings import main as settings_page
 
 def main():
-    # Optional: configuration common to all pages
+    # Overall page configuration
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
 
-    # Global widgets / sidebar items (shared across pages)
-    # Example: global basket selection or period filter could go here
-    # But your existing logic for basket & toggle maybe stays in pages
-
-    # Define pages using st.Page
     pages = [
         st.Page(home_page, title="Home", icon="🏠", default=True),
         st.Page(summary_page, title="Summary", icon="📈"),
@@ -22,9 +17,8 @@ def main():
         st.Page(settings_page, title="Settings", icon="⚙️"),
     ]
 
-    # Create navigation menu
-    pg = st.navigation(pages, position="sidebar")
-    pg.run()
+    nav = st.navigation(pages, position="sidebar")
+    nav.run()
 
 if __name__ == "__main__":
     main()
