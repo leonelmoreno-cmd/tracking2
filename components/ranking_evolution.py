@@ -55,7 +55,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[f"ASIN {a}" for a in asins],
-        vertical_spacing=0.12,
+        vertical_spacing=0.16,
         horizontal_spacing=0.08,
     )
 
