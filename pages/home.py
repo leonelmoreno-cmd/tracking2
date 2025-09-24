@@ -14,7 +14,7 @@ def main():
 
     # 🔹 Cargar datos y preparar para obtener la última fecha de actualización
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
     last_update = prepared_df["date"].max()
     last_update_str = (
         last_update.strftime("%Y-%m-%d")
