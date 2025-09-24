@@ -7,6 +7,7 @@ from pages.detailed_table import main as detailed_table_page
 from pages.settings import main as settings_page
 from pages.traffic import main as traffic_page   
 from pages.evolution import main as evolution
+from pages.sales import main as sales
 
 def main():
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
