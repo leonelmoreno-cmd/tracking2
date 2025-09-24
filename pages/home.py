@@ -32,5 +32,4 @@ def main():
     overview_fig = create_overview_graph(prepared_df, brands_to_plot=None, period=period)
     st.plotly_chart(overview_fig, use_container_width=True)
 
-    percentage_var_main(prepared_df)
 
