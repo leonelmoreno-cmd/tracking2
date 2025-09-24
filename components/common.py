@@ -22,11 +22,11 @@ def set_page_config():
         layout="wide",
     )
     # 👇 Logo global en todas las páginas
-    st.logo(
+ st.sidebar.image(
     "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/assets/logo.png",
-    size="large",
-    link="https://github.com/leonelmoreno-cmd/tracking2"
+    use_container_width=True
 )
+
 
 # -------------------------------
 # Fetch CSV data
