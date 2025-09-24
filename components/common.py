@@ -117,14 +117,3 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     ]
     csvs.sort(key=lambda x: x["name"])
     return csvs
-
-def compute_highlights(*args, **kwargs):
-    # Compat: moveremos a highlights_section; elimina esto cuando limpies imports en todo el repo
-    from components.highlights_section import compute_highlights as _new
-    import warnings
-    warnings.warn(
-        "compute_highlights se movió a components.highlights_section",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return _new(*args, **kwargs)
