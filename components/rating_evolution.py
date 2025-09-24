@@ -96,15 +96,6 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         y_max=y_max,
         period=period,
     )
-
-    # Anotar puntos máximos en cada subplot
-    # Para esto _annotate_max_per_subplot espera row_map que mapea asin → fila.
-    # Pero ahora row_map apunta a tupla (fila, col). Modifiquemos ligeramente:
-    row_map_for_annot = {asin: pos[0] for asin, pos in row_map.items()}
-    _annotate_max_per_subplot(
-        fig, dfp, ycol="product_star_rating", row_map=row_map_for_annot
-    )
-
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Show rating table"):
