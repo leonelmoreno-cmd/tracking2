@@ -23,7 +23,7 @@ def set_page_config():
     )
     # Logo usando URL raw para evitar problemas de ruta local
     st.logo(
-        "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/assets/logo2.png",
+        "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/assets/logo.png",
         size="large",
         link="https://github.com/leonelmoreno-cmd/tracking2"
     )
