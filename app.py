@@ -15,7 +15,7 @@ def main():
         st.Page(home_page, title="Overview", icon="📊", default=True),
         st.Page(summary_page, title="Breakdown by ASIN", icon="📈", url_path="summary"),
         st.Page(evolution, title="Evolution", icon="🔍", url_path="evolution"),
-        st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales")
+        st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
         st.Page(best_sellers_page, title="Best Sellers Rank", icon="⭐", url_path="best-sellers"),
         st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
