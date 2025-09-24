@@ -10,7 +10,7 @@ from components.personalize_sidebar.py import inject_sidebar_nav_css
 def main():
     # Configuración de página
     set_page_config()
-    inject_sidebar_nav_css(font_px=18)
+    inject_sidebar_nav_css(font_px=38)
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
