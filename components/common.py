@@ -21,7 +21,12 @@ def set_page_config():
         page_icon=":chart_with_upwards_trend:",
         layout="wide",
     )
-
+     st.logo(
+        "assets/logo.png",
+        size="large",
+        link="https://github.com/leonelmoreno-cmd/tracking2",
+        icon_image=None
+    )
 # -------------------------------
 # Fetch CSV data
 # -------------------------------
