@@ -4,7 +4,6 @@ from components.basket_utils import resolve_active_basket
 from components.basket_and_toggle_section import render_basket_and_toggle
 from components.visualization import create_overview_graph
 from components.overview_section import render_overview_section
-from components.percentage_var import main as percentage_var_main
 
 def main():
     # Page-specific config if needed
