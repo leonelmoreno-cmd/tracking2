@@ -24,4 +24,3 @@ def main():
         st.warning("No data available. Load data first.")
     else:
         filtered_df = render_detailed_table(prepared_df)
-        st.dataframe(filtered_df)
