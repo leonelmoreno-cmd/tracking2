@@ -45,8 +45,3 @@ def main():
 
     # Mostrar gráfico de barras
     st.bar_chart(sales_data.set_index("brand")["total_sales"])
-
-
-if __name__ == "__main__":
-    main()
-
