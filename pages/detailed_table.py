@@ -3,7 +3,6 @@ from components.common import set_page_config, fetch_data, prepare_data
 from components.basket_utils import resolve_active_basket
 from components.basket_and_toggle_section import render_basket_and_toggle
 from components.detailed_table_section import render_detailed_table
-from components.percentage_var import main as percentage_var_main
 def main():
     set_page_config()
 
