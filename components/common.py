@@ -21,14 +21,12 @@ def set_page_config():
         page_icon=":chart_with_upwards_trend:",
         layout="wide",
     )
-    # 👇 Logo global en todas las páginas
-  st.logo(
+    # Logo usando URL raw para evitar problemas de ruta local
+    st.logo(
         "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/assets/logo.png",
         size="large",
         link="https://github.com/leonelmoreno-cmd/tracking2"
     )
-
-
 # -------------------------------
 # Fetch CSV data
 # -------------------------------
