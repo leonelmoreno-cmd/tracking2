@@ -82,11 +82,6 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         period=period,
     )
 
-    # annotate max % change per subplot
-    _annotate_max_per_subplot(
-        fig, dfp, ycol="price_change", row_map=row_map, unit_suffix="%"
-    )
-
     st.plotly_chart(fig, use_container_width=True)
 
     # Collapsed table
