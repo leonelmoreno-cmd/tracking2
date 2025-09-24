@@ -12,6 +12,12 @@ def main():
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
+      # ✅ 1) Toggle antes de cargar datos
+    period, active_basket_name = render_basket_and_toggle(
+        name_to_url, active_basket_name, DEFAULT_BASKET
+    )
+    active_url = name_to_url.get(active_basket_name, active_url)
+    
     df = fetch_data(active_url)
     prepared_df = prepare_data(df)
     last_update = prepared_df["date"].max()
