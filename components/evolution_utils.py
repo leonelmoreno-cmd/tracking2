@@ -94,7 +94,8 @@ def _common_layout(fig: go.Figure, nrows: int, title: str, y_title: str,
         hovermode="x unified",
         showlegend=False,
     )
-    fig.update_xaxes(title_text="Week" if period.lower() == "week" else "Date")
+    fig.update_xaxes(title_text="Week" if period.lower() == "week" else "Date",showticklabels=True)
+    
     fig.update_yaxes(title_text=y_title, range=[y_min, y_max], autorange=False)
     if reverse_y:
         fig.update_yaxes(autorange="reversed")
