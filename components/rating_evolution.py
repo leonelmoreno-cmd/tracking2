@@ -15,7 +15,8 @@ from components.evolution_utils import (
 
 def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") -> None:
     """
-    Version con subplots en cuadrícula (hasta 3 columnas) para evolución de ratings por ASIN.
+    Versión con subplots en cuadrícula (hasta 3 columnas) para evolución de ratings por ASIN.
+    Cada título de subplot muestra 'brand - asin'.
     """
     dfp = _aggregate_by_period(df, period)
     # Filtrar solo las filas con rating no nulo
@@ -38,21 +39,19 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     y_min = 0.0
 
     discount_map = _has_discount_by_asin(dfp)
-        # Crear la figura con subplots en cuadrícula
-fig = make_subplots(
-    rows=rows,
-    cols=cols,
-    shared_xaxes=True,
-    subplot_titles=[
-        f"{dfp[dfp['asin']==asin]['brand'].iloc[0]} - {asin}"
-        if "brand" in dfp.columns and not dfp[dfp['asin']==asin]['brand'].empty
-        else f"ASIN {asin}"
-        for asin in asins
-    ],
-    vertical_spacing=0.16,
-    horizontal_spacing=0.08,
-)
 
+    # Crear la figura con subplots en cuadrícula
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[
+            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" if 'brand' in dfp.columns else f"ASIN {asin}"
+            for asin in asins
+        ],
+        vertical_spacing=0.16,
+        horizontal_spacing=0.08,
+    )
 
     # Mapa asin → (fila, columna)
     row_map = {}
@@ -86,15 +85,15 @@ fig = make_subplots(
                 marker=dict(size=5),
                 hovertemplate=hover_tmpl,
                 customdata=customdata,
-                name=f"ASIN {asin}",
+                name=f"{g['brand'].iloc[0]} - {asin}" if "brand" in g.columns else f"ASIN {asin}",
             ),
             row=r, col=c
         )
 
-    # Aplica diseño común — pero ojo: aquí “nrows” ahora = rows * cols? O usar rows
+    # Aplica diseño común
     _common_layout(
         fig,
-        nrows=rows,  # usar número de filas visuales
+        nrows=rows,  # número de filas visuales
         title="Rating Evolution (by ASIN)",
         y_title="Product Star Rating",
         y_min=y_min,
