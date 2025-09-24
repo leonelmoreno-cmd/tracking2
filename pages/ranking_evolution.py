@@ -1,35 +1,132 @@
-# pages/ranking_evolution.py
-
 import streamlit as st
-from components.common import set_page_config, fetch_data, prepare_data
-from components.basket_utils import resolve_active_basket
-from components.basket_and_toggle_section import render_basket_and_toggle
-from components.ranking_evolution import plot_ranking_evolution_by_asin
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
+from components.evolution_utils import (
+    _aggregate_by_period,
+    _has_discount_by_asin,
+    _common_layout,
+    _dash_for_asin,
+)
 
-def main():
-    set_page_config()
+# ------------------------------------------------------------
+# Ranking Evolution — per ASIN subplots (grid layout)
+# ------------------------------------------------------------
 
-    # Default CSV
-    DEFAULT_BASKET = "synthethic3.csv"
-    active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
+def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> None:
+    """
+    Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
+    - Rank per date/week across products (1 = best rating).
+    - Subplots arranged in a grid (max 3 cols).
+    - X: day or ISO week (period-aware).
+    - Y: rank over time (1 = best, up to total number of ASINs).
+    - Line style: dotted if product was ever discounted.
+    - Hover: ASIN, Rank, Date/Week, plus Rating and Price % change.
+    """
+    dfp = _aggregate_by_period(df, period)
 
-    # Allow basket toggle + daily/weekly toggle
-    period, active_basket_name = render_basket_and_toggle(
-        name_to_url, active_basket_name, DEFAULT_BASKET
+    # compute rank per period across ASINs based on rating (descending → 1 is best)
+    dfp["rank"] = (
+        dfp.groupby("x")["product_star_rating"]
+           .rank(method="first", ascending=False)
     )
-    active_url = name_to_url.get(active_basket_name, active_url)
 
-    # Load + prepare data
-    df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    asins = sorted(dfp["asin"].unique().tolist())
+    n = len(asins)
+    if n == 0:
+        st.info("No ranking data to display.")
+        return
 
-    st.header("Ranking Evolution (by ASIN)")
-    if prepared_df is None or prepared_df.empty:
-        st.warning("No data available. Load data first.")
-    else:
-        plot_ranking_evolution_by_asin(prepared_df, period=period)
+    # y-axis: 1 = best, up to total number of ASINs
+    y_min = 1
+    y_max = max(1, len(asins))
 
+    discount_map = _has_discount_by_asin(dfp)
 
-if __name__ == "__main__":
-    main()
+    # --- grid layout ---
+    max_cols = 3
+    cols = min(max_cols, n)
+    rows = int(np.ceil(n / cols))
+
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[f"ASIN {a}" for a in asins],
+        vertical_spacing=0.12,
+        horizontal_spacing=0.08,
+    )
+
+    # map asin → (row, col)
+    pos_map = {}
+    for i, asin in enumerate(asins):
+        r = i // cols + 1
+        c = i % cols + 1
+        pos_map[asin] = (r, c)
+
+    period_label = "Week" if period.lower() == "week" else "Date"
+    hover_template = (
+        "<b>ASIN</b>: %{customdata[0]}"
+        "<br><b>Rank</b>: %{y:.0f}"
+        f"<br><b>{period_label}</b>: %{{customdata[1]}}"
+        "<br><b>Rating</b>: %{customdata[2]:.2f}"
+        "<br><b>Price % change</b>: %{customdata[3]:.2f}%"
+        "<extra></extra>"
+    )
+
+    for asin in asins:
+        g = dfp[dfp["asin"] == asin].sort_values("x")
+        if g.empty:
+            continue
+
+        # customdata: [asin, xlabel, rating, price_change]
+        customdata = pd.DataFrame({
+            "asin": g["asin"].astype(str),
+            "xlabel": g["xlabel"].astype(str),
+            "rating": g["product_star_rating"].astype(float),
+            "pct_price": g["price_change"].astype(float),
+        }).to_numpy()
+
+        r, c = pos_map[asin]
+
+        fig.add_trace(
+            go.Scatter(
+                x=g["x"],
+                y=g["rank"],
+                mode="lines+markers",
+                line=dict(dash=_dash_for_asin(asin, discount_map), width=2),
+                marker=dict(size=5),
+                hovertemplate=hover_template,
+                customdata=customdata,
+                name=f"ASIN {asin}",
+            ),
+            row=r, col=c
+        )
+
+    # aplicar diseño común (ajusta con nº de filas reales)
+    _common_layout(
+        fig,
+        nrows=rows,
+        title="Ranking Evolution (by ASIN)",
+        y_title="Rank (1 = best)",
+        y_min=y_min,
+        y_max=y_max,
+        period=period,
+        reverse_y=True,  # so that 1 (best) appears at the top
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # collapsed table
+    with st.expander("Show ranking table"):
+        tbl = (
+            dfp.pivot_table(
+                index="xlabel",
+                columns="asin",
+                values="rank",
+                aggfunc="mean"
+            ).sort_index()
+        )
+        st.dataframe(tbl)
