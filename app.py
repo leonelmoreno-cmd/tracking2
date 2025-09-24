@@ -26,7 +26,7 @@ def main():
         st.Page(ranking_evolution_page, title="Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
         # Other existing pages
         st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
-        st.Page(best_sellers_page, title="Best Sellers Rank", icon="⭐", url_path="best-sellers"),
+        st.Page(best_sellers_page, title="Best Sellers Rank", icon="🥇", url_path="best-sellers"),
         st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
