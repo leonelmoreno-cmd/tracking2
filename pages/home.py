@@ -22,7 +22,7 @@ def main():
         f"""
         <div style="text-align:center;">
             <h1 style="font-size: 36px; margin-bottom:-15px;">Competitor Price Monitoring</h1>
-            <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Team</h6>
+            <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Moreno </h6>
         </div>
         """,
         unsafe_allow_html=True
@@ -34,4 +34,3 @@ def main():
 
     percentage_var_main(prepared_df)
 
-df_overview, selected_brands, period = render_overview_section(prepared_df, period)
