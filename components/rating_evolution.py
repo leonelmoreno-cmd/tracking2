@@ -46,7 +46,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[
-            f"{dfp[dfp['asin'] == asin]['brand_x'].iloc[0]} - {asin}" if 'brand_x' in dfp.columns else f"ASIN {asin}"
+            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" if 'brand' in dfp.columns else f"ASIN {asin}"
             for asin in asins
         ],
         vertical_spacing=0.16,
