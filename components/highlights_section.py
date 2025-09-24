@@ -1,14 +1,13 @@
 # highlights_section.py
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 def render_highlights(df_overview: pd.DataFrame, period: str = "week"):
     """
     Render the last period highlights as 3 columns of metrics.
     Should be called inside the right_col of your layout.
     """
-    from components.common import compute_highlights  # importamos aquí para modularidad
-
     st.markdown("### Last period highlights")
     highlights = compute_highlights(df_overview, period=period)
     label = highlights.get("label", "N/A")
