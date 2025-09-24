@@ -1,6 +1,5 @@
-# components/ranking_evolution.py
-
 import streamlit as st
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -13,18 +12,18 @@ from components.evolution_utils import (
 )
 
 # ------------------------------------------------------------
-# Ranking Evolution — per ASIN subplots
+# Ranking Evolution — per ASIN subplots (grid layout)
 # ------------------------------------------------------------
 
 def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
-    Creates an interactive subplot figure for ranking evolution by ASIN.
+    Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
     - Rank per date/week across products (1 = best rating).
-    - One row per ASIN, Y shows rank over time.
+    - Subplots arranged in a grid (max 3 cols).
     - X: day or ISO week (period-aware).
+    - Y: rank over time (1 = best, up to total number of ASINs).
     - Line style: dotted if product was ever discounted.
     - Hover: ASIN, Rank, Date/Week, plus Rating and Price % change.
-    - Annotation: best rank (lowest value) per subplot.
     """
     dfp = _aggregate_by_period(df, period)
 
@@ -45,12 +44,28 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     y_max = max(1, len(asins))
 
     discount_map = _has_discount_by_asin(dfp)
+
+    # --- grid layout ---
+    max_cols = 3
+    cols = min(max_cols, n)
+    rows = int(np.ceil(n / cols))
+
     fig = make_subplots(
-        rows=n, cols=1, shared_xaxes=True,
-        subplot_titles=[f"ASIN {a}" for a in asins]
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[f"ASIN {a}" for a in asins],
+        vertical_spacing=0.12,
+        horizontal_spacing=0.08,
     )
 
-    row_map = {a: i + 1 for i, a in enumerate(asins)}
+    # map asin → (row, col)
+    pos_map = {}
+    for i, asin in enumerate(asins):
+        r = i // cols + 1
+        c = i % cols + 1
+        pos_map[asin] = (r, c)
+
     period_label = "Week" if period.lower() == "week" else "Date"
     hover_template = (
         "<b>ASIN</b>: %{customdata[0]}"
@@ -63,6 +78,8 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
 
     for asin in asins:
         g = dfp[dfp["asin"] == asin].sort_values("x")
+        if g.empty:
+            continue
 
         # customdata: [asin, xlabel, rating, price_change]
         customdata = pd.DataFrame({
@@ -71,6 +88,8 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
             "rating": g["product_star_rating"].astype(float),
             "pct_price": g["price_change"].astype(float),
         }).to_numpy()
+
+        r, c = pos_map[asin]
 
         fig.add_trace(
             go.Scatter(
@@ -83,16 +102,19 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
                 customdata=customdata,
                 name=f"ASIN {asin}",
             ),
-            row=row_map[asin], col=1
+            row=r, col=c
         )
 
+    # aplicar diseño común (ajusta con nº de filas reales)
     _common_layout(
-        fig, n,
+        fig,
+        nrows=rows,
         title="Ranking Evolution (by ASIN)",
         y_title="Rank (1 = best)",
-        y_min=y_min, y_max=y_max,
+        y_min=y_min,
+        y_max=y_max,
         period=period,
-        reverse_y=True  # so that 1 (best) appears at the top
+        reverse_y=True,  # so that 1 (best) appears at the top
     )
 
     st.plotly_chart(fig, use_container_width=True)
