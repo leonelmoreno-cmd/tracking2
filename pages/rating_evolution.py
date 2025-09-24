@@ -29,6 +29,9 @@ def main():
         st.warning("No data available. Load data first.")
     else:
         plot_rating_evolution_by_asin_grid(prepared_df, period=period)
+    st.write("Basket activo:", active_basket_name)
+    st.write("Columnas en prepared_df:", prepared_df.columns.tolist())
+    st.write("Preview prepared_df:", prepared_df.head())
 
 
 if __name__ == "__main__":
