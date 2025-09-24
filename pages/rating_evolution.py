@@ -22,7 +22,7 @@ def main():
 
     # Load + prepare data
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     st.header("Rating Evolution (by ASIN)")
     if prepared_df is None or prepared_df.empty:
