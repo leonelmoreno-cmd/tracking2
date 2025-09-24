@@ -13,7 +13,7 @@ def main():
     active_url = name_to_url.get(active_basket_name, active_url)
 
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
     
     st.header("Detailed Product Table")
 
