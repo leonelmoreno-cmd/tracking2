@@ -51,7 +51,7 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[f"ASIN {a}" for a in asins],
-        vertical_spacing=0.12,
+        vertical_spacing=0.16,
         horizontal_spacing=0.08,
     )
 
