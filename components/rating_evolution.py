@@ -45,7 +45,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[f"ASIN {a}" for a in asins],
-        vertical_spacing=0.18,
+        vertical_spacing=0.22,
         horizontal_spacing=0.08,
     )
 
