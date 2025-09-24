@@ -96,6 +96,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         y_max=y_max,
         period=period,
     )
+    fig.update_yaxes(dtick=1)
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Show rating table"):
