@@ -24,6 +24,7 @@ def main():
     df = fetch_data(active_url)
     prepared_df = prepare_data(df, basket_name=active_basket_name)
     st.header("Rating Evolution (by ASIN)")
+    st.write("Aqui va", prepared_df.head())
     if prepared_df is None or prepared_df.empty:
         st.warning("No data available. Load data first.")
     else:
