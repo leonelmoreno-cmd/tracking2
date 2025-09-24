@@ -55,7 +55,7 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     """
     Prepare and clean data for analysis.
     Adds week number, discount label, price change,
-    and merges brand info from the main file + subcategory if available.
+    and merges brand info if available.
     Always returns a clean 'brand' column.
     """
     df = df.copy()
@@ -69,25 +69,14 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     )
     df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
 
-    # --- 🔑 Merge brand info ---
+    # --- 🔑 Merge brand info desde el archivo principal ---
     if basket_name:
         try:
-            # 1) Archivo principal (trae asin + brand)
             main_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{basket_name}"
             main_df = pd.read_csv(main_url, usecols=["asin", "brand"])
-            df = df.merge(main_df, on="asin", how="left", suffixes=("", "_drop"))
-            df = df[[c for c in df.columns if not c.endswith("_drop")]]
-
-            # 2) Archivo de subcategoría (si existe en el mapeo)
-            if basket_name in COMPETITOR_TO_SUBCATEGORY_MAP:
-                sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
-                sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
-                sub_df = pd.read_csv(sub_url)
-                df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_sub"))
-                df = df[[c for c in df.columns if not c.endswith("_sub")]]
-
+            df = df.merge(main_df, on="asin", how="left")
         except Exception as e:
-            print(f"⚠️ Error loading data for {basket_name}: {e}")
+            print(f"⚠️ Error cargando brand desde {basket_name}: {e}")
             df["brand"] = "Unknown"
     else:
         df["brand"] = "Unknown"
