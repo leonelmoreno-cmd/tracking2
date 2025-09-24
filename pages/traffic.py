@@ -38,10 +38,10 @@ def _header():
 
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
     col_left, _ = st.columns([1, 4])
-with col_left:
-    request_clicked = st.button("Request")
-    uploaded_file = st.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
-    upload_clicked = st.button("Upload CSV")
+    with col_left:
+        request_clicked = st.button("Request")
+        uploaded_file = st.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
+        upload_clicked = st.button("Upload CSV")
 
     return kw, request_clicked, uploaded_file, upload_clicked
 
