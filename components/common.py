@@ -23,11 +23,11 @@ def set_page_config():
     )
     # 👇 Logo global en todas las páginas
     st.logo(
-        "assets/logo.png",  # o usa la raw URL si lo despliegas sin assets locales
-        size="large",
-        link="https://github.com/leonelmoreno-cmd/tracking2",
-        icon_image=None
-    )
+    "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/assets/logo.png",
+    size="large",
+    link="https://github.com/leonelmoreno-cmd/tracking2"
+)
+
 # -------------------------------
 # Fetch CSV data
 # -------------------------------
