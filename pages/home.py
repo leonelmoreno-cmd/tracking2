@@ -33,3 +33,5 @@ def main():
     st.plotly_chart(overview_fig, use_container_width=True)
 
     percentage_var_main(prepared_df)
+
+df_overview, selected_brands, period = render_overview_section(prepared_df, period)
