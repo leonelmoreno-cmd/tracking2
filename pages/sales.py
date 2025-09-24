@@ -21,7 +21,7 @@ def main():
 
     # Cargar y preparar datos
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     st.header("Sales Overview")
 
