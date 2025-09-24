@@ -50,7 +50,11 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         rows=rows,
         cols=cols,
         shared_xaxes=True,
-        subplot_titles=[f"ASIN {a}" for a in asins],
+        subplot_titles=[
+            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" 
+            if "brand" in dfp.columns else f"ASIN {asin}"
+            for asin in asins
+        ],
         vertical_spacing=0.16,
         horizontal_spacing=0.08,
     )
