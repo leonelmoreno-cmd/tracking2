@@ -12,7 +12,7 @@ def main():
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     # Basket toggle
     period, active_basket_name = render_basket_and_toggle(name_to_url, active_basket_name, DEFAULT_BASKET)
