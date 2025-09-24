@@ -118,48 +118,13 @@ def list_repo_csvs(owner: str, repo: str, path: str, branch: str = "main") -> Li
     csvs.sort(key=lambda x: x["name"])
     return csvs
 
-# -------------------------------
-# Compute highlights
-# -------------------------------
-def compute_highlights(df: pd.DataFrame, period: str = "week") -> dict:
-    """
-    Compute highlights metrics for the last period.
-    Returns a dictionary with max/min discount, price, and price changes.
-    """
-    if df.empty:
-        return {"label": "N/A"}
-
-    if period == "week":
-        last_period = int(df["week_number"].max())
-        df_period = df[df["week_number"] == last_period].copy()
-        label = f"week {last_period}"
-    else:
-        last_day_ts = df["date"].max()
-        last_day = last_day_ts.date()
-        df_period = df[df["date"].dt.date == last_day].copy()
-        label = last_day.strftime("%Y-%m-%d")
-
-    df_period["discount_pct"] = np.where(
-        df_period["product_original_price"].notna() & (df_period["product_original_price"] != 0),
-        (df_period["product_original_price"] - df_period["product_price"]) / df_period["product_original_price"] * 100.0,
-        np.nan
+def compute_highlights(*args, **kwargs):
+    # Compat: moveremos a highlights_section; elimina esto cuando limpies imports en todo el repo
+    from components.highlights_section import compute_highlights as _new
+    import warnings
+    warnings.warn(
+        "compute_highlights se movió a components.highlights_section",
+        DeprecationWarning,
+        stacklevel=2,
     )
-
-    row_max_disc = df_period.loc[df_period["discount_pct"].idxmax()] if df_period["discount_pct"].notna().any() else None
-    row_min_disc = df_period.loc[df_period["discount_pct"].idxmin()] if df_period["discount_pct"].notna().any() else None
-    row_max_price = df_period.loc[df_period["product_price"].idxmax()] if not df_period["product_price"].isna().all() else None
-    row_min_price = df_period.loc[df_period["product_price"].idxmin()] if not df_period["product_price"].isna().all() else None
-
-    latest_by_brand = df_period.loc[df_period.groupby("brand")["date"].idxmax()] if not df_period.empty else pd.DataFrame()
-    row_max_change = latest_by_brand.loc[latest_by_brand["price_change"].idxmax()] if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any() else None
-    row_min_change = latest_by_brand.loc[latest_by_brand["price_change"].idxmin()] if not latest_by_brand.empty and latest_by_brand["price_change"].notna().any() else None
-
-    return {
-        "label": label,
-        "row_max_disc": row_max_disc,
-        "row_min_disc": row_min_disc,
-        "row_max_price": row_max_price,
-        "row_min_price": row_min_price,
-        "row_max_change": row_max_change,
-        "row_min_change": row_min_change
-    }
+    return _new(*args, **kwargs)
