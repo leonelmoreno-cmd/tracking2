@@ -19,7 +19,7 @@ def main():
 
     pages = [
         st.Page(home_page, title="Overview", icon="📊", default=True),
-        st.Page(summary_page, title="Breakdown by ASIN", icon="📈", url_path="summary"),
+        st.Page(summary_page, title="Pricing Breakdown by ASIN", icon="📈", url_path="summary"),
         # Modularized evolution pages
         st.Page(rating_evolution_page, title="Rating Evolution", icon="⭐", url_path="rating-evolution"),
         st.Page(price_variation_page, title="Price Variation", icon="💲", url_path="price-variation"),
