@@ -103,5 +103,5 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
 
     with st.expander("Top 10 Best-sellers Data"):
-    st.dataframe(df_top10, use_container_width=True)
+        st.dataframe(df_top10, use_container_width=True)
 
