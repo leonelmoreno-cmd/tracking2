@@ -34,7 +34,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     rows = int(np.ceil(n / cols))
 
     # límite global del eje Y
-    y_max = 5.0
+    y_max = 6.0
     y_min = 0.0
 
     discount_map = _has_discount_by_asin(dfp)
