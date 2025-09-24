@@ -16,6 +16,8 @@ def main():
     df = fetch_data(active_url)
     prepared_df = prepare_data(df)
 
+    percentage_var_main(prepared_df)
+    
     st.header("Detailed Product Table")
 
     if prepared_df is None or prepared_df.empty:
