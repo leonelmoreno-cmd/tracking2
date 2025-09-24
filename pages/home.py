@@ -5,12 +5,12 @@ from components.basket_utils import resolve_active_basket
 from components.basket_and_toggle_section import render_basket_and_toggle
 from components.visualization import create_overview_graph
 from components.overview_section import render_overview_section
-
+from components.personalize_sidebar.py import inject_sidebar_nav_css
 
 def main():
     # Configuración de página
     set_page_config()
-
+    inject_sidebar_nav_css(font_px=18)
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
