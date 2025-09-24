@@ -1,6 +1,6 @@
 import streamlit as st
 
-def inject_sidebar_nav_css(font_px: int = 18, row_gap_px: int = 6):
+def inject_sidebar_nav_css(font_px: int = 38, row_gap_px: int = 6):
     st.markdown(
         f"""
         <style>
