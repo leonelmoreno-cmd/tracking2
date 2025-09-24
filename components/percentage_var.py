@@ -33,6 +33,7 @@ def plot_rating_evolution(df: pd.DataFrame):
     st.plotly_chart(fig)
 
 def plot_price_variation(df: pd.DataFrame):
+    df = df.sort_values(["asin", "date"])
     df['price_change'] = df.groupby('asin')['product_price'].pct_change() * 100
     fig = go.Figure()
     for asin in df['asin'].unique():
