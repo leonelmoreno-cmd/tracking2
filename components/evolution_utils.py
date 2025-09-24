@@ -1,5 +1,3 @@
-# components/evolution_utils.py
-
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -38,6 +36,7 @@ def _aggregate_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
       - x (datetime): date or week start
       - xlabel (str): formatted label for hover
       - price_change, rating_change_pct
+      - brand (first value per asin)
     """
     base = _ensure_numeric(df)
     base = _iso_week_cols(base)
@@ -46,7 +45,8 @@ def _aggregate_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
         grp = base.groupby(["asin", "iso_year", "iso_week"], as_index=False).agg(
             product_price=("product_price", "mean"),
             product_star_rating=("product_star_rating", "mean"),
-            discount_any=("product_original_price", lambda s: pd.notna(s).any())
+            discount_any=("product_original_price", lambda s: pd.notna(s).any()),
+            brand=("brand", "first")   # 🔑 arrastramos la marca
         )
         grp["x"] = grp.apply(lambda r: _week_start(r["iso_year"], r["iso_week"]), axis=1)
         grp = grp.sort_values(["asin", "x"])
@@ -62,8 +62,10 @@ def _aggregate_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
     base["rating_change_pct"] = base.groupby("asin")["product_star_rating"].pct_change() * 100
     base["x"] = base["date"]
     base["xlabel"] = base["date"].dt.strftime("%Y-%m-%d")
+    # 🔑 aseguramos que la columna brand se conserve
+    if "brand" not in base.columns:
+        base["brand"] = "Unknown"
     return base
-
 
 # ------------------------------------------------------------
 # Plotting helpers
@@ -94,8 +96,7 @@ def _common_layout(fig: go.Figure, nrows: int, title: str, y_title: str,
         hovermode="x unified",
         showlegend=False,
     )
-    fig.update_xaxes(title_text="Week" if period.lower() == "week" else "Date",showticklabels=True)
-    
+    fig.update_xaxes(title_text="Week" if period.lower() == "week" else "Date", showticklabels=True)
     fig.update_yaxes(range=[y_min, y_max], autorange=False)
     if reverse_y:
         fig.update_yaxes(autorange="reversed")
