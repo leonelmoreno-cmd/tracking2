@@ -95,20 +95,6 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         reverse_y=True  # so that 1 (best) appears at the top
     )
 
-    # annotate "best" (min rank) per subplot
-    for asin, g in dfp.groupby("asin"):
-        if g["rank"].notna().any():
-            idx = g["rank"].idxmin()
-            x = g.loc[idx, "x"]
-            y = g.loc[idx, "rank"]
-            label = g.loc[idx, "xlabel"]
-            fig.add_annotation(
-                x=x, y=y, row=row_map[asin], col=1,
-                text=f"best: {int(y)}<br>{label}",
-                xanchor="left", yanchor="top",
-                showarrow=True, arrowhead=2, arrowsize=1, ax=20, ay=20
-            )
-
     st.plotly_chart(fig, use_container_width=True)
 
     # collapsed table
