@@ -12,7 +12,7 @@ from components.evolution_utils import (
 )
 
 # ------------------------------------------------------------
-# Ranking Evolution — per ASIN subplots (grid layout)
+# Ranking Evolution — per ASINs subplots (grid layout)
 # ------------------------------------------------------------
 
 def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> None:
