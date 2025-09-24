@@ -40,14 +40,17 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     discount_map = _has_discount_by_asin(dfp)
 
     # Crear la figura con subplots en cuadrícula
-    fig = make_subplots(
-        rows=rows,
-        cols=cols,
-        shared_xaxes=True,
-        subplot_titles=[f"ASIN {a}" for a in asins],
-        vertical_spacing=0.16,
-        horizontal_spacing=0.08,
-    )
+       fig = make_subplots(
+    rows=rows,
+    cols=cols,
+    shared_xaxes=True,
+    subplot_titles=[
+        f"{dfp[dfp['asin']==asin]['brand'].iloc[0]} - {asin}" for asin in asins
+    ],
+    vertical_spacing=0.16,
+    horizontal_spacing=0.08,
+)
+
 
     # Mapa asin → (fila, columna)
     row_map = {}
