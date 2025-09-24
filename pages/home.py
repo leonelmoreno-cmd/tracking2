@@ -6,14 +6,22 @@ from components.visualization import create_overview_graph
 from components.overview_section import render_overview_section
 
 def main():
-    # Page-specific config if needed
     set_page_config()
 
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
-    
+
+    # ✅ Toggle primero
+    period, active_basket_name = render_basket_and_toggle(
+        name_to_url, active_basket_name, DEFAULT_BASKET
+    )
+    active_url = name_to_url.get(active_basket_name, active_url)
+
+    # ✅ Luego carga datos
     df = fetch_data(active_url)
     prepared_df = prepare_data(df)
+
+    # Header con fecha de última actualización
     last_update = prepared_df["date"].max()
     last_update_str = last_update.strftime("%Y-%m-%d") if prepared_df["date"].notna().any() else "N/A"
 
@@ -26,8 +34,8 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    df_overview, selected_brands, period = render_overview_section(prepared_df, period=None)
-    overview_fig = create_overview_graph(prepared_df, brands_to_plot=None, period=period)
+
+    # ✅ Usar el periodo real y el DF filtrado
+    df_overview, selected_brands, period = render_overview_section(prepared_df, period=period)
+    overview_fig = create_overview_graph(df_overview, brands_to_plot=None, period=period)
     st.plotly_chart(overview_fig, use_container_width=True)
-
-
