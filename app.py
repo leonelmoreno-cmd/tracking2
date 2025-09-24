@@ -11,9 +11,9 @@ def main():
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
 
     pages = [
-        st.Page(home_page, title="Home", icon="🏠", default=True),
-        st.Page(summary_page, title="Summary", icon="📈", url_path="summary"),
-        st.Page(best_sellers_page, title="Best Sellers", icon="⭐", url_path="best-sellers"),
+        st.Page(home_page, title="Overview", icon="🏠", default=True),
+        st.Page(summary_page, title="Breakdown by ASIN", icon="📈", url_path="summary"),
+        st.Page(best_sellers_page, title="Best Sellers Rank", icon="⭐", url_path="best-sellers"),
         st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),  # <-- NEW
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
