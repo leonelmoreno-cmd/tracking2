@@ -37,10 +37,12 @@ def _header():
     st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Better decisions")
 
     kw = st.text_input("Keyword (required for Request mode)", value="", placeholder="e.g., rocket stove")
-    col_req, col_csv = st.columns(2)
-    request_clicked = col_req.button("Request")
-    uploaded_file = col_csv.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
-    upload_clicked = col_csv.button("Upload CSV")
+    col_left, _ = st.columns([1, 4])
+with col_left:
+    request_clicked = st.button("Request")
+    uploaded_file = st.file_uploader("Choose Google Trends CSV", type=["csv", "tsv"])
+    upload_clicked = st.button("Upload CSV")
+
     return kw, request_clicked, uploaded_file, upload_clicked
 
 
