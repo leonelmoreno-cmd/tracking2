@@ -55,7 +55,7 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     """
     Prepare and clean data for analysis.
     Adds week number, discount label, price change,
-    and merges brand info if available.
+    and merges brand info from the main file + subcategory if available.
     Always returns a clean 'brand' column.
     """
     df = df.copy()
@@ -70,17 +70,24 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
 
     # --- 🔑 Merge brand info ---
-    if basket_name and basket_name in COMPETITOR_TO_SUBCATEGORY_MAP:
-        sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
-        sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
+    if basket_name:
         try:
-            sub_df = pd.read_csv(sub_url, usecols=["asin", "brand"])
-            # merge evitando sufijos feos como brand_x
-            df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_drop"))
-            # eliminar columnas duplicadas con sufijo _drop
+            # 1) Archivo principal (trae asin + brand)
+            main_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{basket_name}"
+            main_df = pd.read_csv(main_url, usecols=["asin", "brand"])
+            df = df.merge(main_df, on="asin", how="left", suffixes=("", "_drop"))
             df = df[[c for c in df.columns if not c.endswith("_drop")]]
+
+            # 2) Archivo de subcategoría (si existe en el mapeo)
+            if basket_name in COMPETITOR_TO_SUBCATEGORY_MAP:
+                sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
+                sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
+                sub_df = pd.read_csv(sub_url)
+                df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_sub"))
+                df = df[[c for c in df.columns if not c.endswith("_sub")]]
+
         except Exception as e:
-            print(f"⚠️ Error loading subcategory file {sub_file}: {e}")
+            print(f"⚠️ Error loading data for {basket_name}: {e}")
             df["brand"] = "Unknown"
     else:
         df["brand"] = "Unknown"
