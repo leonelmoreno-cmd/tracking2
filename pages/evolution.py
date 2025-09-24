@@ -21,7 +21,7 @@ def main():
 
     # Cargar y preparar datos
     df = fetch_data(active_url)
-    prepared_df = prepare_data(df)
+    prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     # Mostrar la sección de evolución
     st.header("Evolution / Percentage Variation")
