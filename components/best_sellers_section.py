@@ -102,6 +102,6 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     best_sellers_fig = create_best_sellers_stacked_bar(df_top10)  # Create the stacked bar chart
     st.plotly_chart(best_sellers_fig, use_container_width=True)  # Display the chart in Streamlit
 
-    # Display the data table below the chart
-    st.subheader("Top 10 Best-sellers Data")
-    st.dataframe(df_top10)  # Show the table with the top 10 ASINs and their ranks
+    with st.expander("Top 10 Best-sellers Data"):
+    st.dataframe(df_top10, use_container_width=True)
+
