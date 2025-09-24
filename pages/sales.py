@@ -23,7 +23,7 @@ def main():
     df = fetch_data(active_url)
     prepared_df = prepare_data(df)
 
-    st.header("📈 Sales Overview")
+    st.header("Sales Overview")
 
     if prepared_df is None or prepared_df.empty:
         st.warning("No data available. Load data first.")
