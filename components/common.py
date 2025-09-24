@@ -56,6 +56,7 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     Prepare and clean data for analysis.
     Adds week number, discount label, price change,
     and merges brand info if available.
+    Always returns a clean 'brand' column.
     """
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -74,9 +75,10 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
         sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
         try:
             sub_df = pd.read_csv(sub_url, usecols=["asin", "brand"])
-            df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_dup"))
-            if "brand_dup" in df.columns:
-            df = df.drop(columns=["brand_dup"])
+            # merge evitando sufijos feos como brand_x
+            df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_drop"))
+            # eliminar columnas duplicadas con sufijo _drop
+            df = df[[c for c in df.columns if not c.endswith("_drop")]]
         except Exception as e:
             print(f"⚠️ Error loading subcategory file {sub_file}: {e}")
             df["brand"] = "Unknown"
