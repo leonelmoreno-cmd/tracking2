@@ -11,6 +11,16 @@ def main():
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
+    st.markdown(
+        f"""
+        <div style="text-align:center;">
+            <h1 style="font-size: 36px; margin-bottom:-15px;">Competitor Price Monitoring</h1>
+            <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Moreno </h6>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
     # 🔹 Agregar el bloque de toggle + selector (ANTES de cargar datos)
     period, active_basket_name = render_basket_and_toggle(
         name_to_url, active_basket_name, DEFAULT_BASKET
@@ -25,16 +35,6 @@ def main():
     # Cabecera con última actualización
     last_update = prepared_df["date"].max()
     last_update_str = last_update.strftime("%Y-%m-%d") if prepared_df["date"].notna().any() else "N/A"
-
-    st.markdown(
-        f"""
-        <div style="text-align:center;">
-            <h1 style="font-size: 36px; margin-bottom:-15px;">Competitor Price Monitoring</h1>
-            <h6 style="color:#666; font-weight:200; margin-top:0;">Last update: {last_update_str} - Developed by Leonel Moreno </h6>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
     # 🔹 Pasar el period seleccionado al overview (y usar el DF filtrado que devuelve)
     df_overview, selected_brands, period = render_overview_section(prepared_df, period=period)
