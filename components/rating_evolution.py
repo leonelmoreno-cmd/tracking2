@@ -19,6 +19,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     Cada título de subplot muestra 'brand - asin'.
     """
     dfp = _aggregate_by_period(df, period)
+
     # Filtrar solo las filas con rating no nulo
     dfp = dfp[dfp["product_star_rating"].notna()]
 
@@ -34,7 +35,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     cols = min(max_cols, n)
     rows = int(np.ceil(n / cols))
 
-    # límite global del eje Y
+    # límite global del eje Y (fijado de 0 a 5)
     y_max = 5.0
     y_min = 0.0
 
@@ -46,7 +47,8 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[
-            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" if 'brand' in dfp.columns else f"ASIN {asin}"
+            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" 
+            if "brand" in dfp.columns else f"ASIN {asin}"
             for asin in asins
         ],
         vertical_spacing=0.16,
@@ -60,14 +62,16 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         c = i % cols + 1
         row_map[asin] = (r, c)
 
+    # Hover template
     hover_tmpl = _hover_template("ASIN", "Rating", show_pct=True, period=period)
 
+    # Trazas por asin
     for asin in asins:
         g = dfp[dfp["asin"] == asin].sort_values("x")
         if g.empty:
             continue
 
-        # preparar customdata para hover
+        # customdata: asin, fecha/semana, % cambio
         customdata = pd.DataFrame({
             "asin": g["asin"].astype(str),
             "xlabel": g["xlabel"].astype(str),
@@ -93,16 +97,21 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     # Aplica diseño común
     _common_layout(
         fig,
-        nrows=rows,  # número de filas visuales
+        nrows=rows,
         title="Rating Evolution (by ASIN)",
         y_title="Product Star Rating",
         y_min=y_min,
         y_max=y_max,
         period=period,
     )
+
+    # ticks en Y de 1 en 1
     fig.update_yaxes(dtick=1)
+
+    # Render en Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
+    # Tabla colapsable
     with st.expander("Show rating table"):
         tbl = (
             dfp.pivot_table(
