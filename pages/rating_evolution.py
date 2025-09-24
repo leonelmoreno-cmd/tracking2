@@ -28,7 +28,7 @@ def main():
     if prepared_df is None or prepared_df.empty:
         st.warning("No data available. Load data first.")
     else:
-        plot_rating_evolution_by_asin(prepared_df, period=period)
+        plot_rating_evolution_by_asin_grid(prepared_df, period=period)
 
 
 if __name__ == "__main__":
