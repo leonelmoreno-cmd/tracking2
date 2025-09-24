@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 def prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.sort_values(["asin", "date"])
     df["week_number"] = df["date"].dt.isocalendar().week
     df = df.sort_values(by=["asin", "week_number"])
     df["discount"] = df.apply(
