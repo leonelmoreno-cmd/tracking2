@@ -18,12 +18,7 @@ from components.evolution_utils import (
 def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
-    - Rank per date/week across products (1 = best rating).
-    - Subplots arranged in a grid (max 3 cols).
-    - X: day or ISO week (period-aware).
-    - Y: rank over time (1 = best, up to total number of ASINs).
-    - Line style: dotted if product was ever discounted.
-    - Hover: ASIN, Rank, Date/Week, plus Rating and Price % change.
+    Each subplot title is clickable: 'brand - asin' links to product_url.
     """
     dfp = _aggregate_by_period(df, period)
 
@@ -55,8 +50,10 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[
-            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" 
-            if "brand" in dfp.columns else f"ASIN {asin}"
+            f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
+            f"style='color:#FFFBFE; text-decoration:none;'>{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}</a>"
+            if "brand" in dfp.columns and "product_url" in df.columns
+            else f"ASIN {asin}"
             for asin in asins
         ],
         vertical_spacing=0.16,
@@ -104,7 +101,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
                 marker=dict(size=5),
                 hovertemplate=hover_template,
                 customdata=customdata,
-                name=f"ASIN {asin}",
+                name=f"{g['brand'].iloc[0]} - {asin}" if "brand" in g.columns else f"ASIN {asin}",
             ),
             row=r, col=c
         )
