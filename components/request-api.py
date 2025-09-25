@@ -179,13 +179,13 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "sales_volume": None,   # se deja tal cual venga
                 "discount": None,
                 "brand": None,
-                "product_url": None,
-                "product_photo": None,  # <-- NUEVO
+                "product_url": None,  # <-- NUEVO
                 "date": today,
                 "week": week_num,
                 "unit_price": "N/A",
                 "sub_category_name": "Not Available",
                 "rank": "Not Available",
+                "product_photo": None
             })
             continue
 
@@ -227,12 +227,12 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "discount": discount,
             "brand": brand,
             "product_url": product_url,
-            "product_photo": photo_url,  # <-- NUEVO
             "date": today,
             "week": week_num,
             "unit_price": unit_price,
             "sub_category_name": sub_category_name,
             "rank": rank,
+            "product_photo": photo_url,  # <-- NUEVO
         })
 
     return rows
