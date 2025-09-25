@@ -19,6 +19,7 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
     Cada título de subplot muestra 'brand - asin'.
     """
     dfp = _aggregate_by_period(df, period)
+    st.write("Columnas disponibles en prepared_df:", dfp.columns.tolist())
 
     # Filtrar solo las filas con rating no nulo
     dfp = dfp[dfp["product_star_rating"].notna()]
