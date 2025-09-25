@@ -2,6 +2,7 @@
 import re
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from components.common import (
     GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH,
     _raw_url_for, fetch_data
@@ -37,26 +38,22 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     """
     Remove duplicate ASINs and return the top 10 by ascending 'rank' (1 = best).
     """
-    # Keep one row per ASIN (latest-day snapshot)
     df_cleaned = df_latest.drop_duplicates(subset=["asin"], keep="first")
-    # Top 10 by smallest rank
     df_top = df_cleaned.sort_values("rank", ascending=True).head(10).reset_index(drop=True)
     return df_top
 
 # -------------------------------
-# Small helper to sanitize photo URLs (e.g., trailing "jpgm")
+# Small helper to sanitize photo URLs
 # -------------------------------
 def _fix_photo_url(url: str) -> str:
     if not isinstance(url, str):
         return ""
-    # common typo: ".jpgm" -> ".jpg"
     url = re.sub(r"(\.jpg)m($|\b)", r"\1", url, flags=re.IGNORECASE)
-    # Also handle ".pngm" -> ".png" (por si acaso)
     url = re.sub(r"(\.png)m($|\b)", r"\1", url, flags=re.IGNORECASE)
     return url
 
 # -------------------------------
-# Step 4/5: Render section with st.bar_chart + image selection
+# Step 4/5: Render section with horizontal bar chart + image selection
 # -------------------------------
 def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")
@@ -84,22 +81,31 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")
 
-    # Chart data for st.bar_chart (vertical bars)
-    # Index -> ASIN, single column -> rank
-    chart_df = (
-        df_top10.loc[:, ["asin", "rank"]]
-                .set_index("asin")
-                .sort_values("rank", ascending=True)
-    )
+    # Prepare chart data with "score" to invert rank (Rank 1 = largest bar)
+    df_chart = df_top10.copy()
+    df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
-    # Layout: chart left, selection + image right (en pantallas angostas cae abajo)
+    # Layout: chart left, selection + image right
     c1, c2 = st.columns([2, 1], gap="large")
 
     with c1:
-        st.markdown("**Top 10 by rank** (lower bar = better rank)")
-        st.bar_chart(chart_df, use_container_width=True)
+        st.markdown("**Top 10 by rank** (Rank 1 = longest bar)")
+        fig = px.bar(
+            df_chart,
+            y="asin", x="score",
+            orientation="h",
+            text="rank",
+            title="Top 10 Best-sellers",
+            labels={"asin": "ASIN", "score": "Relative size (inverted rank)", "rank": "Rank"},
+        )
+        fig.update_yaxes(
+            categoryorder="array",
+            categoryarray=df_chart.sort_values("rank")["asin"].tolist()
+        )
+        fig.update_traces(textposition="outside")
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Build selection list (ASIN → label "Brand — ASIN" if available)
+    # Selection + product image
     asin_to_label = {}
     for _, row in df_top10.iterrows():
         brand = row.get("brand", "")
@@ -117,10 +123,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             index=list(asin_to_label.keys()).index(default_asin)
             if default_asin in asin_to_label else 0
         )
-        # Reverse-lookup to get ASIN from label
         selected_asin = next(a for a, lbl in asin_to_label.items() if lbl == selected_label)
-
-        # Row for selected ASIN
         row_sel = df_top10[df_top10["asin"] == selected_asin].iloc[0]
 
         photo_url = _fix_photo_url(row_sel.get("product_photo", ""))
