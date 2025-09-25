@@ -89,7 +89,6 @@ def render_current_basket_gallery(df: pd.DataFrame, columns: int = 5) -> None:
                 if photo_url:
                     photo_url = _fix_photo_url(photo_url)  # Corregir la URL si tiene errores
                     st.image(photo_url, caption=None, width="stretch")
-                    st.write("Debug: photo_url", photo_url)
                 else:
                     st.write("📷 No image")
                     st.write("Debug con else: photo_url", photo_url)
