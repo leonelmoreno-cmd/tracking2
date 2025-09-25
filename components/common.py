@@ -63,7 +63,7 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     )
     df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
 
-    # --- Si ya tiene brand, usarlo directamente ---
+    # --- Si ya tiene brand, asumimos que ya trae metadata completa ---
     if "brand" in df.columns:
         print("✅ Brand column already in df, no merge needed.")
         return df
@@ -73,7 +73,15 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
         sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
         sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
         try:
-            sub_df = pd.read_csv(sub_url, usecols=["asin", "brand", "product_url","product_photo"])
+            sub_df = pd.read_csv(sub_url)
+            # Campos que nos interesan traer si existen en el sub-CSV
+            keep_cols = [
+                "asin", "brand", "product_url", "product_photo",
+                "product_title", "product_price", "product_star_rating",
+                "product_num_ratings", "rank"
+            ]
+            keep_cols = [c for c in keep_cols if c in sub_df.columns]
+            sub_df = sub_df[keep_cols]
             df = df.merge(sub_df, on="asin", how="left")
         except Exception as e:
             print(f"⚠️ Error loading subcategory file {sub_file}: {e}")
