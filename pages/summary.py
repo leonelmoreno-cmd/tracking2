@@ -5,6 +5,7 @@ from components.visualization import create_price_graph
 from components.overview_section import render_overview_section
 from components.basket_utils import resolve_active_basket
 from components.basket_and_toggle_section import render_basket_and_toggle
+from components.header import display_header  # Importa la función correctamente
 
 def main():
     set_page_config()
