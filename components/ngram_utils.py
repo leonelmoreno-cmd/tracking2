@@ -27,7 +27,7 @@ def _coerce_numeric(s: pd.Series) -> pd.Series:
     return pd.to_numeric(s, errors="coerce")
 
 def _normalize_text(s: pd.Series) -> pd.Series:
-    # lower, remove punctuation/digits, condense spaces
+    # Lowercase, remove punctuation/digits, condense spaces
     return (
         s.astype(str).str.lower()
          .str.replace(r"[^\w\s]", " ", regex=True)
@@ -57,23 +57,27 @@ def _row_ngrams(tokens: List[str], n_values: Tuple[int, ...]) -> List[str]:
 @st.cache_data(show_spinner=False)
 def build_ngram_table(
     df: pd.DataFrame,
-    asin: str,
+    asin: str = None,
     n_values: Tuple[int, ...] = (1, 2, 3),
     stopwords: set = DEFAULT_STOPWORDS,
     min_char_len: int = 2,
     exclude_contains: List[str] = None,
 ) -> pd.DataFrame:
     """
-    Devuelve una tabla agregada por ngram con métricas + KPIs.
-    Filtra el DF por ASIN dentro de 'Campaign Name' antes de tokenizar.
+    Build aggregated n-gram table with metrics and KPIs.
+    If an ASIN is provided, filter rows where 'Campaign Name' contains that ASIN.
     """
     if exclude_contains is None:
         exclude_contains = []
 
-    # --- 1) Filtrar filas del ASIN por 'Campaign Name'
+    # --- 1) Filter by ASIN in 'Campaign Name'
     if "Campaign Name" not in df.columns:
-        raise ValueError("Se requiere la columna 'Campaign Name' en el archivo subido.")
-    df_asin = df[df["Campaign Name"].astype(str).str.contains(asin, na=False)]
+        raise ValueError("The column 'Campaign Name' is required in the uploaded file.")
+
+    if asin is None:
+        df_asin = df.copy()
+    else:
+        df_asin = df[df["Campaign Name"].astype(str).str.contains(str(asin), na=False)]
 
     if df_asin.empty:
         return pd.DataFrame(columns=[
@@ -81,9 +85,7 @@ def build_ngram_table(
             "CTR","CVR","CPC","RPC","ACOS","n"
         ])
 
-    # --- 2) Normalizar columnas numéricas relevantes
-    # Columnas esperadas (compatibles con tu CSV)
-    # Spend y 7 Day Total Sales a veces vienen como "$"
+    # --- 2) Normalize numeric columns
     if "Spend" in df_asin.columns:
         df_asin["Spend"] = _clean_currency_series(df_asin["Spend"])
     if "7 Day Total Sales" in df_asin.columns:
@@ -93,14 +95,14 @@ def build_ngram_table(
         if col in df_asin.columns:
             df_asin[col] = _coerce_numeric(df_asin[col])
 
-    # --- 3) Texto: 'Customer Search Term'
+    # --- 3) Normalize 'Customer Search Term'
     if "Customer Search Term" not in df_asin.columns:
-        raise ValueError("Se requiere la columna 'Customer Search Term' en el archivo subido.")
+        raise ValueError("The column 'Customer Search Term' is required in the uploaded file.")
 
     df_asin["clean_search_term"] = _normalize_text(df_asin["Customer Search Term"])
     df_asin["tokens"] = df_asin["clean_search_term"].str.split()
 
-    # --- 4) Generar ngrams por fila y explotar
+    # --- 4) Generate ngrams
     allowed_n = tuple(sorted(set(int(n) for n in n_values if n in (1, 2, 3))))
     if not allowed_n:
         allowed_n = (1,)
@@ -110,7 +112,7 @@ def build_ngram_table(
     exploded = exploded.rename(columns={"ngram_list": "ngram"})
     exploded["n"] = exploded["ngram"].str.count(" ") + 1
 
-    # --- 5) Filtrar ngrams (stopwords, tamaño, excluir frases)
+    # --- 5) Filter ngrams
     def _valid_ng(ng: str) -> bool:
         if not isinstance(ng, str) or len(ng) < min_char_len:
             return False
@@ -128,7 +130,7 @@ def build_ngram_table(
             "CTR","CVR","CPC","RPC","ACOS","n"
         ])
 
-    # --- 6) Agregar métricas por ngram
+    # --- 6) Aggregate metrics
     grouped = exploded.groupby(["ngram", "n"], as_index=False).agg(
         Impressions=("Impressions", "sum"),
         Clicks=("Clicks", "sum"),
@@ -144,7 +146,7 @@ def build_ngram_table(
     grouped["RPC"] = np.where(grouped["Clicks"] > 0, grouped["Sales"] / grouped["Clicks"], 0.0)
     grouped["ACOS"] = np.where(grouped["Sales"] > 0, grouped["Spend"] / grouped["Sales"] * 100, np.nan)
 
-    # Orden útil por defecto
+    # Default sort
     grouped = grouped.sort_values(["Orders", "CVR", "RPC"], ascending=[False, False, False]).reset_index(drop=True)
     return grouped
 
