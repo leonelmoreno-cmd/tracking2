@@ -41,9 +41,6 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
 
     discount_map = _has_discount_by_asin(dfp)
 
-    st.write("Columnas en dfp:", dfp.columns.tolist())
-    st.write("Ejemplo brand/product_url:", dfp[["asin","brand","product_url"]].head())
-
        # Crear la figura con subplots en cuadrícula
     fig = make_subplots(
         rows=rows,
