@@ -9,7 +9,7 @@ from components.common import (
 )
 
 # -------------------------------
-# Step 1: Load subcategory data
+# Step 1: Load subcategory datas
 # -------------------------------
 def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
     """
