@@ -56,6 +56,4 @@ def main():
         df_overview, brands_to_plot=None, period=period
     )
     st.plotly_chart(overview_fig, use_container_width=True)
-    st.write(prepared_df.columns)
-    st.dataframe(prepared_df[["asin", "brand", "product_title", "product_photo"]].head())
     render_current_basket_gallery(prepared_df, columns=5)
