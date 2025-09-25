@@ -24,23 +24,21 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     # Handle missing values in price_change column
     df = df.dropna(subset=["price_change"])
 
-    # Filter data based on the selected period
-    if period == "day":
-        latest_date = df["date"].max()
-        df_latest = df[df["date"] == latest_date]
-    elif period == "week":
-        # Add a column for ISO week and year
-        df['iso_week'] = df['date'].dt.isocalendar().week
-        df['iso_year'] = df['date'].dt.isocalendar().year
-        latest_week = df['iso_week'].max()
-        df_latest = df[df['iso_week'] == latest_week]
-    else:
-        st.warning("Invalid period specified")
-        return
+    # Get the unique dates available in the data
+    available_dates = df['date'].unique()
+
+    # Display date selector
+    selected_date = st.date_input("Select a date for the price variation chart", value=pd.to_datetime(df["date"].max()).date(), min_value=min(available_dates).date(), max_value=max(available_dates).date())
+
+    # Filter the data based on the selected date
+    df_latest = df[df["date"] == selected_date]
 
     if df_latest.empty:
-        st.info("No data available for the selected period.")
+        st.info(f"No data available for the selected date: {selected_date}.")
         return
+
+    # Indicate the selected date
+    st.write(f"Showing data for: {selected_date}")
 
     # Create a list of ASINs and brands
     asin_with_brand = df_latest.apply(lambda row: f"{row['brand']} — {row['asin']}", axis=1)
