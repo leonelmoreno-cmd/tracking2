@@ -2,19 +2,16 @@
 import re
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 from components.common import (
     GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH,
     _raw_url_for, fetch_data
 )
 
 # -------------------------------
-# Step 1: Load subcategory datas
+# Step 1: Load subcategory data
 # -------------------------------
 def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
-    """
-    Load the sub-category CSV corresponding to the current basket.
-    """
     subcategory_url = _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
     df_sub = fetch_data(subcategory_url)
     df_sub["date"] = pd.to_datetime(df_sub["date"], errors="coerce")
@@ -24,9 +21,6 @@ def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
 # Step 2: Get latest date data
 # -------------------------------
 def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
-    """
-    Return only the rows corresponding to the latest date in the subcategory data.
-    """
     latest_date = df["date"].max()
     df_latest = df[df["date"] == latest_date].copy()
     return df_latest, latest_date
@@ -35,9 +29,6 @@ def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
 # Step 3: Remove duplicates and get top 10 best sellers
 # -------------------------------
 def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
-    """
-    Remove duplicate ASINs and return the top 10 by ascending 'rank' (1 = best).
-    """
     df_cleaned = df_latest.drop_duplicates(subset=["asin"], keep="first")
     df_top = df_cleaned.sort_values("rank", ascending=True).head(10).reset_index(drop=True)
     return df_top
@@ -59,7 +50,6 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")
     st.caption("Top 10 products based on the latest available date from the sub-category file.")
 
-    # Load and prepare
     df_sub = load_subcategory_data(active_basket_name)
     if df_sub.empty:
         st.info("No sub-category data found.")
@@ -81,7 +71,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")
 
-    # Prepare chart data with "score" to invert rank (Rank 1 = largest bar)
+    # Invert rank so Rank 1 has the largest bar
     df_chart = df_top10.copy()
     df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
@@ -90,19 +80,41 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     with c1:
         st.markdown("**Top 10 by rank** (Rank 1 = longest bar)")
-        fig = px.bar(
-            df_chart,
-            y="asin", x="score",
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            y=df_chart["asin"],
+            x=df_chart["score"],
             orientation="h",
-            text="rank",
-            title="Top 10 Best-sellers",
-            labels={"asin": "ASIN", "score": "Relative size (inverted rank)", "rank": "Rank"},
-        )
+            text=df_chart["rank"],
+            textposition="outside",
+            marker_color="orange",
+            customdata=df_chart[["product_title", "product_price", "product_star_rating", "product_num_ratings"]].values,
+            hovertemplate=(
+                "<b>ASIN:</b> %{y}<br>"
+                "<b>Rank:</b> %{text}<br>"
+                "<b>Title:</b> %{customdata[0]}<br>"
+                "<b>Price:</b> $%{customdata[1]:.2f}<br>"
+                "<b>Rating:</b> %{customdata[2]}<br>"
+                "<b>Reviews:</b> %{customdata[3]}<br>"
+                "<extra></extra>"
+            )
+        ))
+
+        # Order: Rank 1 at the top → sort y by ascending rank
         fig.update_yaxes(
             categoryorder="array",
             categoryarray=df_chart.sort_values("rank")["asin"].tolist()
         )
-        fig.update_traces(textposition="outside")
+        fig.update_layout(
+            title="Top 10 Best-sellers",
+            xaxis_title="Relative size (inverted rank)",
+            yaxis_title="ASIN",
+            margin=dict(l=80, r=20, t=50, b=50),
+            height=500
+        )
+
         st.plotly_chart(fig, use_container_width=True)
 
     # Selection + product image
