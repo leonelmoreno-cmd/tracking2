@@ -11,13 +11,14 @@ from components.evolution_utils import (
 )
 
 # ------------------------------------------------------------
-# Price % Variation — overall ASINs in one chart
+# Price % Variation — overall ASINs in one chart (Horizontal Bar Chart)
 # ------------------------------------------------------------
 
 def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     Creates an interactive figure for price percentage variation across all ASINs.
     The chart displays the ASINs in the y-axis and price percentage variation in the x-axis.
+    This uses a Horizontal Bar Chart for visualization.
     """
     # Aggregate data based on the selected period (day or week)
     dfp = _aggregate_by_period(df, period)
@@ -41,7 +42,7 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     # --- Prepare the data for plotting ---
     df_latest = df_latest.dropna(subset=["price_change"])  # Ensure we only plot rows with price changes
 
-    # Create a list of ASINs and brands
+    # Create a list of ASINs and brands for the y-axis labels
     asin_with_brand = df_latest.apply(lambda row: f"{row['brand']} — {row['asin']}", axis=1)
 
     # Create a horizontal bar chart for all ASINs
@@ -51,7 +52,7 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     fig.add_trace(go.Bar(
         y=asin_with_brand,  # y-axis: ASIN and brand
         x=df_latest["price_change"],  # x-axis: price change percentage
-        orientation="h",
+        orientation="h",  # Horizontal bar chart
         marker=dict(color=np.where(df_latest["price_change"] >= 0, "green", "red")),  # Green for positive, Red for negative
         hovertemplate=_hover_template("ASIN", "Price % change", show_pct=True, period=period),
     ))
@@ -62,13 +63,11 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         nrows=1,
         title=f"Price Percentage Variation (by ASIN) - {period.capitalize()}",
         y_title="ASIN — Brand",
+        x_title="Price Change (%)",
         y_min=-100,  # Ensure we show negative percentages clearly
         y_max=100,  # Ensure we show positive percentages clearly
         period=period,
     )
-
-    # Custom title for the x-axis
-    fig.update_xaxes(title_text="Price Change (%)")
 
     st.plotly_chart(fig, use_container_width=True)
 
