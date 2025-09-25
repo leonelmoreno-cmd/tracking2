@@ -62,11 +62,13 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         nrows=1,
         title=f"Price Percentage Variation (by ASIN) - {period.capitalize()}",
         y_title="ASIN — Brand",
-        x_title="Price Change (%)",
         y_min=-100,  # Ensure we show negative percentages clearly
         y_max=100,  # Ensure we show positive percentages clearly
         period=period,
     )
+
+    # Custom title for the x-axis
+    fig.update_xaxes(title_text="Price Change (%)")
 
     st.plotly_chart(fig, use_container_width=True)
 
