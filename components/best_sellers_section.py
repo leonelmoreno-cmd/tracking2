@@ -1,5 +1,4 @@
 # components/best_sellers_section.py
-import re
 import streamlit as st
 import pandas as pd
 from components.common import (
@@ -14,7 +13,9 @@ def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
     """
     Load the sub-category CSV corresponding to the current basket.
     """
-    subcategory_url = _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
+    subcategory_url = _raw_url_for(
+        GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name
+    )
     df_sub = fetch_data(subcategory_url)
     df_sub["date"] = pd.to_datetime(df_sub["date"], errors="coerce")
     return df_sub
@@ -31,117 +32,120 @@ def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
     return df_latest, latest_date
 
 # -------------------------------
-# Step 3: Remove duplicates and get top 10 best sellers
+# Step 3: Top 10 best sellers
 # -------------------------------
 def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     """
-    Remove duplicate ASINs and return the top 10 by ascending 'rank' (1 = best).
+    Remove duplicate ASINs and return the top 10 best-selling products based on 'rank'.
     """
-    # Keep one row per ASIN (latest-day snapshot)
     df_cleaned = df_latest.drop_duplicates(subset=["asin"], keep="first")
-    # Top 10 by smallest rank
-    df_top = df_cleaned.sort_values("rank", ascending=True).head(10).reset_index(drop=True)
+    df_top = df_cleaned.sort_values("rank", ascending=True).head(10).copy()
     return df_top
 
 # -------------------------------
-# Small helper to sanitize photo URLs (e.g., trailing "jpgm")
+# Small helper to fix photo URLs
 # -------------------------------
-def _fix_photo_url(url: str) -> str:
-    if not isinstance(url, str):
-        return ""
-    # common typo: ".jpgm" -> ".jpg"
-    url = re.sub(r"(\.jpg)m($|\b)", r"\1", url, flags=re.IGNORECASE)
-    # Also handle ".pngm" -> ".png" (por si acaso)
-    url = re.sub(r"(\.png)m($|\b)", r"\1", url, flags=re.IGNORECASE)
+def _clean_photo_url(url: str) -> str:
+    if isinstance(url, str):
+        # common trailing typos like ".jpgm" or ".pngm"
+        url = url.replace(".jpgm", ".jpg").replace(".pngm", ".png")
+        url = url.replace("http://", "https://")
     return url
 
 # -------------------------------
-# Step 4/5: Render section with st.bar_chart + image selection
+# Step 4/5: Render in Streamlit
 # -------------------------------
 def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")
     st.caption("Top 10 products based on the latest available date from the sub-category file.")
 
-    # Load and prepare
+    # Load subcategory and latest snapshot
     df_sub = load_subcategory_data(active_basket_name)
     if df_sub.empty:
-        st.info("No sub-category data found.")
-        return
-
-    if "rank" not in df_sub.columns or "asin" not in df_sub.columns:
-        st.warning("Required columns 'rank' and/or 'asin' are missing in the sub-category file.")
+        st.warning("No sub-category data found.")
         return
 
     df_latest, latest_date = get_latest_data(df_sub)
     if df_latest.empty:
-        st.info("No rows for the latest date.")
+        st.warning("No rows for the latest date.")
         return
 
     df_top10 = top_10_best_sellers(df_latest)
     if df_top10.empty:
-        st.info("No top-10 items could be determined.")
+        st.warning("No products found for Top 10.")
         return
+
+    # Clean photo URL if column exists
+    if "product_photo" in df_top10.columns:
+        df_top10["product_photo_clean"] = df_top10["product_photo"].apply(_clean_photo_url)
+    else:
+        df_top10["product_photo_clean"] = ""
 
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")
 
-    # Chart data for st.bar_chart (vertical bars)
-    # Index -> ASIN, single column -> rank
+    # --- Layout: chart (left) + selection & image (right) ---
+    left, right = st.columns([2, 1])
+
+    # Chart data for st.bar_chart (note: st.bar_chart is vertical)
     chart_df = (
-        df_top10.loc[:, ["asin", "rank"]]
-                .set_index("asin")
-                .sort_values("rank", ascending=True)
+        df_top10[["asin", "rank"]]
+        .set_index("asin")
+        .sort_values("rank", ascending=True)
     )
 
-    # Layout: chart left, selection + image right (en pantallas angostas cae abajo)
-    c1, c2 = st.columns([2, 1], gap="large")
-
-    with c1:
-        st.markdown("**Top 10 by rank** (lower bar = better rank)")
+    with left:
         st.bar_chart(chart_df, use_container_width=True)
+        st.caption("Lower rank is better (Rank 1 = best).")
 
-    # Build selection list (ASIN → label "Brand — ASIN" if available)
-    asin_to_label = {}
-    for _, row in df_top10.iterrows():
-        brand = row.get("brand", "")
-        asin = row["asin"]
-        label = f"{brand} — {asin}" if isinstance(brand, str) and brand else asin
-        asin_to_label[asin] = label
+    # Build radio options "Brand - ASIN" if brand exists
+    def _option_label(row):
+        if "brand" in row.index and pd.notna(row["brand"]):
+            return f"{row['brand']} — {row['asin']}"
+        return row["asin"]
 
-    default_asin = df_top10.iloc[0]["asin"]
+    labels = [_option_label(r) for _, r in df_top10.iterrows()]
+    asin_by_label = {label: row["asin"] for label, (_, row) in zip(labels, df_top10.iterrows())}
 
-    with c2:
-        st.markdown("**Show product image**")
-        selected_label = st.selectbox(
-            "Select a product",
-            options=list(asin_to_label.values()),
-            index=list(asin_to_label.keys()).index(default_asin)
-            if default_asin in asin_to_label else 0
-        )
-        # Reverse-lookup to get ASIN from label
-        selected_asin = next(a for a, lbl in asin_to_label.items() if lbl == selected_label)
+    with right:
+        selected_label = st.radio("Select a product", options=labels, index=0)
+        selected_asin = asin_by_label[selected_label]
+        row = df_top10[df_top10["asin"] == selected_asin].iloc[0]
 
-        # Row for selected ASIN
-        row_sel = df_top10[df_top10["asin"] == selected_asin].iloc[0]
+        # Show image (if available)
+        photo = row.get("product_photo_clean", "")
+        title = row.get("product_title", "")
+        url = row.get("product_url", "")
+        rank = int(row.get("rank", -1)) if pd.notna(row.get("rank", None)) else None
 
-        photo_url = _fix_photo_url(row_sel.get("product_photo", ""))
-        product_url = row_sel.get("product_url", "")
-        title = row_sel.get("product_title", "")
-        rank_val = row_sel.get("rank", "")
-
-        if photo_url:
-            st.image(photo_url, use_container_width=True, caption=f"Rank {rank_val} — {title[:80]}")
+        if isinstance(photo, str) and len(photo) > 5:
+            st.image(photo, use_container_width=True, caption=title if isinstance(title, str) else None)
         else:
-            st.info("No product photo available for this item.")
+            st.info("No product image available for this item.")
 
-        if isinstance(product_url, str) and product_url:
-            st.markdown(f"[Open product page]({product_url})")
+        # Quick facts
+        st.markdown("**Details**")
+        if rank is not None:
+            st.metric(label="Rank", value=rank)
+        price = row.get("product_price", None)
+        rating = row.get("product_star_rating", None)
+        reviews = row.get("product_num_ratings", None)
 
-    # Table in expander
+        if pd.notna(price):
+            st.write(f"**Price:** ${price:,.2f}")
+        if pd.notna(rating):
+            st.write(f"**Rating:** {rating}")
+        if pd.notna(reviews):
+            st.write(f"**Reviews:** {int(reviews):,}")
+
+        if isinstance(url, str) and url:
+            st.markdown(f"[Open on Amazon]({url})")
+
+    # Data table in expander
     with st.expander("Top 10 Best-sellers Data"):
         cols_to_show = [
-            "asin", "brand", "product_title", "rank",
-            "product_price", "product_star_rating", "product_num_ratings",
-            "product_url", "product_photo"
+            c for c in [
+                "asin", "brand", "product_title", "rank", "product_price",
+                "product_star_rating", "product_num_ratings", "product_url", "product_photo_clean"
+            ] if c in df_top10.columns
         ]
-        cols_final = [c for c in cols_to_show if c in df_top10.columns]
-        st.dataframe(df_top10[cols_final], use_container_width=True)
+        st.dataframe(df_top10[cols_to_show], use_container_width=True)
