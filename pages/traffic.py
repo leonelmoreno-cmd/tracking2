@@ -335,7 +335,7 @@ def main():
     st.markdown(
         """
         <small>
-        Data source: Google Trends via <code>pytrends</code> • Decomposition: <code>statsmodels.STL</code> • Charts: Plotly • Host: Streamlit Community Cloud
+        Data source: Google Trends via <code>pytrends</code> • Decomposition: <code>statsmodels.STL</code> • Charts: Plotly • Host: <code>Streamlit Community Cloud</code>
         </small>
         """,
         unsafe_allow_html=True
