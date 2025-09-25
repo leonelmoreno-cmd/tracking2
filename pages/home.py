@@ -51,8 +51,7 @@ def main():
 
     # 🔹 Try to enrich with subcategory CSV (photos, urls, titles, etc.)
     try:
-        subcat_name = "sub_" + active_basket_name.replace(".csv", "") + ".csv"
-        subcat_url = _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, subcat_name)
+        subcat_url = _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
         subcat_df = fetch_data(subcat_url)
 
         if "asin" in prepared_df.columns and "asin" in subcat_df.columns:
