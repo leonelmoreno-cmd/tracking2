@@ -24,21 +24,23 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     # Handle missing values in price_change column
     df = df.dropna(subset=["price_change"])
 
-    # Get the unique dates available in the data
-    available_dates = df['date'].unique()
+    # Get the available dates for filtering
+    available_dates = sorted(df["date"].unique())
 
-    # Display date selector
-    selected_date = st.date_input("Select a date for the price variation chart", value=pd.to_datetime(df["date"].max()).date(), min_value=min(available_dates).date(), max_value=max(available_dates).date())
+    # Add a date selector for the user, with the last available date as default
+    selected_date = st.date_input(
+        "Select Date",
+        min_value=min(available_dates),
+        max_value=max(available_dates),
+        value=max(available_dates)  # Default to the latest date
+    )
 
-    # Filter the data based on the selected date
-    df_latest = df[df["date"] == selected_date]
+    # Filter the dataframe by the selected date
+    df_latest = df[df["date"] == pd.to_datetime(selected_date)]
 
     if df_latest.empty:
         st.info(f"No data available for the selected date: {selected_date}.")
         return
-
-    # Indicate the selected date
-    st.write(f"Showing data for: {selected_date}")
 
     # Create a list of ASINs and brands
     asin_with_brand = df_latest.apply(lambda row: f"{row['brand']} — {row['asin']}", axis=1)
@@ -72,7 +74,11 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         hovermode="x unified",
     )
 
+    # Show the chart
     st.plotly_chart(fig, use_container_width=True)
+
+    # Display the selected date above the chart
+    st.write(f"**Data for selected date: {selected_date}**")
 
     # Collapsed table with average price change per ASIN
     with st.expander("Show price % variation table"):
