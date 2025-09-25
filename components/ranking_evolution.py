@@ -19,10 +19,9 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     """
     Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
     Each subplot title is clickable: 'brand - asin' links to product_url.
-    - Y axis: rank real desde CSV (1 = mejor).
+    - Y axis: rank suavizado con promedio móvil (1 = mejor).
     - Líneas: verde si mejoran, rojo si empeoran.
-    - Suavizado: promedio móvil (rolling mean).
-    - Tooltip: incluye cambio de rank y sales_volume.
+    - Tooltip: incluye rank real, Δ rank y sales_volume.
     """
     dfp = _aggregate_by_period(df, period)
 
@@ -31,7 +30,9 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     dfp["rank_delta"] = dfp.groupby("asin")["rank"].diff()
 
     # suavizado: promedio móvil de 3 periodos
-    dfp["rank_smooth"] = dfp.groupby("asin")["rank"].transform(lambda s: s.rolling(window=3, min_periods=1).mean())
+    dfp["rank_smooth"] = dfp.groupby("asin")["rank"].transform(
+        lambda s: s.rolling(window=3, min_periods=1).mean()
+    )
 
     asins = sorted(dfp["asin"].unique().tolist())
     n = len(asins)
@@ -39,7 +40,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         st.info("No ranking data to display.")
         return
 
-    # rango del eje Y
+    # rango del eje Y (según rank real)
     y_min = float(dfp["rank"].min(skipna=True))
     y_max = float(dfp["rank"].max(skipna=True))
 
@@ -74,10 +75,11 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     period_label = "Week" if period.lower() == "week" else "Date"
     hover_template = (
         "<b>ASIN</b>: %{customdata[0]}"
+        "<br><b>Rank (real)</b>: %{customdata[2]:.0f}"
         "<br><b>Rank (smoothed)</b>: %{y:.0f}"
         f"<br><b>{period_label}</b>: %{{customdata[1]}}"
-        "<br><b>Δ rank</b>: %{customdata[2]:+.0f}"
-        "<br><b>Sales volume</b>: %{customdata[3]}"
+        "<br><b>Δ rank</b>: %{customdata[3]:+.0f}"
+        "<br><b>Sales volume</b>: %{customdata[4]}"
         "<extra></extra>"
     )
 
@@ -86,15 +88,16 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         if g.empty:
             continue
 
-        # color: verde si mejoró, rojo si empeoró
-        if g["rank_delta"].iloc[-1] < 0:  # rank subió (peor)
-            color = "red"
-        else:  # rank bajó (mejor)
-            color = "green"
+        # color: verde si mejoró (rank menor), rojo si empeoró
+        if g["rank_delta"].iloc[-1] < 0:
+            color = "red"   # empeoró
+        else:
+            color = "green" # mejoró
 
         customdata = pd.DataFrame({
             "asin": g["asin"].astype(str),
             "xlabel": g["xlabel"].astype(str),
+            "rank": g["rank"].astype(float),
             "delta": g["rank_delta"].fillna(0).astype(float),
             "sales": g.get("sales_volume", pd.Series(index=g.index)).astype(str),
         }).to_numpy()
@@ -104,7 +107,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         fig.add_trace(
             go.Scatter(
                 x=g["x"],
-                y=g["rank_smooth"],  # usamos el suavizado
+                y=g["rank_smooth"],  # usamos el suavizado en Y
                 mode="lines+markers",
                 line=dict(dash=_dash_for_asin(asin, discount_map), width=2, color=color),
                 marker=dict(size=5, color=color),
