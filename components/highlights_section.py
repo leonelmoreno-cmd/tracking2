@@ -100,11 +100,8 @@ def render_highlights(df_overview: pd.DataFrame, period: str = "week"):
             st.metric(f"↕ Average price change — {label}",
                       f"{highlights['avg_change']:+.1f}%",
                       help=None)
-            st.caption(f"Across {n_brands} brands")
         else:
             st.metric(f"↕ Average price change — {label}", "N/A")
-
-        # Ya existentes: mayor/menor cambio
         if highlights.get("row_max_change") is not None:
             st.metric(f"🔺 Largest price change — {label} — {highlights['row_max_change']['brand']}",
                       f"{highlights['row_max_change']['price_change']:+.1f}%")
