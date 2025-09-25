@@ -91,7 +91,6 @@ def render_current_basket_gallery(df: pd.DataFrame, columns: int = 5) -> None:
                     st.image(photo_url, caption=None, width="stretch")
                 else:
                     st.write("📷 No image")
-                    st.write("Debug con else: photo_url", photo_url)
                 # Encabezado corto
                 st.markdown(f"**{brand} — {asin}**" if brand else f"**{asin}**")
                 if title:
