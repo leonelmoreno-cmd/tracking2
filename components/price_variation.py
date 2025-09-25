@@ -24,15 +24,19 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     # Handle missing values in price_change column
     df = df.dropna(subset=["price_change"])
 
-    # Get the available dates for filtering
-    available_dates = sorted(df["date"].unique())
+    # Get the available dates for filtering (only dates with data)
+    available_dates = sorted(df["date"].dropna().unique())
 
-    # Add a date selector for the user, with the last available date as default
-    selected_date = st.date_input(
+    if not available_dates:
+        st.error("No data available for any date.")
+        return
+
+    # Add a date selector with only available dates (excluding missing data)
+    selected_date = st.selectbox(
         "Select Date",
-        min_value=min(available_dates),
-        max_value=max(available_dates),
-        value=max(available_dates)  # Default to the latest date
+        available_dates,
+        format_func=lambda date: date.strftime('%Y-%m-%d'),  # Show the date in a readable format
+        index=len(available_dates) - 1  # Default to the most recent date
     )
 
     # Filter the dataframe by the selected date
