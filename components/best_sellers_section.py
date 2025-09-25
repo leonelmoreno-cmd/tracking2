@@ -75,11 +75,8 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     df_chart = df_top10.copy()
     df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
-    # Etiqueta única Brand — ASIN
-    df_chart["brand_asin"] = df_chart.apply(
-        lambda r: f"{r['brand']} — {r['asin']}" if pd.notna(r.get("brand")) else r["asin"],
-        axis=1
-    )
+    # Etiqueta única ASIN
+    df_chart["asin_label"] = df_chart["asin"]
 
     # Ordenar por rank (1 arriba, 10 abajo)
     df_chart = df_chart.sort_values("rank", ascending=True)
@@ -92,7 +89,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            y=df_chart["brand_asin"],      # eje Y único
+            y=df_chart["asin_label"],      # eje Y único
             x=df_chart["score"],           # eje X invertido
             text=df_chart["rank"],         # mostrar rank
             textposition="outside",
@@ -100,10 +97,9 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             marker_color="orange",
             customdata=df_chart[[
                 "asin", "product_title", "product_price",
-                "product_star_rating", "product_num_ratings", "brand"
+                "product_star_rating", "product_num_ratings"
             ]].values,
             hovertemplate=(
-                "<b>Brand:</b> %{customdata[5]}<br>"
                 "<b>ASIN:</b> %{customdata[0]}<br>"
                 "<b>Rank:</b> %{text}<br>"
                 "<b>Title:</b> %{customdata[1]}<br>"
@@ -117,7 +113,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         fig.update_layout(
             title="Top 10 Best-sellers",
             xaxis_title="Relative size (Rank 1 = best)",
-            yaxis_title="Brand — ASIN",
+            yaxis_title="ASIN",
             margin=dict(l=80, r=20, t=50, b=40),
             height=500
         )
@@ -126,9 +122,8 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     # Selección de producto + imagen
     asin_to_label = {}
     for _, row in df_top10.iterrows():
-        brand = row.get("brand", "")
         asin = row["asin"]
-        label = f"{brand} — {asin}" if isinstance(brand, str) and brand else asin
+        label = asin
         asin_to_label[asin] = label
 
     default_asin = df_top10.iloc[0]["asin"]
@@ -160,7 +155,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     # Tabla completa
     with st.expander("Top 10 Best-sellers Data"):
         cols_to_show = [
-            "asin", "brand", "product_title", "rank",
+            "asin", "product_title", "rank",
             "product_price", "product_star_rating", "product_num_ratings",
             "product_url", "product_photo"
         ]
