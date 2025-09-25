@@ -110,12 +110,6 @@ def render_highlights(df_overview: pd.DataFrame, period: str = "week"):
             st.metric(f"💲 Average price — {label}", "N/A")
 
     with ccol:
-        if highlights.get("avg_change") is not None:
-            st.metric(f"↕ Average price change — {label}",
-                      f"{highlights['avg_change']:+.1f}%")
-        else:
-            st.metric(f"↕ Average price change — {label}", "N/A")
-
         if highlights.get("row_max_change") is not None:
             st.metric(f"🔺 Largest price change — {label} — {highlights['row_max_change']['brand']}",
                       f"{highlights['row_max_change']['price_change']:+.1f}%")
@@ -127,3 +121,8 @@ def render_highlights(df_overview: pd.DataFrame, period: str = "week"):
                       f"{highlights['row_min_change']['price_change']:+.1f}%")
         else:
             st.metric(f"🔻 Lowest price change — {label}", "N/A")
+        if highlights.get("avg_change") is not None:
+            st.metric(f"↕ Average price change — {label}",
+                      f"{highlights['avg_change']:+.1f}%")
+        else:
+            st.metric(f"↕ Average price change — {label}", "N/A")
