@@ -49,7 +49,7 @@ def main():
     df = fetch_data(active_url)
     prepared_df = prepare_data(df, basket_name=active_basket_name)
 
-    # 🔹 Try to enrich with subcategory CSV (photos, urls, titles, etc.)
+    # 🔹 Enrich with subcategory CSV (photos, urls, titles, etc.)
     try:
         subcat_url = _raw_url_for(GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH, GITHUB_PATH, active_basket_name)
         subcat_df = fetch_data(subcat_url)
