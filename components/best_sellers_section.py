@@ -75,9 +75,9 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     df_chart = df_top10.copy()
     df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
-    # Etiqueta única en Y = Brand — ASIN
-    df_chart["label"] = df_chart.apply(
-        lambda r: f"{r.get('brand','')} — {r['asin']}" if pd.notna(r.get("brand")) else r["asin"],
+    # Etiqueta única Brand — ASIN
+    df_chart["brand_asin"] = df_chart.apply(
+        lambda r: f"{r['brand']} — {r['asin']}" if pd.notna(r.get("brand")) else r["asin"],
         axis=1
     )
 
@@ -92,18 +92,18 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            y=df_chart["label"],          # eje Y: Brand — ASIN
-            x=df_chart["score"],          # eje X: score invertido
-            text=df_chart["rank"],        # mostrar rank en la barra
+            y=df_chart["brand_asin"],      # eje Y único
+            x=df_chart["score"],           # eje X invertido
+            text=df_chart["rank"],         # mostrar rank
             textposition="outside",
             orientation="h",
             marker_color="orange",
             customdata=df_chart[[
                 "asin", "product_title", "product_price",
-                "product_star_rating", "product_num_ratings"
+                "product_star_rating", "product_num_ratings", "brand"
             ]].values,
             hovertemplate=(
-                "<b>Brand — ASIN:</b> %{y}<br>"
+                "<b>Brand:</b> %{customdata[5]}<br>"
                 "<b>ASIN:</b> %{customdata[0]}<br>"
                 "<b>Rank:</b> %{text}<br>"
                 "<b>Title:</b> %{customdata[1]}<br>"
@@ -118,7 +118,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             title="Top 10 Best-sellers",
             xaxis_title="Relative size (Rank 1 = best)",
             yaxis_title="Brand — ASIN",
-            margin=dict(l=120, r=20, t=50, b=40),
+            margin=dict(l=80, r=20, t=50, b=40),
             height=500
         )
         st.plotly_chart(fig, use_container_width=True)
