@@ -7,7 +7,7 @@ from components.common import (
 )
 
 # -------------------------------
-# Step 1: Load subcategory data
+# Step 1-1: Load subcategory data
 # -------------------------------
 def load_subcategory_data(active_basket_name: str) -> pd.DataFrame:
     """
