@@ -110,6 +110,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             )
         ))
 
+        # Actualización del gráfico, con config en lugar de parámetros obsoletos
         fig.update_layout(
             title="Top 10 Best-sellers",
             xaxis_title="Relative size (Rank 1 = best)",
@@ -117,7 +118,9 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             margin=dict(l=80, r=20, t=50, b=40),
             height=500
         )
-        st.plotly_chart(fig, width='stretch')
+
+        # Usar 'config' en lugar de 'use_container_width'
+        st.plotly_chart(fig, config={'displayModeBar': False, 'scrollZoom': True})
 
     # Selección de producto + imagen
     asin_to_label = {}
