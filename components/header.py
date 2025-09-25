@@ -1,5 +1,5 @@
 import streamlit as st
-
+import pandas as pd 
 def display_header(df):
     """
     Muestra el encabezado con la última fecha de actualización.
