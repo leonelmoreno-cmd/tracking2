@@ -77,7 +77,7 @@ jobs:
           SUBCATS_DIR: sub-categories
           OUTPUT_DIR: data/sub-categories2
         run: |
-          python request-bestsellers2.py
+          python components/request-bestsellers2.py
 
       - name: UTC timestamp
         id: ts
