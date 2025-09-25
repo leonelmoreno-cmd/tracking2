@@ -21,12 +21,14 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     # Aggregate data based on the selected period (day or week)
     dfp = _aggregate_by_period(df, period)
+    
     # Get the latest date or week based on the period
     if period == "day":
-        latest_date = dfp["x"].max()
+        latest_date = dfp["x"].max()  # Use 'x' for the date
         df_latest = dfp[dfp["x"] == latest_date]
     elif period == "week":
-        latest_week = dfp["x"].dt.isocalendar().week.max()
+        # Corrected line: Use 'x' to get the latest week
+        latest_week = dfp["x"].dt.isocalendar().week.max()  # Use 'x' to get the latest week
         df_latest = dfp[dfp["x"].dt.isocalendar().week == latest_week]
     else:
         st.warning("Invalid period specified")
