@@ -21,7 +21,8 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     # Aggregate data based on the selected period (day or week)
     dfp = _aggregate_by_period(df, period)
-    
+     # Verificar la estructura después de la agregación
+    st.write("Primeras filas de dfp:", dfp.head())
     # Get the latest date or week based on the period
     if period == "day":
         latest_date = dfp["date"].max()
