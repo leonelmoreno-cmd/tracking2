@@ -11,14 +11,13 @@ from components.evolution_utils import (
 )
 
 # ------------------------------------------------------------
-# Price % Variation — overall ASINs in one chart (Horizontal Bar Chart)
+# Price % Variation — overall ASINs in one chart
 # ------------------------------------------------------------
 
 def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     Creates an interactive figure for price percentage variation across all ASINs.
     The chart displays the ASINs in the y-axis and price percentage variation in the x-axis.
-    This uses a Horizontal Bar Chart for visualization.
     """
     # Aggregate data based on the selected period (day or week)
     dfp = _aggregate_by_period(df, period)
@@ -42,7 +41,7 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     # --- Prepare the data for plotting ---
     df_latest = df_latest.dropna(subset=["price_change"])  # Ensure we only plot rows with price changes
 
-    # Create a list of ASINs and brands for the y-axis labels
+    # Create a list of ASINs and brands
     asin_with_brand = df_latest.apply(lambda row: f"{row['brand']} — {row['asin']}", axis=1)
 
     # Create a horizontal bar chart for all ASINs
@@ -52,12 +51,12 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     fig.add_trace(go.Bar(
         y=asin_with_brand,  # y-axis: ASIN and brand
         x=df_latest["price_change"],  # x-axis: price change percentage
-        orientation="h",  # Horizontal bar chart
+        orientation="h",  # Make it a horizontal bar chart
         marker=dict(color=np.where(df_latest["price_change"] >= 0, "green", "red")),  # Green for positive, Red for negative
         hovertemplate=_hover_template("ASIN", "Price % change", show_pct=True, period=period),
     ))
 
-    # Apply a common layout
+    # Apply a common layout with title, axis labels, etc.
     _common_layout(
         fig,
         nrows=1,
