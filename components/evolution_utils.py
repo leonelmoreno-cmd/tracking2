@@ -10,7 +10,7 @@ from datetime import date as _date
 def _ensure_numeric(df: pd.DataFrame) -> pd.DataFrame:
     """Ensure numeric columns exist and are coerced to numeric."""
     out = df.copy()
-    for col in ("product_price", "product_star_rating", "product_original_price"):
+    for col in ("product_price", "product_star_rating", "product_original_price","rank"):
         if col in out.columns:
             out[col] = pd.to_numeric(out[col], errors="coerce")
     out["date"] = pd.to_datetime(out.get("date"), errors="coerce")
@@ -46,6 +46,7 @@ def _aggregate_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
             product_price=("product_price", "mean"),
             product_star_rating=("product_star_rating", "mean"),
             discount_any=("product_original_price", lambda s: pd.notna(s).any()),
+            rank=("rank", "min"), 
             brand=("brand", "first")   # 🔑 arrastramos la marca
         )
         grp["x"] = grp.apply(lambda r: _week_start(r["iso_year"], r["iso_week"]), axis=1)
