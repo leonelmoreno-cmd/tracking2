@@ -83,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Processing $ASIN_FILE ..."
-          python request-api.py
+          python components/request-api.py
           echo "Sleeping 1s to respect API pacing..."
           sleep 1
 
