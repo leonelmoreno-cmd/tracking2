@@ -17,6 +17,6 @@ def main():
 
     df = fetch_data(active_url)
     prepared_df = prepare_data(df, basket_name=active_basket_name)
-
+    display_header(prepared_df)
     st.header("Best Sellers")
     render_best_sellers_section_with_table(active_basket_name)
