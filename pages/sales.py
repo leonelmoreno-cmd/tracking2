@@ -54,7 +54,7 @@ def main():
         labels={"total_sales": "Total Sales (simulated)", "brand": "Brand"},
     )
     # Mantener exactamente el orden del DataFrame (mayor → menor)
-    fig.update_yaxes(categoryorder="array", categoryarray=sales_sorted["brand"].tolist())
+    fig.update_yaxes(categoryorder="array", categoryarray=sales_sorted["brand"].tolist()[::-1])
     fig.update_layout(margin=dict(l=20, r=20, t=50, b=40))
 
     st.plotly_chart(fig, use_container_width=True)
