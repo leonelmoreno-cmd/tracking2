@@ -1,4 +1,3 @@
-# components/current_basket_gallery.py
 import re
 import math
 import pandas as pd
@@ -83,10 +82,11 @@ def render_current_basket_gallery(df: pd.DataFrame, columns: int = 5) -> None:
                 asin = item.get("asin", "")
                 title = item.get("product_title", "")
                 product_url = item.get("product_url", "")
-                photo_url = _fix_photo_url(item.get("product_photo", ""))
+                photo_url = item.get("product_photo", "")  # Usar product_photo directamente
 
                 # Imagen
                 if photo_url:
+                    photo_url = _fix_photo_url(photo_url)  # Corregir la URL si tiene errores
                     st.image(photo_url, caption=None, width="stretch")
                 else:
                     st.write("📷 No image")
