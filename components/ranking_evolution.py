@@ -19,14 +19,14 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     """
     Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
     Each subplot title is clickable: 'brand - asin' links to product_url.
+    - Y axis: rank real desde CSV (1 = mejor).
+    - Tooltip: incluye cambio de rank y sales_volume.
     """
     dfp = _aggregate_by_period(df, period)
 
-    # compute rank per period across ASINs based on rating (descending → 1 is best)
-    dfp["rank"] = (
-        dfp.groupby("x")["product_star_rating"]
-           .rank(method="first", ascending=False)
-    )
+    # asegurar orden y calcular cambio de rank
+    dfp = dfp.sort_values(["asin", "x"])
+    dfp["rank_delta"] = dfp.groupby("asin")["rank"].shift(1) - dfp["rank"]
 
     asins = sorted(dfp["asin"].unique().tolist())
     n = len(asins)
@@ -34,9 +34,9 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         st.info("No ranking data to display.")
         return
 
-    # y-axis: 1 = best, up to total number of ASINs
-    y_min = 1
-    y_max = max(1, len(asins))
+    # rango del eje Y (rank real del CSV)
+    y_min = float(dfp["rank"].min(skipna=True))
+    y_max = float(dfp["rank"].max(skipna=True))
 
     discount_map = _has_discount_by_asin(dfp)
 
@@ -72,8 +72,8 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         "<b>ASIN</b>: %{customdata[0]}"
         "<br><b>Rank</b>: %{y:.0f}"
         f"<br><b>{period_label}</b>: %{{customdata[1]}}"
-        "<br><b>Rating</b>: %{customdata[2]:.2f}"
-        "<br><b>Price % change</b>: %{customdata[3]:.2f}%"
+        "<br><b>Δ rank</b>: %{customdata[2]:+.0f}"
+        "<br><b>Sales volume</b>: %{customdata[3]}"
         "<extra></extra>"
     )
 
@@ -82,12 +82,12 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         if g.empty:
             continue
 
-        # customdata: [asin, xlabel, rating, price_change]
+        # customdata: [asin, xlabel, rank_delta, sales_volume]
         customdata = pd.DataFrame({
             "asin": g["asin"].astype(str),
             "xlabel": g["xlabel"].astype(str),
-            "rating": g["product_star_rating"].astype(float),
-            "pct_price": g["price_change"].astype(float),
+            "delta": g["rank_delta"].fillna(0).astype(float),
+            "sales": g.get("sales_volume", pd.Series(index=g.index)).astype(str),
         }).to_numpy()
 
         r, c = pos_map[asin]
@@ -95,7 +95,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         fig.add_trace(
             go.Scatter(
                 x=g["x"],
-                y=g["rank"],
+                y=g["rank"],  # rank real del CSV
                 mode="lines+markers",
                 line=dict(dash=_dash_for_asin(asin, discount_map), width=2),
                 marker=dict(size=5),
@@ -111,7 +111,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         fig,
         nrows=rows,
         title="Ranking Evolution (by ASIN)",
-        y_title="Rank (1 = best)",
+        y_title="Category Rank (1 = best)",
         y_min=y_min,
         y_max=y_max,
         period=period,
