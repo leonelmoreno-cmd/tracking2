@@ -26,6 +26,7 @@ def _latest_snapshot_by_asin(df: pd.DataFrame) -> pd.DataFrame:
     return snap
 
 def _short(s: str, n: int = 80) -> str:
+    """Shorten the string to a given length."""
     if not isinstance(s, str):
         return ""
     return s if len(s) <= n else s[: n - 1] + "…"
