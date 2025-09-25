@@ -58,10 +58,6 @@ def main():
         df_overview, brands_to_plot=None, period=period
     )
     st.plotly_chart(overview_fig, use_container_width=True)
-
-    #Test
-    st.write("📸 Debug: columnas en prepared_df", prepared_df.columns.tolist())
-    st.dataframe(prepared_df[["asin", "brand", "product_photo"]].head(20))
     
     # 🔹 Basket gallery
     render_current_basket_gallery(prepared_df, columns=5)
