@@ -180,6 +180,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
                 "discount": None,
                 "brand": None,
                 "product_url": None,
+                "product_photo": None,  # <-- NUEVO
                 "date": today,
                 "week": week_num,
                 "unit_price": "N/A",
@@ -207,6 +208,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
         sales_vol = raw.get("sales_volume")  # mantener texto original del API
         brand = extract_brand(raw)
         product_url = raw.get("product_url")
+        photo_url = raw.get("product_photo") or None  # <-- NUEVO
 
         discount = None
         if price is not None and orig is not None and orig > 0 and price < orig:
@@ -225,6 +227,7 @@ def build_rows(payload: Dict[str, Any], requested_asins: List[str]) -> List[Dict
             "discount": discount,
             "brand": brand,
             "product_url": product_url,
+            "product_photo": photo_url,  # <-- NUEVO
             "date": today,
             "week": week_num,
             "unit_price": unit_price,
