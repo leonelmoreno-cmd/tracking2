@@ -19,5 +19,4 @@ def main():
     prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     st.header("Best Sellers")
-    display_header(prepared_df)
     render_best_sellers_section_with_table(active_basket_name)
