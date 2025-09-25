@@ -73,7 +73,7 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
         sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
         sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
         try:
-            sub_df = pd.read_csv(sub_url, usecols=["asin", "brand", "product_url"])
+            sub_df = pd.read_csv(sub_url, usecols=["asin", "brand", "product_url","product_photo"])
             df = df.merge(sub_df, on="asin", how="left")
         except Exception as e:
             print(f"⚠️ Error loading subcategory file {sub_file}: {e}")
