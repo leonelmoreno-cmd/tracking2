@@ -121,7 +121,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             margin=dict(l=80, r=20, t=50, b=40),
             height=500
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     # Selección de producto + imagen
     asin_to_label = {}
