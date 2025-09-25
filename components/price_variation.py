@@ -19,12 +19,7 @@ from components.evolution_utils import (
 def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
     """
     Creates an interactive subplot figure for price percentage variation by ASIN (grid layout).
-    - Subplots arranged in a grid (max 3 columns).
-    - X: day or ISO week (period-aware).
-    - Y: price_change (%) (0 .. global max).
-    - Line style: dotted if product was ever discounted.
-    - Hover: ASIN, Price % change, Date/Week, plus % change.
-    - Annotation: max % change in each subplot.
+    Each subplot title is clickable: 'brand - asin' links to product_url.
     """
     dfp = _aggregate_by_period(df, period)
     asins = sorted(dfp["asin"].unique().tolist())
@@ -46,13 +41,16 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
 
     discount_map = _has_discount_by_asin(dfp)
 
+    # Subplot titles with clickable brand + asin
     fig = make_subplots(
         rows=rows,
         cols=cols,
         shared_xaxes=True,
         subplot_titles=[
-            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}" 
-            if "brand" in dfp.columns else f"ASIN {asin}"
+            f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
+            f"style='color:#FFFBFE; text-decoration:none;'>{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}</a>"
+            if "brand" in dfp.columns and "product_url" in df.columns
+            else f"ASIN {asin}"
             for asin in asins
         ],
         vertical_spacing=0.16,
@@ -91,7 +89,7 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
                 marker=dict(size=5),
                 hovertemplate=hover_tmpl,
                 customdata=customdata,
-                name=f"ASIN {asin}",
+                name=f"{g['brand'].iloc[0]} - {asin}" if "brand" in g.columns else f"ASIN {asin}",
             ),
             row=r, col=c
         )
