@@ -20,13 +20,18 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     Creates an interactive subplot figure for ranking evolution by ASIN, in a grid layout.
     Each subplot title is clickable: 'brand - asin' links to product_url.
     - Y axis: rank real desde CSV (1 = mejor).
+    - Líneas: verde si mejoran, rojo si empeoran.
+    - Suavizado: promedio móvil (rolling mean).
     - Tooltip: incluye cambio de rank y sales_volume.
     """
     dfp = _aggregate_by_period(df, period)
 
-    # asegurar orden y calcular cambio de rank
+    # ordenar y calcular cambio de rank
     dfp = dfp.sort_values(["asin", "x"])
-    dfp["rank_delta"] = dfp.groupby("asin")["rank"].shift(1) - dfp["rank"]
+    dfp["rank_delta"] = dfp.groupby("asin")["rank"].diff()
+
+    # suavizado: promedio móvil de 3 periodos
+    dfp["rank_smooth"] = dfp.groupby("asin")["rank"].transform(lambda s: s.rolling(window=3, min_periods=1).mean())
 
     asins = sorted(dfp["asin"].unique().tolist())
     n = len(asins)
@@ -34,7 +39,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         st.info("No ranking data to display.")
         return
 
-    # rango del eje Y (rank real del CSV)
+    # rango del eje Y
     y_min = float(dfp["rank"].min(skipna=True))
     y_max = float(dfp["rank"].max(skipna=True))
 
@@ -60,7 +65,6 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         horizontal_spacing=0.08,
     )
 
-    # map asin → (row, col)
     pos_map = {}
     for i, asin in enumerate(asins):
         r = i // cols + 1
@@ -70,7 +74,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     period_label = "Week" if period.lower() == "week" else "Date"
     hover_template = (
         "<b>ASIN</b>: %{customdata[0]}"
-        "<br><b>Rank</b>: %{y:.0f}"
+        "<br><b>Rank (smoothed)</b>: %{y:.0f}"
         f"<br><b>{period_label}</b>: %{{customdata[1]}}"
         "<br><b>Δ rank</b>: %{customdata[2]:+.0f}"
         "<br><b>Sales volume</b>: %{customdata[3]}"
@@ -82,7 +86,12 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         if g.empty:
             continue
 
-        # customdata: [asin, xlabel, rank_delta, sales_volume]
+        # color: verde si mejoró, rojo si empeoró
+        if g["rank_delta"].iloc[-1] < 0:  # rank subió (peor)
+            color = "red"
+        else:  # rank bajó (mejor)
+            color = "green"
+
         customdata = pd.DataFrame({
             "asin": g["asin"].astype(str),
             "xlabel": g["xlabel"].astype(str),
@@ -95,10 +104,10 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         fig.add_trace(
             go.Scatter(
                 x=g["x"],
-                y=g["rank"],  # rank real del CSV
+                y=g["rank_smooth"],  # usamos el suavizado
                 mode="lines+markers",
-                line=dict(dash=_dash_for_asin(asin, discount_map), width=2),
-                marker=dict(size=5),
+                line=dict(dash=_dash_for_asin(asin, discount_map), width=2, color=color),
+                marker=dict(size=5, color=color),
                 hovertemplate=hover_template,
                 customdata=customdata,
                 name=f"{g['brand'].iloc[0]} - {asin}" if "brand" in g.columns else f"ASIN {asin}",
@@ -106,7 +115,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
             row=r, col=c
         )
 
-    # aplicar diseño común (ajusta con nº de filas reales)
+    # aplicar layout común
     _common_layout(
         fig,
         nrows=rows,
@@ -115,7 +124,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
         y_min=y_min,
         y_max=y_max,
         period=period,
-        reverse_y=True,  # so that 1 (best) appears at the top
+        reverse_y=True,
     )
 
     st.plotly_chart(fig, use_container_width=True)
