@@ -1,5 +1,3 @@
-# pages/price_variation.py
-
 import streamlit as st
 from components.common import set_page_config, fetch_data, prepare_data
 from components.basket_utils import resolve_active_basket
