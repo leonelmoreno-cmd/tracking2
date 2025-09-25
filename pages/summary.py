@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from components.common import set_page_config, fetch_data, prepare_data
 from components.visualization import create_price_graph
 from components.overview_section import render_overview_section
@@ -15,10 +16,43 @@ def main():
     prepared_df = prepare_data(df, basket_name=active_basket_name)
 
     # Basket toggle
-    period, active_basket_name = render_basket_and_toggle(name_to_url, active_basket_name, DEFAULT_BASKET)
+    period, active_basket_name = render_basket_and_toggle(
+        name_to_url, active_basket_name, DEFAULT_BASKET
+    )
     active_url = name_to_url.get(active_basket_name, active_url)
     
+    # --- Plot gráfico principal ---
     price_fig = create_price_graph(prepared_df, period=period)
     st.header("Breakdown by ASIN")
     st.plotly_chart(price_fig, use_container_width=True)
-# 👇 Añade este bloque justo debajo del chart
+
+    # --- Tabla colapsable debajo del gráfico ---
+    with st.expander("Show price table"):
+        df_table = prepared_df.copy()
+
+        if period == "day":
+            df_table["xlabel"] = pd.to_datetime(
+                df_table["date"], errors="coerce"
+            ).dt.strftime("%Y-%m-%d")
+        else:
+            df_table["xlabel"] = df_table["week_number"].astype(int)
+
+        # Columna combinada: Brand - ASIN (más legible que solo ASIN)
+        df_table["brand_asin"] = (
+            df_table["brand"].fillna("Unknown") + " - " + df_table["asin"].astype(str)
+        )
+
+        tbl = (
+            df_table.pivot_table(
+                index="xlabel",
+                columns="brand_asin",
+                values="product_price",
+                aggfunc="mean"
+            ).sort_index()
+        )
+
+        st.dataframe(tbl)
+
+
+if __name__ == "__main__":
+    main()
