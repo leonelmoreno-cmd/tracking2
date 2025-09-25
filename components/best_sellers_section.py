@@ -71,29 +71,32 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")
 
-    # Invert rank so Rank 1 has the largest bar
+    # Use brand as y labels (fallback to ASIN if brand missing)
     df_chart = df_top10.copy()
-    df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
+    df_chart["label"] = df_chart.apply(
+        lambda r: r["brand"] if isinstance(r.get("brand", ""), str) and r["brand"] else r["asin"],
+        axis=1
+    )
 
     # Layout: chart left, selection + image right
     c1, c2 = st.columns([2, 1], gap="large")
 
     with c1:
-        st.markdown("**Top 10 by rank** (Rank 1 = longest bar)")
+        st.markdown("**Top 10 by rank** (smaller rank = better)")
 
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            y=df_chart["asin"],
-            x=df_chart["score"],
+            y=df_chart["label"],
+            x=df_chart["rank"],
             orientation="h",
             text=df_chart["rank"],
             textposition="outside",
             marker_color="orange",
             customdata=df_chart[["product_title", "product_price", "product_star_rating", "product_num_ratings"]].values,
             hovertemplate=(
-                "<b>ASIN:</b> %{y}<br>"
-                "<b>Rank:</b> %{text}<br>"
+                "<b>Brand:</b> %{y}<br>"
+                "<b>Rank:</b> %{x}<br>"
                 "<b>Title:</b> %{customdata[0]}<br>"
                 "<b>Price:</b> $%{customdata[1]:.2f}<br>"
                 "<b>Rating:</b> %{customdata[2]}<br>"
@@ -102,15 +105,15 @@ def render_best_sellers_section_with_table(active_basket_name: str):
             )
         ))
 
-        # Order: Rank 1 at the top → sort y by ascending rank
+        # Order: rank ascending → best at top
         fig.update_yaxes(
             categoryorder="array",
-            categoryarray=df_chart.sort_values("rank")["asin"].tolist()
+            categoryarray=df_chart.sort_values("rank")["label"].tolist()
         )
         fig.update_layout(
             title="Top 10 Best-sellers",
-            xaxis_title="Relative size (inverted rank)",
-            yaxis_title="ASIN",
+            xaxis_title="Rank (1 = best)",
+            yaxis_title="Brand",
             margin=dict(l=80, r=20, t=50, b=50),
             height=500
         )
