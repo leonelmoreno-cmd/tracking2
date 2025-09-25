@@ -36,9 +36,14 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
 
     # global y-range: from 0 up to max positive change
     max_up = float(dfp["price_change"].max(skipna=True)) if dfp["price_change"].notna().any() else 0.0
-    y_min = 0.0
+    y_min = min(0.0, dfp["price_change"].min(skipna=True))  # Ensure negative side is included
     y_max = max(0.0, max_up)
 
+    # Separate positive and negative price changes
+    df_positive = dfp[dfp["price_change"] > 0]
+    df_negative = dfp[dfp["price_change"] < 0]
+
+    # Discount mapping
     discount_map = _has_discount_by_asin(dfp)
 
     # Subplot titles with clickable brand + asin
@@ -66,35 +71,58 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
 
     hover_tmpl = _hover_template("ASIN", "Price % change", show_pct=True, period=period)
 
+    # Add traces for positive and negative variations
     for asin in asins:
-        g = dfp[dfp["asin"] == asin].sort_values("x")
-        if g.empty:
+        g_pos = df_positive[df_positive["asin"] == asin].sort_values("x")
+        g_neg = df_negative[df_negative["asin"] == asin].sort_values("x")
+
+        if g_pos.empty and g_neg.empty:
             continue
 
         # customdata: [asin, xlabel, price_change]
-        customdata = pd.DataFrame({
-            "asin": g["asin"].astype(str),
-            "xlabel": g["xlabel"].astype(str),
-            "pct": g["price_change"].astype(float),
+        customdata_pos = pd.DataFrame({
+            "asin": g_pos["asin"].astype(str),
+            "xlabel": g_pos["xlabel"].astype(str),
+            "pct": g_pos["price_change"].astype(float),
+        }).to_numpy()
+
+        customdata_neg = pd.DataFrame({
+            "asin": g_neg["asin"].astype(str),
+            "xlabel": g_neg["xlabel"].astype(str),
+            "pct": g_neg["price_change"].astype(float),
         }).to_numpy()
 
         r, c = pos_map[asin]
 
-        fig.add_trace(
-            go.Scatter(
-                x=g["x"],
-                y=g["price_change"],
-                mode="lines+markers",
-                line=dict(dash=_dash_for_asin(asin, discount_map), width=2),
-                marker=dict(size=5),
-                hovertemplate=hover_tmpl,
-                customdata=customdata,
-                name=f"{g['brand'].iloc[0]} - {asin}" if "brand" in g.columns else f"ASIN {asin}",
-            ),
-            row=r, col=c
-        )
+        if not g_pos.empty:
+            fig.add_trace(
+                go.Bar(
+                    x=g_pos["price_change"],
+                    y=g_pos["xlabel"],
+                    orientation="h",
+                    name=f"Positive - {asin}",
+                    marker=dict(color="green"),
+                    hovertemplate=hover_tmpl,
+                    customdata=customdata_pos,
+                ),
+                row=r, col=c
+            )
 
-    # aplicar layout común
+        if not g_neg.empty:
+            fig.add_trace(
+                go.Bar(
+                    x=g_neg["price_change"],
+                    y=g_neg["xlabel"],
+                    orientation="h",
+                    name=f"Negative - {asin}",
+                    marker=dict(color="red"),
+                    hovertemplate=hover_tmpl,
+                    customdata=customdata_neg,
+                ),
+                row=r, col=c
+            )
+
+    # Apply common layout
     _common_layout(
         fig,
         nrows=rows,
