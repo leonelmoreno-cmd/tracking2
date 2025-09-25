@@ -42,7 +42,13 @@ def render_current_basket_gallery(df: pd.DataFrame, columns: int = 5) -> None:
     """
     st.subheader("Current basket")
 
-    snap = _latest_snapshot_by_asin(df)
+    # Filtrar para mostrar solo las filas con la fecha más reciente
+    df_filtered = df[df['date'] == df['date'].max()]
+
+    # Filtrar para asegurarnos de que solo mostramos productos con 'product_photo' disponible
+    df_filtered = df_filtered[df_filtered['product_photo'].notna()]
+
+    snap = _latest_snapshot_by_asin(df_filtered)
     if snap.empty:
         st.info("No products to display in the current basket.")
         return
