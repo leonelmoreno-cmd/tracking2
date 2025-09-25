@@ -16,7 +16,7 @@ from components.evolution_utils import (
 def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") -> None:
     """
     Versión con subplots en cuadrícula (hasta 3 columnas) para evolución de ratings por ASIN.
-    Cada título de subplot muestra 'brand - asin'.
+    Cada título de subplot muestra 'brand - asin' y es clickeable hacia product_url.
     """
     dfp = _aggregate_by_period(df, period)
     
@@ -41,23 +41,21 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
 
     discount_map = _has_discount_by_asin(dfp)
 
-       # Crear la figura con subplots en cuadrícula
-        fig = make_subplots(
-    rows=rows,
-    cols=cols,
-    shared_xaxes=True,
-    subplot_titles=[
-        f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
-        f"style='color:#FFFBFE; text-decoration:none;'>{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}</a>"
-        if "brand" in dfp.columns and "product_url" in df.columns
-        else f"ASIN {asin}"
-        for asin in asins
-    ],
-    vertical_spacing=0.16,
-    horizontal_spacing=0.08,
+    # Crear la figura con subplots en cuadrícula
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[
+            f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
+            f"style='color:#FFFBFE; text-decoration:none;'>{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}</a>"
+            if "brand" in dfp.columns and "product_url" in df.columns
+            else f"ASIN {asin}"
+            for asin in asins
+        ],
+        vertical_spacing=0.16,
+        horizontal_spacing=0.08,
     )
-
-
 
     # Mapa asin → (fila, columna)
     row_map = {}
