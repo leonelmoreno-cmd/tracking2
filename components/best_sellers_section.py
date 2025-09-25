@@ -75,6 +75,12 @@ def render_best_sellers_section_with_table(active_basket_name: str):
     df_chart = df_top10.copy()
     df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
+    # Etiqueta única en Y = Brand — ASIN
+    df_chart["label"] = df_chart.apply(
+        lambda r: f"{r.get('brand','')} — {r['asin']}" if pd.notna(r.get("brand")) else r["asin"],
+        axis=1
+    )
+
     # Ordenar por rank (1 arriba, 10 abajo)
     df_chart = df_chart.sort_values("rank", ascending=True)
 
@@ -86,7 +92,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            y=df_chart["brand"],          # eje Y: brand (aunque se repita)
+            y=df_chart["label"],          # eje Y: Brand — ASIN
             x=df_chart["score"],          # eje X: score invertido
             text=df_chart["rank"],        # mostrar rank en la barra
             textposition="outside",
@@ -97,7 +103,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
                 "product_star_rating", "product_num_ratings"
             ]].values,
             hovertemplate=(
-                "<b>Brand:</b> %{y}<br>"
+                "<b>Brand — ASIN:</b> %{y}<br>"
                 "<b>ASIN:</b> %{customdata[0]}<br>"
                 "<b>Rank:</b> %{text}<br>"
                 "<b>Title:</b> %{customdata[1]}<br>"
@@ -111,8 +117,8 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         fig.update_layout(
             title="Top 10 Best-sellers",
             xaxis_title="Relative size (Rank 1 = best)",
-            yaxis_title="Brand",
-            margin=dict(l=80, r=20, t=50, b=40),
+            yaxis_title="Brand — ASIN",
+            margin=dict(l=120, r=20, t=50, b=40),
             height=500
         )
         st.plotly_chart(fig, use_container_width=True)
