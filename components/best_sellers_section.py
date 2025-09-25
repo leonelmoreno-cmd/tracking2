@@ -26,7 +26,7 @@ def get_latest_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Timestamp]:
     return df_latest, latest_date
 
 # -------------------------------
-# Step 3: Remove duplicates and get top 10 best sellers
+# Step 3: Top 10 best sellers
 # -------------------------------
 def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     df_cleaned = df_latest.drop_duplicates(subset=["asin"], keep="first")
@@ -34,7 +34,7 @@ def top_10_best_sellers(df_latest: pd.DataFrame) -> pd.DataFrame:
     return df_top
 
 # -------------------------------
-# Small helper to sanitize photo URLs
+# Helper: sanitize photo URLs
 # -------------------------------
 def _fix_photo_url(url: str) -> str:
     if not isinstance(url, str):
@@ -44,7 +44,7 @@ def _fix_photo_url(url: str) -> str:
     return url
 
 # -------------------------------
-# Step 4/5: Render section with horizontal bar chart + image selection
+# Step 4: Render section
 # -------------------------------
 def render_best_sellers_section_with_table(active_basket_name: str):
     st.subheader("Best-sellers Rank")
@@ -71,56 +71,53 @@ def render_best_sellers_section_with_table(active_basket_name: str):
 
     st.markdown(f"**Latest update:** {latest_date.strftime('%Y-%m-%d')}")
 
-    # Use brand as y labels (fallback to ASIN if brand missing)
+    # Score invertido: Rank 1 = barra más larga
     df_chart = df_top10.copy()
-    df_chart["label"] = df_chart.apply(
-        lambda r: r["brand"] if isinstance(r.get("brand", ""), str) and r["brand"] else r["asin"],
-        axis=1
-    )
+    df_chart["score"] = df_chart["rank"].max() + 1 - df_chart["rank"]
 
-    # Layout: chart left, selection + image right
+    # Ordenar por rank (1 arriba, 10 abajo)
+    df_chart = df_chart.sort_values("rank", ascending=True)
+
+    # Layout: gráfico + selección de imagen
     c1, c2 = st.columns([2, 1], gap="large")
 
     with c1:
-        st.markdown("**Top 10 by rank** (smaller rank = better)")
-
+        st.markdown("**Top 10 by rank** (Rank 1 = longest bar)")
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            y=df_chart["label"],
-            x=df_chart["rank"],
-            orientation="h",
-            text=df_chart["rank"],
+            y=df_chart["brand"],          # eje Y: brand (aunque se repita)
+            x=df_chart["score"],          # eje X: score invertido
+            text=df_chart["rank"],        # mostrar rank en la barra
             textposition="outside",
+            orientation="h",
             marker_color="orange",
-            customdata=df_chart[["product_title", "product_price", "product_star_rating", "product_num_ratings"]].values,
+            customdata=df_chart[[
+                "asin", "product_title", "product_price",
+                "product_star_rating", "product_num_ratings"
+            ]].values,
             hovertemplate=(
                 "<b>Brand:</b> %{y}<br>"
-                "<b>Rank:</b> %{x}<br>"
-                "<b>Title:</b> %{customdata[0]}<br>"
-                "<b>Price:</b> $%{customdata[1]:.2f}<br>"
-                "<b>Rating:</b> %{customdata[2]}<br>"
-                "<b>Reviews:</b> %{customdata[3]}<br>"
+                "<b>ASIN:</b> %{customdata[0]}<br>"
+                "<b>Rank:</b> %{text}<br>"
+                "<b>Title:</b> %{customdata[1]}<br>"
+                "<b>Price:</b> $%{customdata[2]:.2f}<br>"
+                "<b>Rating:</b> %{customdata[3]}<br>"
+                "<b>Reviews:</b> %{customdata[4]}<br>"
                 "<extra></extra>"
             )
         ))
 
-        # Order: rank ascending → best at top
-        fig.update_yaxes(
-            categoryorder="array",
-            categoryarray=df_chart.sort_values("rank")["label"].tolist()
-        )
         fig.update_layout(
             title="Top 10 Best-sellers",
-            xaxis_title="Rank (1 = best)",
+            xaxis_title="Relative size (Rank 1 = best)",
             yaxis_title="Brand",
-            margin=dict(l=80, r=20, t=50, b=50),
+            margin=dict(l=80, r=20, t=50, b=40),
             height=500
         )
-
         st.plotly_chart(fig, use_container_width=True)
 
-    # Selection + product image
+    # Selección de producto + imagen
     asin_to_label = {}
     for _, row in df_top10.iterrows():
         brand = row.get("brand", "")
@@ -154,7 +151,7 @@ def render_best_sellers_section_with_table(active_basket_name: str):
         if isinstance(product_url, str) and product_url:
             st.markdown(f"[Open product page]({product_url})")
 
-    # Table in expander
+    # Tabla completa
     with st.expander("Top 10 Best-sellers Data"):
         cols_to_show = [
             "asin", "brand", "product_title", "rank",
