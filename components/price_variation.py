@@ -26,8 +26,8 @@ def plot_price_variation_by_asin(df: pd.DataFrame, period: str = "day") -> None:
         latest_date = dfp["x"].max()
         df_latest = dfp[dfp["x"] == latest_date]
     elif period == "week":
-        latest_week = dfp["iso_week"].dt.isocalendar().week.max()
-        df_latest = dfp[dfp["iso_week"].dt.isocalendar().week == latest_week]
+        latest_week = dfp["x"].dt.isocalendar().week.max()
+        df_latest = dfp[dfp["x"].dt.isocalendar().week == latest_week]
     else:
         st.warning("Invalid period specified")
         return
