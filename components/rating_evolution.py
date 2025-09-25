@@ -8,7 +8,6 @@ from components.evolution_utils import (
     _aggregate_by_period,
     _has_discount_by_asin,
     _common_layout,
-    _annotate_max_per_subplot,
     _hover_template,
     _dash_for_asin,
 )
@@ -16,7 +15,7 @@ from components.evolution_utils import (
 def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") -> None:
     """
     Versión con subplots en cuadrícula (hasta 3 columnas) para evolución de ratings por ASIN.
-    Cada título de subplot muestra 'brand - asin'.
+    Cada título de subplot muestra 'brand - asin' como link clickeable.
     """
     dfp = _aggregate_by_period(df, period)
     
@@ -41,23 +40,15 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
 
     discount_map = _has_discount_by_asin(dfp)
 
-    # Crear la figura con subplots en cuadrícula
-       # Crear la figura con subplots en cuadrícula
+    # Crear la figura sin títulos en subplot_titles
     fig = make_subplots(
         rows=rows,
         cols=cols,
         shared_xaxes=True,
-        subplot_titles=[
-            f"<a href='{dfp[dfp['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
-            f"style='color:#FFFBFE; text-decoration:none;'>{dfp[dfp['asin'] == asin]['brand'].iloc[0]} - {asin}</a>"
-            if "brand" in dfp.columns and "product_url" in dfp.columns
-            else f"ASIN {asin}"
-            for asin in asins
-        ],
+        subplot_titles=["" for _ in asins],  # dejamos vacíos
         vertical_spacing=0.16,
         horizontal_spacing=0.08,
     )
-
 
     # Mapa asin → (fila, columna)
     row_map = {}
@@ -65,6 +56,23 @@ def plot_rating_evolution_by_asin_grid(df: pd.DataFrame, period: str = "day") ->
         r = i // cols + 1
         c = i % cols + 1
         row_map[asin] = (r, c)
+
+        # Título clickeable como anotación
+        brand = (
+            dfp[dfp["asin"] == asin]["brand"].iloc[0]
+            if "brand" in dfp.columns else "Unknown"
+        )
+        url = (
+            dfp[dfp["asin"] == asin]["product_url"].iloc[0]
+            if "product_url" in dfp.columns else "#"
+        )
+        fig.add_annotation(
+            text=f"<a href='{url}' target='_blank'>{brand} - {asin}</a>",
+            x=0.5, y=1.1, xref=f"x{len(row_map)}", yref=f"y{len(row_map)}",
+            xanchor="center", yanchor="bottom",
+            showarrow=False,
+            row=r, col=c
+        )
 
     # Hover template
     hover_tmpl = _hover_template("ASIN", "Rating", show_pct=True, period=period)
