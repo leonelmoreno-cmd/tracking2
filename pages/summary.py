@@ -21,3 +21,24 @@ def main():
     price_fig = create_price_graph(prepared_df, period=period)
     st.header("Breakdown by ASIN")
     st.plotly_chart(price_fig, use_container_width=True)
+# 👇 Añade este bloque justo debajo del chart
+with st.expander("Show price table"):
+    df_table = prepared_df.copy()
+
+    if period == "day":
+        # Asegura que date es datetime y formatea
+        df_table["xlabel"] = pd.to_datetime(df_table["date"], errors="coerce").dt.strftime("%Y-%m-%d")
+    else:
+        # Semanal: usa el número de semana como entero
+        df_table["xlabel"] = df_table["week_number"].astype(int)
+
+    tbl = (
+        df_table.pivot_table(
+            index="xlabel",
+            columns="asin",
+            values="product_price",
+            aggfunc="mean"
+        ).sort_index()
+    )
+
+    st.dataframe(tbl)
