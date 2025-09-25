@@ -63,31 +63,49 @@ def prepare_data(df: pd.DataFrame, basket_name: str = None) -> pd.DataFrame:
     )
     df["price_change"] = df.groupby("asin")["product_price"].pct_change() * 100
 
-    # --- Siempre intentar enriquecer con subcategoría ---
+    # Siempre intentar enriquecer con el CSV de subcategoría
     if basket_name and basket_name in COMPETITOR_TO_SUBCATEGORY_MAP:
         sub_file = COMPETITOR_TO_SUBCATEGORY_MAP[basket_name]
         sub_url = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{GITHUB_PATH}/{sub_file}"
         try:
-            # Leer todas las columnas que aportan info extra
             sub_df = pd.read_csv(sub_url)
-            cols_to_merge = [
-                "asin", "brand", "product_title", "product_price",
-                "product_star_rating", "product_num_ratings",
-                "product_url", "product_photo", "rank"
+            # Solo columnas útiles para evitar colisiones
+            wanted = [
+                "asin", "brand", "product_title", "product_url",
+                "product_photo", "rank"
             ]
-            cols_to_merge = [c for c in cols_to_merge if c in sub_df.columns]
-            df = df.merge(sub_df[cols_to_merge], on="asin", how="left")
-            print(f"✅ Subcategory file {sub_file} merged successfully.")
+            sub_df = sub_df[[c for c in wanted if c in sub_df.columns]].copy()
+
+            # Merge controlado (sin sufijos molestos)
+            df = df.merge(sub_df, on="asin", how="left", suffixes=("", "_sub"))
+
+            # Coalesce de brand
+            if "brand_sub" in df.columns:
+                if "brand" in df.columns:
+                    df["brand"] = df["brand"].fillna(df["brand_sub"])
+                else:
+                    df["brand"] = df["brand_sub"]
+                df.drop(columns=[c for c in ["brand_sub"] if c in df.columns], inplace=True)
+
+            # Coalesce de product_url (si existiera en ambos lados)
+            if "product_url_sub" in df.columns:
+                base = df.get("product_url")
+                df["product_url"] = base.fillna(df["product_url_sub"]) if base is not None else df["product_url_sub"]
+                df.drop(columns=["product_url_sub"], inplace=True)
+
+            # Si vino rank_sub y no tienes rank, renombras
+            if "rank_sub" in df.columns and "rank" not in df.columns:
+                df.rename(columns={"rank_sub": "rank"}, inplace=True)
+
         except Exception as e:
             print(f"⚠️ Error loading subcategory file {sub_file}: {e}")
-            if "brand" not in df.columns:
-                df["brand"] = "Unknown"
-    else:
-        if "brand" not in df.columns:
-            df["brand"] = "Unknown"
+
+    # Garantizar columna brand usable
+    if "brand" not in df.columns:
+        df["brand"] = "Unknown"
+    df["brand"] = df["brand"].fillna("Unknown").astype(str)
 
     return df
-
 
     # --- Si no, intentar traerlo desde el archivo de subcategoría ---
     if basket_name and basket_name in COMPETITOR_TO_SUBCATEGORY_MAP:
