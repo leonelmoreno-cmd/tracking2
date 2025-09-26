@@ -34,8 +34,7 @@ def simulate_sales(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
 # =============================================================
 
 def render_sales_overview_section(df: pd.DataFrame, period: str):
-    st.header("Data simulada, falta conexión, página solo para fines de layout", divider="gray")
-    st.subheader("Sales — Overview")
+    st.subheader("📊 Sales — Overview")
     st.caption("Filter below. Metrics and chart are based on simulated sales data.")
 
     left_col, right_col = st.columns([0.7, 2.3], gap="large")
@@ -72,7 +71,7 @@ def render_sales_overview_section(df: pd.DataFrame, period: str):
         if selected_brands:
             df_overview = df_overview[df_overview["brand"].isin(selected_brands)]
 
-        st.markdown("### Sales Highlights")
+        st.markdown("### ✨ Sales Highlights")
         if df_overview.empty:
             st.info("No data for current filters.")
         else:
@@ -88,11 +87,12 @@ def render_sales_overview_section(df: pd.DataFrame, period: str):
             low_sales = grouped.loc[grouped["total_sales"].idxmin()]
             avg_sales = grouped["avg_sales"].mean()
 
-            # Variation metrics (by brand)
-            variations = grouped["total_sales"].pct_change().fillna(0)
-            max_var = variations.max() * 100
-            min_var = variations.min() * 100
-            avg_var = variations.mean() * 100
+            # Variations (simulate variation between brands)
+            sales_vals = grouped["total_sales"]
+            pct_changes = sales_vals.pct_change().fillna(0)
+            max_var = pct_changes.max() * 100
+            min_var = pct_changes.min() * 100
+            avg_var = pct_changes.mean() * 100
 
             # Units metrics
             top_units = grouped.loc[grouped["total_units"].idxmax()]
@@ -101,19 +101,19 @@ def render_sales_overview_section(df: pd.DataFrame, period: str):
 
             col1, col2, col3 = st.columns(3)
             # Sales
-            col1.metric("Highest Sales", f"{top_sales['brand']} (${top_sales['total_sales']:,.0f})")
-            col1.metric("Lowest Sales", f"{low_sales['brand']} (${low_sales['total_sales']:,.0f})")
-            col1.metric("Average Sales", f"${avg_sales:,.0f}")
+            col1.metric("🏆 Highest Sales", f"{top_sales['brand']} (${top_sales['total_sales']:,.0f})")
+            col1.metric("📉 Lowest Sales", f"{low_sales['brand']} (${low_sales['total_sales']:,.0f})")
+            col1.metric("📊 Average Sales", f"${avg_sales:,.0f}")
 
             # Variations
-            col2.metric("Highest Variation", f"{max_var:.1f}%")
-            col2.metric("Lowest Variation", f"{min_var:.1f}%")
-            col2.metric("Average Variation", f"{avg_var:.1f}%")
+            col2.metric("📈 Highest Variation", f"{max_var:.1f}%")
+            col2.metric("📉 Lowest Variation", f"{min_var:.1f}%")
+            col2.metric("📊 Average Variation", f"{avg_var:.1f}%")
 
             # Units
-            col3.metric("Most Units Sold", f"{top_units['brand']} ({top_units['total_units']:,})")
-            col3.metric("Least Units Sold", f"{low_units['brand']} ({low_units['total_units']:,})")
-            col3.metric("Average Units Sold", f"{avg_units_val:,.1f}")
+            col3.metric("📦 Most Units Sold", f"{top_units['brand']} ({top_units['total_units']:,})")
+            col3.metric("📦 Least Units Sold", f"{low_units['brand']} ({low_units['total_units']:,})")
+            col3.metric("📦 Average Units Sold", f"{avg_units_val:,.1f}")
 
     return df_overview, selected_brands, period
 
@@ -152,7 +152,7 @@ def create_sales_overview_graph(df: pd.DataFrame, brands_to_plot=None, week_rang
     fig.update_xaxes(title_text=("Date" if period == "day" else "Week Number"))
 
     fig.update_layout(
-        title="Sales Overview — Total Sales by Brand",
+        title="📈 Sales Overview — Total Sales by Brand",
         height=420,
         hovermode="x unified",
         legend_title_text="Brand",
@@ -165,7 +165,7 @@ def create_sales_overview_graph(df: pd.DataFrame, brands_to_plot=None, week_rang
 # =============================================================
 
 def render_sales_breakdown(df: pd.DataFrame, period: str = "week"):
-    st.header("Sales Breakdown by Brand")
+    st.header("🔎 Sales Breakdown by Brand")
 
     if df.empty:
         st.info("No data available.")
@@ -213,7 +213,7 @@ def render_sales_breakdown(df: pd.DataFrame, period: str = "week"):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Show sales table"):
+    with st.expander("📄 Show sales table"):
         if period == "day":
             df["xlabel"] = pd.to_datetime(df["date"], errors="coerce").dt.strftime("%Y-%m-%d")
         else:
@@ -241,9 +241,9 @@ def main():
     prepared_df = prepare_data(df, basket_name=active_basket_name)
     sales_df = simulate_sales(prepared_df)
 
-    st.header("Sales Overview")
+    st.header("📊 Sales Dashboard")
     if sales_df is None or sales_df.empty:
-        st.warning("No data available. Load data first.")
+        st.warning("⚠️ No data available. Load data first.")
         return
 
     df_overview, selected_brands, period = render_sales_overview_section(sales_df, period=period)
