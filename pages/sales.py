@@ -34,6 +34,7 @@ def simulate_sales(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
 # =============================================================
 
 def render_sales_overview_section(df: pd.DataFrame, period: str):
+    st.header("Data simulada, falta conexión con JungleScout, página solo para fines de layout", divider="gray")
     st.subheader("Sales — Overview")
     st.caption("Filter below. Metrics and chart are based on simulated sales data.")
 
