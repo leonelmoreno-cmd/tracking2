@@ -11,7 +11,7 @@ def main():
     DEFAULT_BASKET = "synthethic3.csv"
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
 
-    # Optionally allow the user to toggle baskets
+    # Optionally allow the users to toggle baskets
     period, active_basket_name = render_basket_and_toggle(name_to_url, active_basket_name, DEFAULT_BASKET)
     active_url = name_to_url.get(active_basket_name, active_url)
 
