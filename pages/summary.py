@@ -5,7 +5,8 @@ from components.visualization import create_price_graph
 from components.overview_section import render_overview_section
 from components.basket_utils import resolve_active_basket
 from components.basket_and_toggle_section import render_basket_and_toggle
-from components.header import display_header  # Importa la función correctamente
+from components.header import display_header  
+from components.price_variation import plot_price_variation_by_asin
 
 def main():
     set_page_config()
@@ -53,7 +54,12 @@ def main():
         )
 
         st.dataframe(tbl)
-
+st.divider()
+    st.header("Price Percentage Variation (by ASIN)")
+    if prepared_df is None or prepared_df.empty:
+        st.warning("No data available. Load data first.")
+    else:
+        plot_price_variation_by_asin(prepared_df, period=period)
 
 if __name__ == "__main__":
     main()
