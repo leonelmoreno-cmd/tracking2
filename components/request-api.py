@@ -286,13 +286,22 @@ def main() -> None:
     # if "rank" in df.columns:
     #     df["rank"] = pd.to_numeric(df["rank"], errors="coerce")
 
-    # Booleans con NA
+        # Booleans con NA
     for col in ["is_amazon_choice", "is_best_seller"]:
         if col in df.columns:
             df[col] = df[col].astype("boolean")
 
+    # --- NUEVO: chequear salto de línea al final del archivo ---
+    if output_with_suffix.exists():
+        with open(output_with_suffix, "rb+") as f:
+            f.seek(-1, os.SEEK_END)
+            last_char = f.read(1)
+            if last_char not in (b"\n", b"\r"):  # por si viene de Windows o Unix
+                f.write(b"\n")
+
     # sales_volume permanece como string original
     df.to_csv(output_with_suffix, mode="a", index=False, header=write_header)
+
 
     print("Wrote rows:", len(df))
     print("Output file:", str(output_with_suffix))
