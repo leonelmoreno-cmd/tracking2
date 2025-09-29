@@ -123,7 +123,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
             row=r, col=c
         )
 
-    # aplicar layout común
+    # aplicar layout comúns
     _common_layout(
         fig,
         nrows=rows,
