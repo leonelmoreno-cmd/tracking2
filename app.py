@@ -11,7 +11,6 @@ from pages.ngram import main as ngram_page
 
 # New modular evolution pages
 from pages.rating_evolution import main as rating_evolution_page
-from pages.price_variation import main as price_variation_page
 from pages.ranking_evolution import main as ranking_evolution_page
 
 
@@ -23,7 +22,6 @@ def main():
         st.Page(summary_page, title="Pricing Breakdown by ASIN", icon="📈", url_path="summary"),
         # Modularized evolution pages
         st.Page(rating_evolution_page, title="Rating Evolution", icon="⭐", url_path="rating-evolution"),
-        st.Page(price_variation_page, title="Price Variation", icon="💲", url_path="price-variation"),
         st.Page(ranking_evolution_page, title="Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
         # Other existing pages
         st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
