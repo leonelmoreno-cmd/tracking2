@@ -25,8 +25,6 @@ def main():
     prepared_df = prepare_data(df, basket_name=active_basket_name)
     display_header(prepared_df)
     st.header("Ranking Evolution (by ASIN)")
-    #Test
-    st.dataframe(prepared_df.head())
     if prepared_df is None or prepared_df.empty:
         st.warning("No data available. Load data first.")
     else:
