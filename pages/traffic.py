@@ -33,7 +33,7 @@ import plotly.express as px
 
 # ---------- UI + top matter ----------
 def _header():
-    st.title("Demand Analysis JC")
+    st.title("Demand Analysis")
     st.header("Attention: popularity does not equal search volume, confirm with Search Query Performance.")
     st.caption("Google Trends (US, last 5y, en-US) → STL (LOESS) → Plotly → Better decisions")
 
