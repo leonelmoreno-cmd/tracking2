@@ -47,7 +47,8 @@ def _aggregate_by_period(df: pd.DataFrame, period: str) -> pd.DataFrame:
             product_star_rating=("product_star_rating", "mean"),
             discount_any=("product_original_price", lambda s: pd.notna(s).any()),
             rank=("rank", "min"), 
-            brand=("brand", "first")   # 🔑 arrastramos la marca
+            brand=("brand", "first"),
+            sub_category_name=("sub_category_name", "first")# 🔑 arrastramos la marca
         )
         grp["x"] = grp.apply(lambda r: _week_start(r["iso_year"], r["iso_week"]), axis=1)
         grp = grp.sort_values(["asin", "x"])
