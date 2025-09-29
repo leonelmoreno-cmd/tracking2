@@ -176,7 +176,15 @@ def render_sales_breakdown(df: pd.DataFrame, period: str = "week"):
     cols = 3 if num_brands >= 3 else max(1, num_brands)
     rows = int(np.ceil(num_brands / cols))
 
-    fig = make_subplots(rows=rows, cols=cols, shared_xaxes=True, subplot_titles=[str(b) for b in brands])
+    # Espaciados para dejar sitio a las etiquetas del eje X
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[str(b) for b in brands],
+        vertical_spacing=0.12,
+        horizontal_spacing=0.08
+    )
 
     for i, brand in enumerate(brands):
         brand_data = df[df["brand"] == brand].sort_values("date")
@@ -187,7 +195,8 @@ def render_sales_breakdown(df: pd.DataFrame, period: str = "week"):
             x_vals = brand_data["date"]
             hover_x = "Date: %{x|%Y-%m-%d}"
         else:
-            x_vals = brand_data["week_number"]
+            # Asegura etiquetas enteras para semanas
+            x_vals = brand_data["week_number"].astype(int)
             hover_x = "Week: %{x}"
 
         r = i // cols + 1
@@ -205,9 +214,18 @@ def render_sales_breakdown(df: pd.DataFrame, period: str = "week"):
             row=r, col=c
         )
 
+    # --- Forzar etiquetas del eje X en TODOS los subplots ---
+    for r in range(1, rows + 1):
+        for c in range(1, cols + 1):
+            fig.update_xaxes(showticklabels=True, ticks="outside", ticklen=4, row=r, col=c)
+            if period == "day":
+                fig.update_xaxes(tickformat="%Y-%m-%d", tickangle=-45, row=r, col=c)
+            else:
+                fig.update_xaxes(tickmode="auto", tickangle=0, row=r, col=c)
+
     fig.update_layout(
         height=max(400, 280 * rows),
-        margin=dict(l=20, r=20, t=50, b=50),
+        margin=dict(l=20, r=20, t=50, b=80),  # margen inferior extra para etiquetas rotadas
         showlegend=False
     )
 
