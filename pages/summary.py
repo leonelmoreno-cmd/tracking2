@@ -1,3 +1,14 @@
+import streamlit as st
+import pandas as pd
+
+from components.common import set_page_config, fetch_data, prepare_data
+from components.visualization import create_price_graph
+from components.overview_section import render_overview_section
+from components.basket_utils import resolve_active_basket
+from components.basket_and_toggle_section import render_basket_and_toggle
+from components.header import display_header
+from components.price_variation import plot_price_variation_by_asin  # lo añadimos antes
+
 def main():
     set_page_config()
 
