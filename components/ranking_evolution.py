@@ -1,12 +1,17 @@
 # pages/ranking_evolution.py
 
 import streamlit as st
-from components.common import set_page_config, fetch_data, prepare_data
-from components.basket_utils import resolve_active_basket
-from components.basket_and_toggle_section import render_basket_and_toggle
-from components.ranking_evolution import plot_ranking_evolution_by_asin
-from components.header import display_header
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
+from components.evolution_utils import (
+    _aggregate_by_period,
+    _has_discount_by_asin,
+    _common_layout,
+    _dash_for_asin,
+)
 
 def main():
     set_page_config()
