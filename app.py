@@ -8,8 +8,7 @@ from pages.settings import main as settings_page
 from pages.traffic import main as traffic_page
 from pages.sales import main as sales
 from pages.ngram import main as ngram_page
-
-# New modular evolution pages
+from pages.campaigns_evolution import main as campaigns_evolution_page
 from pages.rating_evolution import main as rating_evolution_page
 from pages.ranking_evolution import main as ranking_evolution_page
 
@@ -29,6 +28,7 @@ def main():
         st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
         st.Page(ngram_page, title="N-gram", icon="🔤", url_path="ngram"),
+        st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
