@@ -20,11 +20,6 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         else:
             df = pd.read_excel(file, sheet_name=sheet_name)
 
-        # Verificar las primeras filas y las columnas del DataFrame cargado
-        st.write("DataFrame cargado antes de cualquier transformación:")
-        st.dataframe(df.head())  # Muestra las primeras filas
-        st.write(f"Columnas en DataFrame cargado: {df.columns}\n")  # Muestra las columnas
-
         # Rename relevant columns
         df = df.rename(
             columns={
