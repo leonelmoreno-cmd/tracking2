@@ -182,19 +182,22 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 # ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
-       Only keep campaigns that appear in all weeks (inner join) based on the new columns."""
+       Only keep campaigns that appear in all weeks (inner join)."""
+    # Renombrar las columnas de cada semana
+    combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
     
-    # Renombramos las columnas de cada semana
-    combined = weekly_dfs[0].rename(columns={"status": "W1_status", "portfolio_name": "W1_portfolio_name", "keyword_text": "W1_keyword_text"})
+    # Merge W1 con W2
     combined = combined.merge(
-        weekly_dfs[1].rename(columns={"status": "W2_status", "portfolio_name": "W2_portfolio_name", "keyword_text": "W2_keyword_text"}),
-        on=["campaign", "portfolio_name", "keyword_text"], how="inner"
-    )
-    combined = combined.merge(
-        weekly_dfs[2].rename(columns={"status": "W3_status", "portfolio_name": "W3_portfolio_name", "keyword_text": "W3_keyword_text"}),
-        on=["campaign", "portfolio_name", "keyword_text"], how="inner"
+        weekly_dfs[1].rename(columns={"status": "W2_status", "keyword_text": "W2_keyword_text"}),
+        on=["campaign", "keyword_text"], how="inner"
     )
 
-    # Devolvemos el DataFrame final con la evolución de cada campaña a través de las tres semanas
+    # Merge con W3
+    combined = combined.merge(
+        weekly_dfs[2].rename(columns={"status": "W3_status", "keyword_text": "W3_keyword_text"}),
+        on=["campaign", "keyword_text"], how="inner"
+    )
+
     return combined
+
 
