@@ -36,6 +36,9 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
                 "Product Targeting Expression": "product_targeting_expression"
             }
         )
+        
+        # 🔥 Filtro: solo conservar Keywords y Product Targeting
+        df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
         # Filtro: solo campañas habilitadas
         df = df[df["state"].isin(["enabled"])]
@@ -43,9 +46,6 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         # Filtro adicional: asegurarse de que las columnas necesarias estén habilitadas
         df = df[df["campaign_state"].isin(["enabled"])]
         df = df[df["ad_group_state"].isin(["enabled"])]
-
-        # 🔥 Filtro: solo conservar Keywords y Product Targeting
-        df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
         # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
         df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
