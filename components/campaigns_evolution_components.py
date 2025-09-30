@@ -180,9 +180,18 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     return tmp_pdf.name
 
 # ---------- Evolution Table ----------
+import streamlit as st  # Asegúrate de importar streamlit
+
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
        Only keep campaigns that appear in all weeks (inner join)."""
+
+    # Verificar el contenido de cada DataFrame antes del merge
+    for i, df in enumerate(weekly_dfs, start=1):
+        st.write(f"DataFrame {i} antes del merge:")
+        st.dataframe(df.head())  # Muestra las primeras filas del DataFrame en Streamlit
+        st.write(f"Columnas en DataFrame {i}: {df.columns}\n")  # Muestra las columnas
+
     # Renombrar las columnas de cada semana
     combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
     
@@ -199,5 +208,6 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     )
 
     return combined
+
 
 
