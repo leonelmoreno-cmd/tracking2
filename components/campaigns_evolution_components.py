@@ -186,9 +186,6 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     return tmp_pdf.name
 
 # ---------- Evolution Table ----------
-
-import streamlit as st  # Asegúrate de importar streamlit
-
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
        Only keep campaigns that appear in all weeks (inner join)."""
@@ -199,38 +196,30 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         st.dataframe(df.head())  # Muestra las primeras filas del DataFrame en Streamlit
         st.write(f"Columnas en DataFrame {i}: {df.columns}\n")  # Muestra las columnas
 
-    # Renombrar las columnas de cada semana
-    combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
-    
-    # Verificar si 'keyword_text' está en el primer DataFrame después del renombrado
-    st.write("Columnas en el DataFrame W1 después del renombrado:", combined.columns)
+    # Primer DataFrame (W1), sin renombrar las columnas
+    combined = weekly_dfs[0]  # No renombramos columnas
 
-    # Merge W1 con W2
-    # Verificar si 'keyword_text' está presente en el segundo DataFrame (W2)
-    st.write("Columnas en el DataFrame W2 antes del renombrado:", weekly_dfs[1].columns)
-    weekly_dfs[1] = weekly_dfs[1].rename(columns={"status": "W2_status", "keyword_text": "W2_keyword_text"})
-    st.write("Columnas en el DataFrame W2 después del renombrado:", weekly_dfs[1].columns)
+    # Verificar si 'keyword_text' está en el primer DataFrame
+    st.write("Columnas en el DataFrame W1:", combined.columns)
 
+    # Merge W1 con W2 sin renombrar las columnas
     combined = combined.merge(
-        weekly_dfs[1],
-        on=["campaign", "W1_keyword_text"], how="inner"
+        weekly_dfs[1],  # Merge con el segundo DataFrame
+        on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
     )
 
-    # Verificar las columnas después del primer merge
+    # Verificar las columnas después del merge
     st.write("Columnas en el DataFrame combinado después de W1 y W2 merge:", combined.columns)
 
     # Merge con W3
-    # Verificar si 'keyword_text' está presente en el tercer DataFrame (W3)
-    st.write("Columnas en el DataFrame W3 antes del renombrado:", weekly_dfs[2].columns)
-    weekly_dfs[2] = weekly_dfs[2].rename(columns={"status": "W3_status", "keyword_text": "W3_keyword_text"})
-    st.write("Columnas en el DataFrame W3 después del renombrado:", weekly_dfs[2].columns)
-
     combined = combined.merge(
-        weekly_dfs[2],
-        on=["campaign", "W1_keyword_text"], how="inner"
+        weekly_dfs[2],  # Merge con el tercer DataFrame
+        on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
     )
 
     # Verificar las columnas después del segundo merge
     st.write("Columnas en el DataFrame combinado después de W1, W2, y W3 merge:", combined.columns)
 
     return combined
+
+
