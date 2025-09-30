@@ -117,12 +117,12 @@ def create_sankey(nodes: List[str], sources: List[int], targets: List[int], valu
     fig.update_layout(title_text="Campaign Status Evolution", font_size=10)
     return fig
 
-
-# ---------- PDF Export ----------
 def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     """Generate a PDF with Sankey image and filtered table, return file path."""
     tmp_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-    pio.write_image(fig, tmp_img.name, format="png")
+    
+    # Guardar figura como PNG (requiere kaleido en requirements.txt)
+    fig.write_image(tmp_img.name, format="png")
 
     pdf = FPDF()
     pdf.add_page()
