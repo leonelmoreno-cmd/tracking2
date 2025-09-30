@@ -187,6 +187,7 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 
 # ---------- Evolution Table ----------
 import streamlit as st  # Asegúrate de importar streamlit
+
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
        Only keep campaigns that appear in all weeks (inner join)."""
@@ -196,6 +197,14 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         st.write(f"DataFrame {i} antes del merge:")
         st.dataframe(df.head())  # Muestra las primeras filas del DataFrame en Streamlit
         st.write(f"Columnas en DataFrame {i}: {df.columns}\n")  # Muestra las columnas
+
+    # Verificación de que las columnas necesarias existen en cada DataFrame
+    required_columns = ["campaign", "keyword_text"]
+    for i, df in enumerate(weekly_dfs, start=1):
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            st.write(f"DataFrame {i} está faltando las siguientes columnas para el merge: {missing_columns}")
+            return pd.DataFrame()  # Si falta alguna columna, detenemos el proceso y retornamos un DataFrame vacío
 
     # Renombrar las columnas de cada semana
     combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
@@ -222,7 +231,6 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     st.write("Columnas en el DataFrame W3 después del renombrado:", weekly_dfs[2].columns)
 
     return combined
-
 
 
 
