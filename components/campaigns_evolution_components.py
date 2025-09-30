@@ -144,7 +144,7 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     pdf.ln(110)
 
     # Sección 1: campañas críticas en W3
-   pdf.cell(200, 10, f"- {row['campaign']} : {w1} -> {w2} -> {w3}", ln=True, align="L")
+    pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
     for _, row in filtered_df.iterrows():
         pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['W3_status']})", ln=True, align="L")
 
@@ -156,7 +156,7 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
         w1 = row.get("W1_status", "not_present")
         w2 = row.get("W2_status", "not_present")
         w3 = row.get("W3_status", "not_present")
-        pdf.cell(200, 10, f"- {row['campaign']} : {w1} → {w2} → {w3}", ln=True, align="L")
+        pdf.cell(200, 10, f"- {row['campaign']} : {w1} -> {w2} -> {w3}", ln=True, align="L")
 
     # Guardar PDF temporal
     tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
@@ -166,7 +166,6 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     os.unlink(tmp_img.name)
 
     return tmp_pdf.name
-
 
 # ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
