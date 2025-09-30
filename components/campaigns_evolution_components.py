@@ -137,12 +137,14 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     pdf.ln(105)
     pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
 
+    pdf.ln(10)
+    pdf.cell(200, 10, "Full Evolution of Campaigns", ln=True, align="L")
+
     for _, row in filtered_df.iterrows():
-        pdf.cell(200, 10, f"- {row['campaign']} : {row['status']}", ln=True, align="L")
-
-    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    pdf.output(tmp_pdf.name)
-
+        w1 = row.get("W1_status", "not_present")
+        w2 = row.get("W2_status", "not_present")
+        w3 = row.get("W3_status", "not_present")
+        pdf.cell(200, 10, f"- {row['campaign']} : {w1} → {w2} → {w3}", ln=True, align="L")
     os.unlink(tmp_img.name)
     return tmp_pdf.name
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
