@@ -169,14 +169,15 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 
 # ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
-    """Return a dataframe with campaigns and their status across W1, W2, W3."""
+    """Return a dataframe with campaigns and their status across W1, W2, W3.
+       Only keep campaigns that appear in all weeks (inner join)."""
     combined = weekly_dfs[0].rename(columns={"status": "W1_status"})
     combined = combined.merge(
         weekly_dfs[1].rename(columns={"status": "W2_status"}),
-        on="campaign", how="outer"
+        on="campaign", how="inner"
     )
     combined = combined.merge(
         weekly_dfs[2].rename(columns={"status": "W3_status"}),
-        on="campaign", how="outer"
+        on="campaign", how="inner"
     )
-    return combined.fillna("not_present")
+    return combined
