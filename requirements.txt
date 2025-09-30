@@ -6,8 +6,6 @@ streamlit
 pytrends
 statsmodels
 plotly>=4
-pandas
 numpy
 packaging
-urllib3<2
-pytrends
+rapidfuzz>=3.0.0
