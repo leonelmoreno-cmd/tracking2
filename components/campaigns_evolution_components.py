@@ -22,22 +22,21 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         else:
             df = pd.read_excel(file, sheet_name=sheet_name)
 
-        # Rename columns
+        # Rename relevant columns
         df = df.rename(
             columns={
                 "Campaign Name (Informational only)": "campaign",
                 "Status": "status",
                 "Entity": "entity",
                 "State": "state",  
-                "Portfolio Name (Informational only)": "portfolio_name", 
                 "Campaign State (Informational only)": "campaign_state", 
                 "Ad Group State (Informational only)": "ad_group_state",
                 "Keyword Text": "keyword_text",
                 "Product Targeting Expression": "product_targeting_expression"
             }
         )
-        
-        # 🔥 Filtro: solo conservar Keywords y Product Targeting
+
+        # Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
         # Filtro: solo campañas habilitadas
@@ -54,12 +53,11 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
 
-        return df[["campaign", "portfolio_name", "status", "keyword_text", "product_targeting_expression"]]
+        return df[["campaign", "status", "keyword_text", "product_targeting_expression"]]
     
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "portfolio_name", "status", "keyword_text", "product_targeting_expression"])
-
+        return pd.DataFrame(columns=["campaign", "status", "keyword_text", "product_targeting_expression"])
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
