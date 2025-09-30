@@ -9,7 +9,7 @@ from fpdf import FPDF
 import tempfile
 import os
 import plotly.io as pio
-
+import streamlit as st
 logging.basicConfig(level=logging.INFO)
 
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
