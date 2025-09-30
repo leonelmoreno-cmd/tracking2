@@ -13,7 +13,6 @@ import plotly.io as pio
 logging.basicConfig(level=logging.INFO)
 
 
-# ---------- File IO ----------
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
     """Load a weekly Excel/CSV file and extract the campaigns, status, and other required columns."""
     try:
@@ -46,18 +45,22 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         df = df[df["campaign_state"].isin(["enabled"])]
         df = df[df["ad_group_state"].isin(["enabled"])]
 
-        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
+        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression" para esa fila.
         df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
+
+        # Eliminar la columna "Product Targeting Expression" ya que no debe existir después de este reemplazo.
+        df = df.drop(columns=["product_targeting_expression"])
 
         # Clean up
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
 
-        return df[["campaign", "status", "keyword_text", "product_targeting_expression"]]
+        return df[["campaign", "status", "keyword_text"]]  # Retornar las columnas necesarias
     
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "status", "keyword_text", "product_targeting_expression"])
+        return pd.DataFrame(columns=["campaign", "status", "keyword_text"])
+
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
