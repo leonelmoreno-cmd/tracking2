@@ -27,7 +27,6 @@ def main():
             for i, df in enumerate(dfs, start=1):
                 st.subheader(f"Weekly {i}")
                 st.write(df["status"].value_counts())
-                st.dataframe(df.head())
 
         # Unify campaigns across weeks
         dfs = comp.unify_campaign_names(dfs)
