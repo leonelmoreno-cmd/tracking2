@@ -198,14 +198,6 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         st.dataframe(df.head())  # Muestra las primeras filas del DataFrame en Streamlit
         st.write(f"Columnas en DataFrame {i}: {df.columns}\n")  # Muestra las columnas
 
-    # Verificación de que las columnas necesarias existen en cada DataFrame
-    required_columns = ["campaign", "keyword_text"]
-    for i, df in enumerate(weekly_dfs, start=1):
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
-            st.write(f"DataFrame {i} está faltando las siguientes columnas para el merge: {missing_columns}")
-            return pd.DataFrame()  # Si falta alguna columna, detenemos el proceso y retornamos un DataFrame vacío
-
     # Renombrar las columnas de cada semana
     combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
     
@@ -218,8 +210,8 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         on=["campaign", "keyword_text"], how="inner"
     )
 
-    # Verificar si 'keyword_text' está en el segundo DataFrame (W2)
-    st.write("Columnas en el DataFrame W2 después del renombrado:", weekly_dfs[1].columns)
+    # Verificar las columnas después del primer merge
+    st.write("Columnas en el DataFrame combinado después de W1 y W2 merge:", combined.columns)
 
     # Merge con W3
     combined = combined.merge(
@@ -227,10 +219,7 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         on=["campaign", "keyword_text"], how="inner"
     )
 
-    # Verificar si 'keyword_text' está en el tercer DataFrame (W3)
-    st.write("Columnas en el DataFrame W3 después del renombrado:", weekly_dfs[2].columns)
+    # Verificar las columnas después del segundo merge
+    st.write("Columnas en el DataFrame combinado después de W1, W2, y W3 merge:", combined.columns)
 
     return combined
-
-
-
