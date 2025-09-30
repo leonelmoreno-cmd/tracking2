@@ -25,10 +25,13 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
             columns={
                 "Campaign Name (Informational only)": "campaign",
                 "Status": "status",
-                "Entity": "entity"   # 👈 Aseguramos que Entity exista
+                "Entity": "entity",
+                "State": "state"# 👈 Aseguramos que Entity exista
             }
         )
-
+        # Filtro Leonel
+        df = df[df["state"].isin(["enabled"])]
+        
         # 🔥 Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
