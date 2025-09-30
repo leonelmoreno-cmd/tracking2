@@ -234,3 +234,12 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     st.write("Columnas en el DataFrame combinado después de W1, W2, y W3 merge:", combined.columns)
 
     return combined
+
+    combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
+
+    # Verificar cómo quedó el DataFrame combinado después de renombrar las columnas
+    st.write("DataFrame combinado (W1) después del renombrado:")
+    st.dataframe(combined)  # Muestra el DataFrame en Streamlit
+
+    # Verificar si la columna 'W1_keyword_text' existe en el DataFrame combinado
+    st.write("Columnas en el DataFrame combinado (W1):", combined.columns)
