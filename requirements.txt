@@ -9,3 +9,5 @@ plotly>=4
 numpy
 packaging
 rapidfuzz>=3.0.0
+fpdf2
+openpyxl
