@@ -15,6 +15,7 @@ def main():
     w3 = st.file_uploader("Upload Weekly 3", type=["csv", "xlsx", "xls"], key="w3")
 
     if w1 and w2 and w3:
+        # Load dataframes
         dfs = [
             comp.load_weekly_file(w1),
             comp.load_weekly_file(w2),
@@ -38,12 +39,12 @@ def main():
         fig = comp.create_sankey(nodes, sources, targets, values)
         st.plotly_chart(fig, use_container_width=True)
 
-       # Evolution table
+        # Evolution table (W1 → W2 → W3)
         evolution_df = comp.build_evolution_table(dfs)
         st.subheader("Full Evolution (W1 → W2 → W3)")
         st.dataframe(evolution_df)
 
-        # Filters (usar evolution_df en vez de w3_df)
+        # Filters: campaigns in W3 with Purple or White
         filtered = evolution_df[evolution_df["W3_status"].isin(["Purple", "White"])]
         st.subheader("Filtered Campaigns (W3 Purple/White)")
         st.dataframe(filtered)
@@ -52,4 +53,9 @@ def main():
         if st.button("Export PDF"):
             pdf_path = comp.export_pdf(fig, filtered)
             with open(pdf_path, "rb") as f:
-                st.download_button("Download PDF", f, file_name="campaigns_evolution.pdf", mime="application/pdf")
+                st.download_button(
+                    "Download PDF", 
+                    f, 
+                    file_name="campaigns_evolution.pdf", 
+                    mime="application/pdf"
+                )
