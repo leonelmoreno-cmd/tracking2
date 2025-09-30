@@ -131,21 +131,35 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
+    # Título principal
     pdf.cell(200, 10, "Campaigns Evolution Overview", ln=True, align="C")
     pdf.image(tmp_img.name, x=10, y=20, w=180)
 
-    pdf.ln(105)
+    # Espacio después de la imagen
+    pdf.ln(110)
+
+    # Sección 1: campañas críticas en W3
     pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
+    for _, row in filtered_df.iterrows():
+        pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['status']})", ln=True, align="L")
 
     pdf.ln(10)
-    pdf.cell(200, 10, "Full Evolution of Campaigns", ln=True, align="L")
 
+    # Sección 2: evolución completa
+    pdf.cell(200, 10, "Full Evolution of Campaigns", ln=True, align="L")
     for _, row in filtered_df.iterrows():
         w1 = row.get("W1_status", "not_present")
         w2 = row.get("W2_status", "not_present")
         w3 = row.get("W3_status", "not_present")
         pdf.cell(200, 10, f"- {row['campaign']} : {w1} → {w2} → {w3}", ln=True, align="L")
+
+    # Guardar PDF temporal
+    tmp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(tmp_pdf.name)
+
+    # Eliminar imagen temporal
     os.unlink(tmp_img.name)
+
     return tmp_pdf.name
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3."""
