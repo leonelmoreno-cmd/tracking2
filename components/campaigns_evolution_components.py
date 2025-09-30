@@ -1,4 +1,4 @@
-# modules/campaigns_evolution_components.py
+# components/campaigns_evolution_components.py
 
 import pandas as pd
 import logging
@@ -13,7 +13,9 @@ import plotly.io as pio
 logging.basicConfig(level=logging.INFO)
 
 
+# ---------- File IO ----------
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
+    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
     try:
         if file.name.endswith(".csv"):
             df = pd.read_csv(file)
@@ -26,12 +28,12 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
                 "Campaign Name (Informational only)": "campaign",
                 "Status": "status",
                 "Entity": "entity",
-                "State": "state"# 👈 Aseguramos que Entity exista
+                "State": "state"  # 👈 aseguramos que Entity y State existan
             }
         )
-        # Filtro Leonel
+        # Filtro Leonel: solo campañas habilitadas
         df = df[df["state"].isin(["enabled"])]
-        
+
         # 🔥 Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
@@ -43,6 +45,7 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
         return pd.DataFrame(columns=["campaign", "status"])
+
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
@@ -120,10 +123,12 @@ def create_sankey(nodes: List[str], sources: List[int], targets: List[int], valu
     fig.update_layout(title_text="Campaign Status Evolution", font_size=10)
     return fig
 
+
+# ---------- PDF Export ----------
 def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
-    """Generate a PDF with Sankey image and filtered table, return file path."""
+    """Generate a PDF with Sankey image, filtered campaigns, and full evolution table."""
     tmp_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-    
+
     # Guardar figura como PNG (requiere kaleido en requirements.txt)
     fig.write_image(tmp_img.name, format="png")
 
@@ -141,7 +146,7 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     # Sección 1: campañas críticas en W3
     pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
     for _, row in filtered_df.iterrows():
-        pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['status']})", ln=True, align="L")
+        pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['W3_status']})", ln=True, align="L")
 
     pdf.ln(10)
 
@@ -161,11 +166,18 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     os.unlink(tmp_img.name)
 
     return tmp_pdf.name
+
+
+# ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3."""
     combined = weekly_dfs[0].rename(columns={"status": "W1_status"})
-    combined = combined.merge(weekly_dfs[1].rename(columns={"status": "W2_status"}),
-                              on="campaign", how="outer")
-    combined = combined.merge(weekly_dfs[2].rename(columns={"status": "W3_status"}),
-                              on="campaign", how="outer")
+    combined = combined.merge(
+        weekly_dfs[1].rename(columns={"status": "W2_status"}),
+        on="campaign", how="outer"
+    )
+    combined = combined.merge(
+        weekly_dfs[2].rename(columns={"status": "W3_status"}),
+        on="campaign", how="outer"
+    )
     return combined.fillna("not_present")
