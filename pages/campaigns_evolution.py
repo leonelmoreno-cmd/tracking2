@@ -2,7 +2,7 @@
 
 import streamlit as st
 import pandas as pd
-from components.campaigns_evolution_components import campaigns_evolution_components as comp
+from components import campaigns_evolution_components as comp
 
 
 def main():
