@@ -187,6 +187,8 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 
 # ---------- Evolution Table ----------
 
+import streamlit as st  # Asegúrate de importar streamlit
+
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
        Only keep campaigns that appear in all weeks (inner join)."""
