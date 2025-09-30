@@ -12,14 +12,18 @@ import plotly.io as pio
 
 logging.basicConfig(level=logging.INFO)
 
-
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
-    """Load a weekly Excel/CSV file and extract the campaigns, status, and other required columns."""
+    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
     try:
         if file.name.endswith(".csv"):
             df = pd.read_csv(file)
         else:
             df = pd.read_excel(file, sheet_name=sheet_name)
+
+        # Verificar las primeras filas y las columnas del DataFrame cargado
+        st.write("DataFrame cargado antes de cualquier transformación:")
+        st.dataframe(df.head())  # Muestra las primeras filas
+        st.write(f"Columnas en DataFrame cargado: {df.columns}\n")  # Muestra las columnas
 
         # Rename relevant columns
         df = df.rename(
@@ -35,6 +39,9 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
             }
         )
 
+        # Verificar las columnas después de renombrarlas
+        st.write(f"Columnas después de renombrar: {df.columns}")
+
         # Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
@@ -45,22 +52,18 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         df = df[df["campaign_state"].isin(["enabled"])]
         df = df[df["ad_group_state"].isin(["enabled"])]
 
-        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression" para esa fila.
+        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
         df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
-
-        # Eliminar la columna "Product Targeting Expression" ya que no debe existir después de este reemplazo.
-        df = df.drop(columns=["product_targeting_expression"])
 
         # Clean up
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
 
-        return df[["campaign", "status", "keyword_text"]]  # Retornar las columnas necesarias
+        return df[["campaign", "status", "keyword_text", "product_targeting_expression"]]
     
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "status", "keyword_text"])
-
+        return pd.DataFrame(columns=["campaign", "status", "keyword_text", "product_targeting_expression"])
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
@@ -184,7 +187,6 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 
 # ---------- Evolution Table ----------
 import streamlit as st  # Asegúrate de importar streamlit
-
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
        Only keep campaigns that appear in all weeks (inner join)."""
@@ -198,11 +200,17 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     # Renombrar las columnas de cada semana
     combined = weekly_dfs[0].rename(columns={"status": "W1_status", "keyword_text": "W1_keyword_text"})
     
+    # Verificar si 'keyword_text' está en el primer DataFrame
+    st.write("Columnas en el DataFrame W1 después del renombrado:", combined.columns)
+
     # Merge W1 con W2
     combined = combined.merge(
         weekly_dfs[1].rename(columns={"status": "W2_status", "keyword_text": "W2_keyword_text"}),
         on=["campaign", "keyword_text"], how="inner"
     )
+
+    # Verificar si 'keyword_text' está en el segundo DataFrame (W2)
+    st.write("Columnas en el DataFrame W2 después del renombrado:", weekly_dfs[1].columns)
 
     # Merge con W3
     combined = combined.merge(
@@ -210,7 +218,11 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
         on=["campaign", "keyword_text"], how="inner"
     )
 
+    # Verificar si 'keyword_text' está en el tercer DataFrame (W3)
+    st.write("Columnas en el DataFrame W3 después del renombrado:", weekly_dfs[2].columns)
+
     return combined
+
 
 
 
