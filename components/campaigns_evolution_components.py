@@ -145,3 +145,11 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 
     os.unlink(tmp_img.name)
     return tmp_pdf.name
+def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    """Return a dataframe with campaigns and their status across W1, W2, W3."""
+    combined = weekly_dfs[0].rename(columns={"status": "W1_status"})
+    combined = combined.merge(weekly_dfs[1].rename(columns={"status": "W2_status"}),
+                              on="campaign", how="outer")
+    combined = combined.merge(weekly_dfs[2].rename(columns={"status": "W3_status"}),
+                              on="campaign", how="outer")
+    return combined.fillna("not_present")
