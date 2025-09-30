@@ -221,5 +221,3 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     st.write("Columnas en el DataFrame combinado después de W1, W2, y W3 merge:", combined.columns)
 
     return combined
-
-
