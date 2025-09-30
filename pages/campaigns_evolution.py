@@ -44,6 +44,11 @@ def main():
         st.subheader("Filtered Campaigns (W3 Purple/White)")
         st.dataframe(filtered)
 
+        # Evolution table
+        evolution_df = comp.build_evolution_table(dfs)
+        st.subheader("Full Evolution (W1 → W2 → W3)")
+        st.dataframe(evolution_df)
+
         # PDF Export
         if st.button("Export PDF"):
             pdf_path = comp.export_pdf(fig, filtered)
