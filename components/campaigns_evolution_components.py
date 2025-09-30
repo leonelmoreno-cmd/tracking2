@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 # ---------- File IO ----------
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
-    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
+    """Load a weekly Excel/CSV file and extract the campaigns, status, and other required columns."""
     try:
         if file.name.endswith(".csv"):
             df = pd.read_csv(file)
@@ -28,23 +28,37 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
                 "Campaign Name (Informational only)": "campaign",
                 "Status": "status",
                 "Entity": "entity",
-                "State": "state"  # 👈 aseguramos que Entity y State existan
+                "State": "state",  
+                "Portfolio Name (Informational only)": "portfolio_name", 
+                "Campaign State (Informational only)": "campaign_state", 
+                "Ad Group State (Informational only)": "ad_group_state",
+                "Keyword Text": "keyword_text",
+                "Product Targeting Expression": "product_targeting_expression"
             }
         )
-        # Filtro Leonel: solo campañas habilitadas
+
+        # Filtro: solo campañas habilitadas
         df = df[df["state"].isin(["enabled"])]
+
+        # Filtro adicional: asegurarse de que las columnas necesarias estén habilitadas
+        df = df[df["campaign_state"].isin(["enabled"])]
+        df = df[df["ad_group_state"].isin(["enabled"])]
 
         # 🔥 Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
+
+        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
+        df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
 
         # Clean up
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
 
-        return df[["campaign", "status"]]
+        return df[["campaign", "portfolio_name", "status", "keyword_text", "product_targeting_expression"]]
+    
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "status"])
+        return pd.DataFrame(columns=["campaign", "portfolio_name", "status", "keyword_text", "product_targeting_expression"])
 
 
 # ---------- Fuzzy Matching ----------
@@ -170,14 +184,19 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
 # ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Return a dataframe with campaigns and their status across W1, W2, W3.
-       Only keep campaigns that appear in all weeks (inner join)."""
-    combined = weekly_dfs[0].rename(columns={"status": "W1_status"})
+       Only keep campaigns that appear in all weeks (inner join) based on the new columns."""
+    
+    # Renombramos las columnas de cada semana
+    combined = weekly_dfs[0].rename(columns={"status": "W1_status", "portfolio_name": "W1_portfolio_name", "keyword_text": "W1_keyword_text"})
     combined = combined.merge(
-        weekly_dfs[1].rename(columns={"status": "W2_status"}),
-        on="campaign", how="inner"
+        weekly_dfs[1].rename(columns={"status": "W2_status", "portfolio_name": "W2_portfolio_name", "keyword_text": "W2_keyword_text"}),
+        on=["campaign", "portfolio_name", "keyword_text"], how="inner"
     )
     combined = combined.merge(
-        weekly_dfs[2].rename(columns={"status": "W3_status"}),
-        on="campaign", how="inner"
+        weekly_dfs[2].rename(columns={"status": "W3_status", "portfolio_name": "W3_portfolio_name", "keyword_text": "W3_keyword_text"}),
+        on=["campaign", "portfolio_name", "keyword_text"], how="inner"
     )
+
+    # Devolvemos el DataFrame final con la evolución de cada campaña a través de las tres semanas
     return combined
+
