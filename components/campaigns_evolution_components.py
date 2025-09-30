@@ -39,9 +39,6 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
             }
         )
 
-        # Verificar las columnas después de renombrarlas
-        st.write(f"Columnas después de renombrar: {df.columns}")
-
         # Filtro: solo conservar Keywords y Product Targeting
         df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
 
@@ -199,25 +196,16 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
     # Primer DataFrame (W1), sin renombrar las columnas
     combined = weekly_dfs[0]  # No renombramos columnas
 
-    # Verificar si 'keyword_text' está en el primer DataFrame
-    st.write("Columnas en el DataFrame W1:", combined.columns)
-
     # Merge W1 con W2 sin renombrar las columnas
     combined = combined.merge(
         weekly_dfs[1],  # Merge con el segundo DataFrame
         on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
     )
 
-    # Verificar las columnas después del merge
-    st.write("Columnas en el DataFrame combinado después de W1 y W2 merge:", combined.columns)
-
     # Merge con W3
     combined = combined.merge(
         weekly_dfs[2],  # Merge con el tercer DataFrame
         on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
     )
-
-    # Verificar las columnas después del segundo merge
-    st.write("Columnas en el DataFrame combinado después de W1, W2, y W3 merge:", combined.columns)
 
     return combined
