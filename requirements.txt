@@ -8,6 +8,14 @@ statsmodels
 plotly>=4
 numpy
 packaging
+
+# Para fuzzy matching
 rapidfuzz>=3.0.0
+
+# Para PDF
 fpdf2
+kaleido
+
+# Para Excel
 openpyxl
+xlrd<=2.0.1
