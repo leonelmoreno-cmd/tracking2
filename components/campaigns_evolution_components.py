@@ -13,28 +13,33 @@ import plotly.io as pio
 logging.basicConfig(level=logging.INFO)
 
 
-# ---------- File IO ----------
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
-    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
     try:
         if file.name.endswith(".csv"):
             df = pd.read_csv(file)
         else:
             df = pd.read_excel(file, sheet_name=sheet_name)
 
+        # Rename columns
         df = df.rename(
             columns={
                 "Campaign Name (Informational only)": "campaign",
-                "Status": "status"
+                "Status": "status",
+                "Entity": "entity"   # 👈 Aseguramos que Entity exista
             }
         )
+
+        # 🔥 Filtro: solo conservar Keywords y Product Targeting
+        df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
+
+        # Clean up
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
+
         return df[["campaign", "status"]]
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
         return pd.DataFrame(columns=["campaign", "status"])
-
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
