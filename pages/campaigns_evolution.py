@@ -34,6 +34,10 @@ def main():
         # Build transitions
         nodes, sources, targets, values = comp.build_transitions(dfs)
 
+        # Mostrar la tabla de transiciones en Streamlit
+        st.subheader("Campaign Status Transitions")
+        st.dataframe(transitions_df)  # Mostrar la tabla con las transiciones
+        
         # Sankey visualization
         fig = comp.create_sankey(nodes, sources, targets, values)
         st.plotly_chart(fig, use_container_width=True)
