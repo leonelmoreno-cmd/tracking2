@@ -156,7 +156,7 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     # Sección 1: campañas críticas en W3
     pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
     for _, row in filtered_df.iterrows():
-        pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['W3_status']})", ln=True, align="L")
+        pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['status']})", ln=True, align="L")
 
     pdf.ln(10)
 
