@@ -32,7 +32,7 @@ def main():
         dfs = comp.unify_campaign_names(dfs)
 
         # Build transitions
-        nodes, sources, targets, values = comp.build_transitions(dfs)
+        nodes, sources, targets, values, transitions_df = comp.build_transitions(dfs)
 
         # Mostrar la tabla de transiciones en Streamlit
         st.subheader("Campaign Status Transitions")
