@@ -55,7 +55,7 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
     
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "status", "keyword_text", "product_targeting_expression"])
+        return pd.DataFrame(columns=["campaign", "status", "keyword_text"])
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
