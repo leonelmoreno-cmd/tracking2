@@ -82,12 +82,13 @@ def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) ->
 
 
 # ---------- Transformations ----------
-def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[int], List[int], List[int]]:
-    """Build Sankey nodes and links from weekly dataframes."""
+def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[int], List[int], List[int], pd.DataFrame]:
+    """Build Sankey nodes and links from weekly dataframes, and create a transitions table."""
     weeks = ["W1", "W2", "W3"]
     nodes = []
     node_map = {}
     index = 0
+    transitions = []  # Esta lista almacenará las transiciones para la tabla
 
     for i, df in enumerate(weekly_dfs):
         for status in df["status"].unique():
@@ -117,9 +118,14 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
             sources.append(node_map[s1])
             targets.append(node_map[s2])
             values.append(1)
-    return nodes, sources, targets, values
+            
+            # Agregar las transiciones a la lista
+            transitions.append([row["campaign"], s1, s2])
 
-
+    # Crear un DataFrame con las transiciones
+    transitions_df = pd.DataFrame(transitions, columns=["Campaign", "From", "To"])
+    
+    return nodes, sources, targets, values, transitions_df
 # ---------- Visualization ----------
 def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int]) -> go.Figure:
     """Create a Plotly Sankey diagram."""
