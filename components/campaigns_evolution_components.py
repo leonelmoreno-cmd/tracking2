@@ -51,7 +51,7 @@ def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> 
         df["status"] = df["status"].fillna("White").astype(str).str.strip()
         df["campaign"] = df["campaign"].astype(str).str.strip()
 
-        return df[["campaign", "status", "keyword_text", "product_targeting_expression"]]
+        return df[["campaign", "status", "keyword_text"]]
     
     except Exception as e:
         logging.error(f"Error loading file {file.name}: {e}")
