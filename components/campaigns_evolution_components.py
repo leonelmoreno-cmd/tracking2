@@ -19,51 +19,6 @@ state_colors = {
     "Orange": "orange"
 }
 
-def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
-    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
-    try:
-        if file.name.endswith(".csv"):
-            df = pd.read_csv(file)
-        else:
-            df = pd.read_excel(file, sheet_name=sheet_name)
-
-        # Rename relevant columns
-        df = df.rename(
-            columns={
-                "Campaign Name (Informational only)": "campaign",
-                "Status": "status",
-                "Entity": "entity",
-                "State": "state",  
-                "Campaign State (Informational only)": "campaign_state", 
-                "Ad Group State (Informational only)": "ad_group_state",
-                "Keyword Text": "keyword_text",
-                "Product Targeting Expression": "product_targeting_expression"
-            }
-        )
-
-        # Filtro: solo conservar Keywords y Product Targeting
-        df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
-
-        # Filtro: solo campañas habilitadas
-        df = df[df["state"].isin(["enabled"])]
-
-        # Filtro adicional: asegurarse de que las columnas necesarias estén habilitadas
-        df = df[df["campaign_state"].isin(["enabled"])]
-        df = df[df["ad_group_state"].isin(["enabled"])]
-
-        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
-        df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
-
-        # Clean up
-        df["status"] = df["status"].fillna("White").astype(str).str.strip()
-        df["campaign"] = df["campaign"].astype(str).str.strip()
-
-        return df[["campaign", "status", "keyword_text"]]
-    
-    except Exception as e:
-        logging.error(f"Error loading file {file.name}: {e}")
-        return pd.DataFrame(columns=["campaign", "status", "keyword_text"])
-
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
     """Unify campaign names across weeks using fuzzy matching."""
