@@ -29,13 +29,16 @@ def main():
         st.dataframe(full_evolution)
 
         # Display filtered W3 table
-        st.subheader("Filtered Campaigns (Purple/White)")
+        st.subheader("Filtered Campaigns (W3: Purple/White)")
         st.dataframe(filtered_w3)
 
         # Sankey diagram for each status
+        nodes, sources, targets, values, node_colors, transitions_df = comp.build_transitions(dfs)
+        
+        # Generate Sankey diagrams for each status
         for status in ["Purple", "White", "Green", "Red", "Orange"]:
             st.subheader(f"Sankey Diagram for {status}")
-            fig = comp.create_sankey(*comp.build_transitions(dfs), status_filter=status)
+            fig = comp.create_sankey(nodes, sources, targets, values, node_colors, status_filter=status)
             st.plotly_chart(fig, use_container_width=True)
 
         # PDF Export
