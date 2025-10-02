@@ -1,9 +1,6 @@
-# pages/campaigns_evolution.py
-
 import streamlit as st
 import pandas as pd
 from components import campaigns_evolution_components as comp
-
 
 def main():
     st.title("Campaigns Evolution")
@@ -21,35 +18,71 @@ def main():
             comp.load_weekly_file(w3)
         ]
 
-        # Previews
-        with st.expander("Weekly Previews"):
-            for i, df in enumerate(dfs, start=1):
-                st.subheader(f"Weekly {i}")
-                st.write(df["status"].value_counts())
-                st.dataframe(df.head())
-
-        # Unify campaigns across weeks
+        # Unify campaign names across weeks
         dfs = comp.unify_campaign_names(dfs)
 
-        # Build transitions
-        nodes, sources, targets, values, transitions_df = comp.build_transitions(dfs)
+        # Build evolution tables
+        full_evolution, filtered_w3 = comp.build_evolution_table(dfs)
 
-        # Mostrar la tabla de transiciones en Streamlit
-        st.subheader("Campaign Status Transitions")
-        st.dataframe(transitions_df)  # Mostrar la tabla con las transiciones
-        
-        # Sankey visualization
+        # Display full evolution table
+        st.subheader("Full Evolution of Campaigns")
+        st.dataframe(full_evolution)
+
+        # Display filtered W3 table
+        st.subheader("Filtered Campaigns (W3: Purple/White)")
+        st.dataframe(filtered_w3)
+
+        # Sankey diagram
+        nodes, sources, targets, values, transitions_df = comp.build_transitions(dfs)
         fig = comp.create_sankey(nodes, sources, targets, values)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Filters
-        w3_df = dfs[-1]
-        filtered = w3_df[w3_df["status"].isin(["Purple", "White"])]
-        st.subheader("Filtered Campaigns (W3 Purple/White)")
-        st.dataframe(filtered)
+        # PDF Export
+        if st.button("Export PDF"):
+            pdf_path = comp.export_pdf(fig, filtered_w3)
+            with open(pdf_path, "rb") as f:
+                st.download_button("Download PDF", f, file_name="campaigns_evolution.pdf", mime="application/pdf")
+import streamlit as st
+import pandas as pd
+from components import campaigns_evolution_components as comp
+
+def main():
+    st.title("Campaigns Evolution")
+    st.write("Upload Weekly 1, Weekly 2, and Weekly 3 files to analyze status evolution.")
+
+    # File uploaders
+    w1 = st.file_uploader("Upload Weekly 1", type=["csv", "xlsx", "xls"], key="w1")
+    w2 = st.file_uploader("Upload Weekly 2", type=["csv", "xlsx", "xls"], key="w2")
+    w3 = st.file_uploader("Upload Weekly 3", type=["csv", "xlsx", "xls"], key="w3")
+
+    if w1 and w2 and w3:
+        dfs = [
+            comp.load_weekly_file(w1),
+            comp.load_weekly_file(w2),
+            comp.load_weekly_file(w3)
+        ]
+
+        # Unify campaign names across weeks
+        dfs = comp.unify_campaign_names(dfs)
+
+        # Build evolution tables
+        full_evolution, filtered_w3 = comp.build_evolution_table(dfs)
+
+        # Display full evolution table
+        st.subheader("Full Evolution of Campaigns")
+        st.dataframe(full_evolution)
+
+        # Display filtered W3 table
+        st.subheader("Filtered Campaigns (W3: Purple/White)")
+        st.dataframe(filtered_w3)
+
+        # Sankey diagram
+        nodes, sources, targets, values, transitions_df = comp.build_transitions(dfs)
+        fig = comp.create_sankey(nodes, sources, targets, values)
+        st.plotly_chart(fig, use_container_width=True)
 
         # PDF Export
         if st.button("Export PDF"):
-            pdf_path = comp.export_pdf(fig, filtered)
+            pdf_path = comp.export_pdf(fig, filtered_w3)
             with open(pdf_path, "rb") as f:
                 st.download_button("Download PDF", f, file_name="campaigns_evolution.pdf", mime="application/pdf")
