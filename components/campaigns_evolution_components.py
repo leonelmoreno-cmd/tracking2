@@ -146,7 +146,7 @@ def create_sankey(nodes: List[str], sources: List[int], targets: List[int], valu
             arrangement="freeform",  # Freeform arrangement for better node placement
             node=dict(
                 label=nodes,
-                pad=30,  # Increased pad to provide more space between nodes
+                pad=50,  # Increased pad to provide more space between nodes
                 thickness=20,
                 line=dict(color="black", width=0.5),
                 color=node_colors,
