@@ -196,6 +196,13 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame,
             on=["campaign", "keyword_text"], how="inner"
         )
 
+        # Renombrar las columnas de estado para que sean más claras
+    combined = combined.rename(columns={
+        'status': 'W1',        # Renombramos 'status' (W1) a 'W1'
+        'status_x': 'W2',      # Renombramos 'status_x' (W2) a 'W2'
+        'status_y': 'W3'       # Renombramos 'status_y' (W3) a 'W3'
+    })
+    
     # Filtrar campañas en W3 con estado 'Purple' o 'White'
     filtered_w3 = combined[combined["status"] == "Purple"]
     filtered_w3 = pd.concat([filtered_w3, combined[combined["status"] == "White"]])
