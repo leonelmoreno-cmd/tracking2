@@ -137,7 +137,7 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
                 transitions.append([row["campaign"], s1, s2])
 
     transitions_df = pd.DataFrame(transitions, columns=["Campaign", "From", "To"])
-    return nodes, sources, targets, values, node_colors, transitions_df
+    return nodes, sources, targets, values, node_colors, transitions_df = comp.build_transitions(dfs)
 
 # ---------- Visualization ----------
 def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str]) -> go.Figure:
