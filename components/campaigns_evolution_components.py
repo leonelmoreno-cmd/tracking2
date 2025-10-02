@@ -158,17 +158,17 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     # Espacio después de la imagen
     pdf.ln(110)
 
-    # Sección 1: campañas críticas en W3
-    pdf.cell(200, 10, "Filtered Campaigns (W3: Purple/White)", ln=True, align="L")
+    # Sección 1: campañas filtradas (sin el W3 en el nombre de la sección)
+    pdf.cell(200, 10, "Filtered Campaigns (Purple/White)", ln=True, align="L")
     for _, row in filtered_df.iterrows():
+        # Usar las columnas W1, W2 y W3 para mostrar los estados en cada semana
         pdf.cell(200, 10, f"- {row['campaign']} (Final: {row['W3']})", ln=True, align="L")
 
     pdf.ln(10)
 
-    # Sección 2: evolución completa
+    # Sección 2: evolución completa de las campañas
     pdf.cell(200, 10, "Full Evolution of Campaigns", ln=True, align="L")
     for _, row in filtered_df.iterrows():
-        # Muestra los estados en W1, W2 y W3
         w1 = row.get("W1", "not_present")
         w2 = row.get("W2", "not_present")
         w3 = row.get("W3", "not_present")
@@ -182,7 +182,6 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     os.unlink(tmp_img.name)
 
     return tmp_pdf.name
-
 
 # ---------- Evolution Table ----------
 def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -208,6 +207,9 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame,
         'status_y': 'W3'       # Renombramos 'status_y' (W3) a 'W3'
     })
 
+    # Reordenar las columnas para que queden en el orden deseado
+    combined = combined[["campaign","keyword_text", "W1", "W2", "W3"]]
+    
     # Filtrar solo las campañas que tienen 'Purple' o 'White' en W1, W2 y W3
     filtered_w3 = combined[
         (combined["W1"].isin(["Purple", "White"])) &
