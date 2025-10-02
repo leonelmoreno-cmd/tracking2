@@ -1,3 +1,5 @@
+# components/campaigns_evolution_components.py
+
 import pandas as pd
 import logging
 from typing import List, Dict, Tuple
@@ -18,6 +20,51 @@ state_colors = {
     "Red": "red",
     "Orange": "orange"
 }
+
+def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
+    """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
+    try:
+        if file.name.endswith(".csv"):
+            df = pd.read_csv(file)
+        else:
+            df = pd.read_excel(file, sheet_name=sheet_name)
+
+        # Rename relevant columns
+        df = df.rename(
+            columns={
+                "Campaign Name (Informational only)": "campaign",
+                "Status": "status",
+                "Entity": "entity",
+                "State": "state",  
+                "Campaign State (Informational only)": "campaign_state", 
+                "Ad Group State (Informational only)": "ad_group_state",
+                "Keyword Text": "keyword_text",
+                "Product Targeting Expression": "product_targeting_expression"
+            }
+        )
+
+        # Filtro: solo conservar Keywords y Product Targeting
+        df = df[df["entity"].isin(["Keyword", "Product Targeting"])]
+
+        # Filtro: solo campañas habilitadas
+        df = df[df["state"].isin(["enabled"])]
+
+        # Filtro adicional: asegurarse de que las columnas necesarias estén habilitadas
+        df = df[df["campaign_state"].isin(["enabled"])]
+        df = df[df["ad_group_state"].isin(["enabled"])]
+
+        # Si "Keyword Text" está vacío, tomamos "Product Targeting Expression"
+        df["keyword_text"] = df["keyword_text"].fillna(df["product_targeting_expression"])
+
+        # Clean up
+        df["status"] = df["status"].fillna("White").astype(str).str.strip()
+        df["campaign"] = df["campaign"].astype(str).str.strip()
+
+        return df[["campaign", "status", "keyword_text"]]
+    
+    except Exception as e:
+        logging.error(f"Error loading file {file.name}: {e}")
+        return pd.DataFrame(columns=["campaign", "status", "keyword_text"])
 
 # ---------- Fuzzy Matching ----------
 def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) -> List[pd.DataFrame]:
@@ -41,6 +88,7 @@ def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) ->
         df["campaign"] = df["campaign"].apply(lambda x: mapping.get(x, x))
         unified_dfs.append(df)
     return unified_dfs
+
 
 # ---------- Transformations ----------
 def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[int], List[int], List[int], pd.DataFrame]:
@@ -92,40 +140,29 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
     return nodes, sources, targets, values, node_colors, transitions_df
 
 # ---------- Visualization ----------
-def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str], status_filter: str) -> go.Figure:
-    """Create a Plotly Sankey diagram for a specific status (e.g. Purple, White, etc.)"""
-    
-    # Filtrar los nodos y enlaces basados en el estado
-    filtered_sources = [i for i, source in enumerate(sources) if node_colors[source] == status_filter]
-    filtered_targets = [i for i, target in enumerate(targets) if node_colors[target] == status_filter]
-    filtered_values = [values[i] for i in filtered_sources]
-
-    # Crear diagrama Sankey para el estado filtrado
+def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str]) -> go.Figure:
+    """Create a Plotly Sankey diagram with colors for nodes and links."""
     fig = go.Figure(
         go.Sankey(
             arrangement="freeform",  # Freeform arrangement for better node placement
             node=dict(
-                label=[nodes[i] for i in filtered_sources],
-                pad=50,  # Increased pad to provide more space between nodes
+                label=nodes,
+                pad=20,
                 thickness=20,
                 line=dict(color="black", width=0.5),
-                color=[node_colors[i] for i in filtered_sources],
+                color=node_colors,
                 hovertemplate="Node: %{label}<br>Value: %{value}<extra></extra>"  # Hover info for nodes
             ),
             link=dict(
-                source=filtered_sources,
-                target=filtered_targets,
-                value=filtered_values,
-                color=[node_colors[i] for i in filtered_sources],  # Color based on source node
+                source=sources,
+                target=targets,
+                value=values,
+                color=[node_colors[i] for i in sources],  # Color based on source node
                 hovertemplate="Source: %{source.label}<br>Target: %{target.label}<br>Value: %{value}<extra></extra>"  # Hover info for links
             )
         )
     )
-    fig.update_layout(
-        title_text=f"Campaign Status Evolution - {status_filter}",
-        font_size=10,
-        hovermode="x unified"  # Enable hover for both source and target
-    )
+    fig.update_layout(title_text="Campaign Status Evolution", font_size=10)
     return fig
 
 
