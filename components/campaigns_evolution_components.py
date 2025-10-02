@@ -83,13 +83,13 @@ def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) ->
 
 # ---------- Transformations ----------
 def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[int], List[int], List[int], pd.DataFrame]:
-    """Build Sankey nodes and links from weekly dataframes, and create a transitions table."""
     weeks = ["W1", "W2", "W3"]
     nodes = []
     node_map = {}
     index = 0
-    transitions = []  # Esta lista almacenará las transiciones para la tabla
+    transitions = []
 
+    # Crear nodos para cada combinación de semana y estado
     for i, df in enumerate(weekly_dfs):
         for status in df["status"].unique():
             label = f"{weeks[i]}-{status}"
@@ -99,33 +99,32 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
                 index += 1
 
     sources, targets, values = [], [], []
-    for i in range(len(weekly_dfs) - 1):
-        merged = pd.merge(
-            weekly_dfs[i], weekly_dfs[i + 1],
-            on="campaign", how="outer", suffixes=(f"_{i}", f"_{i+1}")
-        )
-        for _, row in merged.iterrows():
-            s1 = f"{weeks[i]}-{row.get(f'status_{i}', 'not_present')}"
-            s2 = f"{weeks[i+1]}-{row.get(f'status_{i+1}', 'not_present')}"
-            if s1 not in node_map:
-                node_map[s1] = index
-                nodes.append(s1)
-                index += 1
-            if s2 not in node_map:
-                node_map[s2] = index
-                nodes.append(s2)
-                index += 1
-            sources.append(node_map[s1])
-            targets.append(node_map[s2])
-            values.append(1)
-            
-            # Agregar las transiciones a la lista
-            transitions.append([row["campaign"], s1, s2])
+    # Generar transiciones entre semanas
+    for i in range(len(weekly_dfs)):
+        for j in range(i + 1, len(weekly_dfs)):
+            merged = pd.merge(
+                weekly_dfs[i], weekly_dfs[j],
+                on="campaign", how="inner", suffixes=(f"_{i}", f"_{j}")
+            )
+            for _, row in merged.iterrows():
+                s1 = f"{weeks[i]}-{row.get(f'status_{i}', 'not_present')}"
+                s2 = f"{weeks[j]}-{row.get(f'status_{j}', 'not_present')}"
+                if s1 not in node_map:
+                    node_map[s1] = index
+                    nodes.append(s1)
+                    index += 1
+                if s2 not in node_map:
+                    node_map[s2] = index
+                    nodes.append(s2)
+                    index += 1
+                sources.append(node_map[s1])
+                targets.append(node_map[s2])
+                values.append(1)
+                transitions.append([row["campaign"], s1, s2])
 
-    # Crear un DataFrame con las transiciones
     transitions_df = pd.DataFrame(transitions, columns=["Campaign", "From", "To"])
-    
     return nodes, sources, targets, values, transitions_df
+
 # ---------- Visualization ----------
 def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int]) -> go.Figure:
     """Create a Plotly Sankey diagram."""
@@ -184,29 +183,21 @@ def export_pdf(fig: go.Figure, filtered_df: pd.DataFrame) -> str:
     return tmp_pdf.name
 
 # ---------- Evolution Table ----------
-def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> pd.DataFrame:
-    """Return a dataframe with campaigns and their status across W1, W2, W3.
-       Only keep campaigns that appear in all weeks (inner join)."""
+def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Construye dos tablas:
+       1. Evolución completa de campañas a través de W1, W2 y W3 (solo campañas presentes en todas las semanas).
+       2. Evolución filtrada por W3 con estado 'Purple' o 'White'."""
 
-    # Verificar el contenido de cada DataFrame antes del merge
-    for i, df in enumerate(weekly_dfs, start=1):
-        st.write(f"DataFrame {i} antes del merge:")
-        st.dataframe(df.head())  # Muestra las primeras filas del DataFrame en Streamlit
-        st.write(f"Columnas en DataFrame {i}: {df.columns}\n")  # Muestra las columnas
+    # Realizar merge 'inner' entre las tres semanas
+    combined = weekly_dfs[0]
+    for i in range(1, len(weekly_dfs)):
+        combined = pd.merge(
+            combined, weekly_dfs[i],
+            on=["campaign", "keyword_text"], how="inner"
+        )
 
-    # Primer DataFrame (W1), sin renombrar las columnas
-    combined = weekly_dfs[0]  # No renombramos columnas
+    # Filtrar campañas en W3 con estado 'Purple' o 'White'
+    filtered_w3 = combined[combined["status"] == "Purple"]
+    filtered_w3 = pd.concat([filtered_w3, combined[combined["status"] == "White"]])
 
-    # Merge W1 con W2 sin renombrar las columnas
-    combined = combined.merge(
-        weekly_dfs[1],  # Merge con el segundo DataFrame
-        on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
-    )
-
-    # Merge con W3
-    combined = combined.merge(
-        weekly_dfs[2],  # Merge con el tercer DataFrame
-        on=["campaign", "keyword_text"], how="inner"  # Usamos las mismas columnas para hacer el merge
-    )
-
-    return combined
+    return combined, filtered_w3
