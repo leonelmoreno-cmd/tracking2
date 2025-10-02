@@ -78,7 +78,7 @@ def main():
 
         # Sankey diagram
         nodes, sources, targets, values, node_colors, transitions_df = comp.build_transitions(dfs)
-        fig = comp.create_sankey(nodes, sources, targets, values)
+        fig = comp.create_sankey(nodes, sources, targets, values, node_colors)
         st.plotly_chart(fig, use_container_width=True)
 
         # PDF Export
