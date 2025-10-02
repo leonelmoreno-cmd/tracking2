@@ -77,7 +77,7 @@ def main():
         st.dataframe(filtered_w3)
 
         # Sankey diagram
-        nodes, sources, targets, values, transitions_df = comp.build_transitions(dfs)
+        nodes, sources, targets, values, node_colors, transitions_df = comp.build_transitions(dfs)
         fig = comp.create_sankey(nodes, sources, targets, values)
         st.plotly_chart(fig, use_container_width=True)
 
