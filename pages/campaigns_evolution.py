@@ -73,7 +73,7 @@ def main():
         st.dataframe(full_evolution)
 
         # Display filtered W3 table
-        st.subheader("Filtered Campaigns (W3: Purple/White)")
+        st.subheader("Filtered Campaigns")
         st.dataframe(filtered_w3)
 
         # Sankey diagram
