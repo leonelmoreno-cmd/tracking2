@@ -206,12 +206,13 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame,
         'status_y': 'W3'       # Renombramos 'status_y' (W3) a 'W3'
     })
 
-    # Reordenar las columnas para que tengan el orden deseado: campaign, W1, W2, W3, keyword_text
-    combined = combined[["campaign","keyword_text", "W1", "W2", "W3"]]
-
-    # Filtrar campañas en W3 con estado 'Purple' o 'White'
-    filtered_w3 = combined[combined["W3"] == "Purple"]
-    filtered_w3 = pd.concat([filtered_w3, combined[combined["W3"] == "White"]])
+    # Filtrar solo las campañas que tienen 'Purple' o 'White' en W1, W2 y W3
+    filtered_w3 = combined[
+        (combined["W1"].isin(["Purple", "White"])) &
+        (combined["W2"].isin(["Purple", "White"])) &
+        (combined["W3"].isin(["Purple", "White"]))
+    ]
 
     return combined, filtered_w3
+
 
