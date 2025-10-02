@@ -89,7 +89,6 @@ def unify_campaign_names(weekly_dfs: List[pd.DataFrame], threshold: int = 90) ->
         unified_dfs.append(df)
     return unified_dfs
 
-
 # ---------- Transformations ----------
 def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[int], List[int], List[int], pd.DataFrame]:
     weeks = ["W1", "W2", "W3"]
@@ -147,7 +146,7 @@ def create_sankey(nodes: List[str], sources: List[int], targets: List[int], valu
             arrangement="freeform",  # Freeform arrangement for better node placement
             node=dict(
                 label=nodes,
-                pad=20,
+                pad=30,  # Increased pad to provide more space between nodes
                 thickness=20,
                 line=dict(color="black", width=0.5),
                 color=node_colors,
@@ -162,7 +161,11 @@ def create_sankey(nodes: List[str], sources: List[int], targets: List[int], valu
             )
         )
     )
-    fig.update_layout(title_text="Campaign Status Evolution", font_size=10)
+    fig.update_layout(
+        title_text="Campaign Status Evolution",
+        font_size=10,
+        hovermode="x unified"  # Enable hover for both source and target
+    )
     return fig
 
 
