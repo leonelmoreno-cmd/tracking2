@@ -12,6 +12,15 @@ import plotly.io as pio
 import streamlit as st
 logging.basicConfig(level=logging.INFO)
 
+# Asignamos un color para cada estado
+state_colors = {
+    "Purple": "purple",
+    "White": "white",
+    "Green": "green",
+    "Red": "red",
+    "Orange": "orange"
+}
+
 def load_weekly_file(file, sheet_name: str = "Sponsored Products Campaigns") -> pd.DataFrame:
     """Load a weekly Excel/CSV file and extract the campaigns and status columns."""
     try:
@@ -86,6 +95,7 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
     weeks = ["W1", "W2", "W3"]
     nodes = []
     node_map = {}
+    node_colors = []  # Lista para los colores de los nodos
     index = 0
     transitions = []
 
@@ -96,6 +106,7 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
             if label not in node_map:
                 node_map[label] = index
                 nodes.append(label)
+                node_colors.append(state_colors.get(status, "gray"))  # Asigna color basado en el estado
                 index += 1
 
     sources, targets, values = [], [], []
@@ -112,27 +123,43 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
                 if s1 not in node_map:
                     node_map[s1] = index
                     nodes.append(s1)
+                    node_colors.append(state_colors.get(row.get(f'status_{i}', 'not_present'), "gray"))  # Color del nodo
                     index += 1
                 if s2 not in node_map:
                     node_map[s2] = index
                     nodes.append(s2)
+                    node_colors.append(state_colors.get(row.get(f'status_{j}', 'not_present'), "gray"))  # Color del nodo
                     index += 1
+
                 sources.append(node_map[s1])
                 targets.append(node_map[s2])
                 values.append(1)
                 transitions.append([row["campaign"], s1, s2])
 
     transitions_df = pd.DataFrame(transitions, columns=["Campaign", "From", "To"])
-    return nodes, sources, targets, values, transitions_df
+    return nodes, sources, targets, values, node_colors, transitions_df
 
 # ---------- Visualization ----------
-def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int]) -> go.Figure:
-    """Create a Plotly Sankey diagram."""
+def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str]) -> go.Figure:
+    """Create a Plotly Sankey diagram with colors for nodes and links."""
     fig = go.Figure(
         go.Sankey(
-            arrangement="snap",
-            node=dict(label=nodes, pad=20, thickness=20),
-            link=dict(source=sources, target=targets, value=values)
+            arrangement="freeform",  # Freeform arrangement for better node placement
+            node=dict(
+                label=nodes,
+                pad=20,
+                thickness=20,
+                line=dict(color="black", width=0.5),
+                color=node_colors,
+                hovertemplate="Node: %{label}<br>Value: %{value}<extra></extra>"  # Hover info for nodes
+            ),
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                color=[node_colors[i] for i in sources],  # Color based on source node
+                hovertemplate="Source: %{source.label}<br>Target: %{target.label}<br>Value: %{value}<extra></extra>"  # Hover info for links
+            )
         )
     )
     fig.update_layout(title_text="Campaign Status Evolution", font_size=10)
@@ -218,5 +245,3 @@ def build_evolution_table(weekly_dfs: List[pd.DataFrame]) -> Tuple[pd.DataFrame,
     ]
 
     return combined, filtered_w3
-
-
