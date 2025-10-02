@@ -1,5 +1,3 @@
-# components/campaigns_evolution_components.py
-
 import pandas as pd
 import logging
 from typing import List, Dict, Tuple
@@ -139,30 +137,37 @@ def build_transitions(weekly_dfs: List[pd.DataFrame]) -> Tuple[List[str], List[i
     return nodes, sources, targets, values, node_colors, transitions_df
 
 # ---------- Visualization ----------
-def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str]) -> go.Figure:
-    """Create a Plotly Sankey diagram with colors for nodes and links."""
+def create_sankey(nodes: List[str], sources: List[int], targets: List[int], values: List[int], node_colors: List[str], status_filter: str) -> go.Figure:
+    """Create a Plotly Sankey diagram for a specific status (e.g. Purple, White, etc.)"""
+    
+    # Filtrar los nodos y enlaces basados en el estado
+    filtered_sources = [i for i, source in enumerate(sources) if node_colors[source] == status_filter]
+    filtered_targets = [i for i, target in enumerate(targets) if node_colors[target] == status_filter]
+    filtered_values = [values[i] for i in filtered_sources]
+
+    # Crear diagrama Sankey para el estado filtrado
     fig = go.Figure(
         go.Sankey(
             arrangement="freeform",  # Freeform arrangement for better node placement
             node=dict(
-                label=nodes,
+                label=[nodes[i] for i in filtered_sources],
                 pad=50,  # Increased pad to provide more space between nodes
                 thickness=20,
                 line=dict(color="black", width=0.5),
-                color=node_colors,
+                color=[node_colors[i] for i in filtered_sources],
                 hovertemplate="Node: %{label}<br>Value: %{value}<extra></extra>"  # Hover info for nodes
             ),
             link=dict(
-                source=sources,
-                target=targets,
-                value=values,
-                color=[node_colors[i] for i in sources],  # Color based on source node
+                source=filtered_sources,
+                target=filtered_targets,
+                value=filtered_values,
+                color=[node_colors[i] for i in filtered_sources],  # Color based on source node
                 hovertemplate="Source: %{source.label}<br>Target: %{target.label}<br>Value: %{value}<extra></extra>"  # Hover info for links
             )
         )
     )
     fig.update_layout(
-        title_text="Campaign Status Evolution",
+        title_text=f"Campaign Status Evolution - {status_filter}",
         font_size=10,
         hovermode="x unified"  # Enable hover for both source and target
     )
