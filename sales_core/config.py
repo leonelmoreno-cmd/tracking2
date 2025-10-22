@@ -8,8 +8,9 @@ JS_API_KEY = None   # loaded from st.secrets at runtime
 
 # —— Repo paths (respect your current repo) ——
 # Your repo already has "Asins" (capital A); we keep that.
-ASINS_DIR = "Asins"                   # TXT files: Asins/<basket_basename>.txt
-SALES_DIR = "data/sales"              # Weekly CSV outputs per basket
+# —— Repo paths ——
+ASINS_DIR = "Asins/JS"               # TXT files: Asins/JS/<basket_basename>.txt
+SALES_DIR = "sales_core/sales"       # (also covers point 3 below)
 GITHUB_OWNER = "leonelmoreno-cmd"
 GITHUB_REPO  = "tracking2"
 GITHUB_BRANCH = "main"
