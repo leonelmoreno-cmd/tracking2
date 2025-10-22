@@ -23,34 +23,25 @@ from sales_core.ui_sections import (
 def main():
     set_page_config()
 
-    # Pick active basket
     active_basket_name, active_url, name_to_url = resolve_active_basket(DEFAULT_BASKET)
-
-    # Display header if prior CSV available (non-blocking)
-    try:
-        df_existing = fetch_data(active_url)
-        prepared = prepare_data(df_existing, basket_name=active_basket_name)
-        display_header(prepared)
-    except Exception:
-        st.info("No pre-existing CSV loaded; we will fetch Jungle Scout data now.")
-
-    # Keep your existing basket toggle UI (period is ignored; we are weekly only)
     period, active_basket_name = render_basket_and_toggle(name_to_url, active_basket_name, DEFAULT_BASKET)
-    active_url = name_to_url.get(active_basket_name, active_url)
 
-    # Run ETL pipeline (ASINs → JS daily → brand map → weekly → write CSV)
-    with st.spinner("Building weekly dataset from Jungle Scout..."):
-        weekly = run_pipeline(active_basket_name, competitor_download_url=active_url)
+    st.header("📊 Sales Dashboard")
 
-    if weekly is None or weekly.empty:
-        st.warning("No weekly data available.")
+    # 👇 SOLO leemos el CSV generado por el workflow
+    try:
+        weekly = read_weekly_csv_remote(active_basket_name)   # <- remoto recomendado
+        # weekly = read_weekly_csv_local(active_basket_name)  # <- alternativa local
+    except Exception as e:
+        st.warning(f"Weekly CSV not available for '{active_basket_name}'. "
+                   f"Run the GitHub Action (cron Friday or manual dispatch). Details: {e}")
         return
 
-    # Available weeks for dropdown
-    available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
-    st.header("📊 Sales Dashboard")
-    st.caption(lambda: f"Window: {four_full_weeks_window()[0].date()} to {four_full_weeks_window()[1].date()}")
+    if weekly is None or weekly.empty:
+        st.warning("No weekly data available for this basket.")
+        return
 
+    available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
     df_overview, selected_brands, selected_week_end = render_overview_filters_and_highlights(weekly, available_weeks)
     fig = create_overview_graph(df_overview, selected_brands or None)
     st.plotly_chart(fig, use_container_width=True)
