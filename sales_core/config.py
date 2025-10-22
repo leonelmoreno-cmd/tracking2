@@ -21,4 +21,4 @@ GITHUB_BRANCH = "main"
 # —— Misc ——
 AMAZON_DP_FMT = "https://www.amazon.com/dp/{asin}"
 DEFAULT_BASKET = "synthethic3.csv"    # UI default
-TIMEZONE = "America/Caracas"         # For week cutoffs
+TIMEZONE = "America/Caracas"
