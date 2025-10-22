@@ -1,6 +1,4 @@
 from __future__ import annotations
-import os
-
 # —— Jungle Scout ——
 JS_BASE_URL = "https://developer.junglescout.com/api/sales_estimates_query"
 JS_KEY_NAME = None  # loaded from st.secrets at runtime
