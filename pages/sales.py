@@ -2,6 +2,8 @@
 from __future__ import annotations
 import streamlit as st
 import pandas as pd
+from sales_core.repo_io import read_weekly_csv_remote, read_weekly_csv_local
+
 
 from components.common import (
     set_page_config, fetch_data, prepare_data,
