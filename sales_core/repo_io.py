@@ -39,22 +39,23 @@ def weekly_csv_local_path(basket_name: str) -> str:
 # Read ASIN list for a basket
 # ------------------------------------------------------------
 @st.cache_data(show_spinner=False)
-def read_asins_for_basket(basket_name: str) -> list[tuple[str,str]]:
+def read_asins_for_basket(basket_name: str) -> list[tuple[str, str]]:
     url = asin_txt_raw_url(basket_name)
+    headers = {}
+    token = st.secrets.get("GITHUB_TOKEN", None)
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     r = requests.get(url, headers=headers, timeout=20)
-    ...
-    filtered = [ln for ln in lines if ln and not ln.startswith("#")]
-    out = []
-    for ln in filtered:
-        parts = [p.strip() for p in ln.split(",", 1)]
-        if len(parts) == 2:
-            asin, brand = parts
-        else:
-            asin = parts[0]
-            brand = "Unknown"
-        out.append((asin, brand))
+    if r.status_code != 200:
+        raise RuntimeError(f"Cannot read ASIN list ({r.status_code}): {url}")
+    lines = [ln.strip() for ln in r.text.splitlines() if ln and not ln.startswith("#")]
+    out, seen = [], set()
+    for ln in lines:
+        asin, brand = (p.strip() for p in (ln.split(",", 1) + ["Unknown"])[:2])
+        if asin not in seen:
+            seen.add(asin)
+            out.append((asin, brand or "Unknown"))
     return out
-
 
 # ------------------------------------------------------------
 # Write weekly CSV (used by pipeline in Actions)
