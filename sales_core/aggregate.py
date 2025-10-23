@@ -14,6 +14,7 @@ def to_weekly_fri_thu(daily_df: pd.DataFrame) -> pd.DataFrame:
             "asin", "brand", "week_end", "week_number", "units_sold", "sales_amount", "avg_price"
         ])
     w = daily_df.copy()
+    w["brand"] = w["brand"].fillna("Unknown").astype(str)
     w["date"] = pd.to_datetime(w["date"], errors="coerce")
     w = w.dropna(subset=["date"])
     w["sales_amount_day"] = w["estimated_units_sold"] * w["last_known_price"]
