@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: "0 10 * * 5"   # → todos los viernes 10:00 UTC
 
-# 👇 ESTA LÍNEA ES CLAVE: da permiso de escritura al workflow
+# 👇 Permiso de escritura para poder commitear resultados
 permissions:
   contents: write
 
@@ -30,9 +30,14 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🚀 Run Jungle Scout Pipeline
+      - name: 🚀 Run Jungle Scout Pipeline (all baskets)
         run: |
-          python -m sales_core.pipeline --basket "asins_IC.txt"
+          set -e
+          for f in Asins/JS/*.txt; do
+            echo ">>> Processing $(basename "$f")"
+            python -m sales_core.pipeline --basket "$(basename "$f")"
+            sleep 2  # opcional: cuida rate limits de la API
+          done
 
       - name: 💾 Commit and push results
         run: |
