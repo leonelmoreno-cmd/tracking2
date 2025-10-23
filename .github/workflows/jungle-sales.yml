@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "0 10 * * 5"   # → todos los viernes 10:00 UTC
 
+# 👇 ESTA LÍNEA ES CLAVE: da permiso de escritura al workflow
+permissions:
+  contents: write
+
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
