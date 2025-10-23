@@ -39,33 +39,20 @@ def weekly_csv_local_path(basket_name: str) -> str:
 # Read ASIN list for a basket
 # ------------------------------------------------------------
 @st.cache_data(show_spinner=False)
-def read_asins_for_basket(basket_name: str) -> list[str]:
-    """
-    Read ASINs from the TXT in the repo (GitHub RAW).
-    - Skips empty lines and lines starting with '#'
-    - Deduplicates while preserving order
-    """
+def read_asins_for_basket(basket_name: str) -> list[tuple[str,str]]:
     url = asin_txt_raw_url(basket_name)
-    headers = {}
-    token = st.secrets.get("GITHUB_TOKEN", None)
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-
     r = requests.get(url, headers=headers, timeout=20)
-    if r.status_code != 200:
-        raise RuntimeError(f"Cannot read ASIN list ({r.status_code}): {url}")
-
-    lines = [ln.strip() for ln in r.text.splitlines()]
-    # filter comments/empties
+    ...
     filtered = [ln for ln in lines if ln and not ln.startswith("#")]
-
-    # deduplicate preserving order
-    seen: set[str] = set()
-    out: list[str] = []
-    for a in filtered:
-        if a not in seen:
-            seen.add(a)
-            out.append(a)
+    out = []
+    for ln in filtered:
+        parts = [p.strip() for p in ln.split(",", 1)]
+        if len(parts) == 2:
+            asin, brand = parts
+        else:
+            asin = parts[0]
+            brand = "Unknown"
+        out.append((asin, brand))
     return out
 
 
