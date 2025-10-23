@@ -9,8 +9,9 @@ def now_ny() -> pd.Timestamp:
 
 def last_finished_thursday(ref: pd.Timestamp | None = None) -> pd.Timestamp:
     """
-    Most recent *finished* Thursday (00:00 local). If today is Thu,
-    we consider that Thursday as finished.
+    Most recent *finished* Thursday (00:00 local).
+    If today is Thursday, we use the *previous* Thursday instead
+    (to avoid including incomplete data for the current day).
     """
     if ref is None:
         ref = now_ny()
@@ -18,9 +19,16 @@ def last_finished_thursday(ref: pd.Timestamp | None = None) -> pd.Timestamp:
     # Mon=0..Thu=3..Sun=6
     w = ref.weekday()
     delta_to_thu = (w - 3)  # days since Thu
-    if delta_to_thu >= 0:
+
+    if delta_to_thu == 0:
+        # Today is Thursday → go back one full week
+        return ref - pd.Timedelta(days=7)
+    elif delta_to_thu > 0:
+        # Friday to Sunday → go back to this week's Thursday
         return ref - pd.Timedelta(days=delta_to_thu)
-    return ref - pd.Timedelta(days=(7 + delta_to_thu))
+    else:
+        # Monday to Wednesday → go back to last week's Thursday
+        return ref - pd.Timedelta(days=(7 + delta_to_thu))
 
 def week_end_for_date(d: pd.Timestamp) -> pd.Timestamp:
     """Return the Thursday ending the Fri→Thu week for date d (naive date)."""
