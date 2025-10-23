@@ -33,7 +33,7 @@ jobs:
       - name: 🚀 Run Jungle Scout Pipeline
         run: |
           python -m sales_core.pipeline \
-            --basket "synthethic3.csv" \
+            --basket "asins_IC.csv" \
             --competitor-url "https://raw.githubusercontent.com/leonelmoreno-cmd/tracking2/main/data/sub-categories2/sub_SYN.csv"
 
       - name: 💾 Commit and push results
