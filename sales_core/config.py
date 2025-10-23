@@ -20,3 +20,13 @@ GITHUB_BRANCH = "main"
 AMAZON_DP_FMT = "https://www.amazon.com/dp/{asin}"
 DEFAULT_BASKET = "asins_IC.txt"    # UI default
 TIMEZONE = "America/Caracas"
+
+BASKET_NAME_ALIASES = {
+    "competitors_history - IC.csv": "asins_IC",
+    "competitors_history - BL.csv": "asins_BL",
+    "competitors_history - GS.csv": "asins_GS",
+    "competitors_history - LGM.csv": "asins_LGM",
+    "competitors_history - QC.csv": "asins_QC",
+    "competitors_history - RIO.csv": "asins_RIO",
+    "competitors_history - UR.csv": "asins_UR",
+}
