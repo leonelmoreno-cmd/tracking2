@@ -43,11 +43,31 @@ def main():
         st.warning("No weekly data available for this basket.")
         return
 
-    available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
-    df_overview, selected_brands, selected_week_end = render_overview_filters_and_highlights(weekly, available_weeks)
-    fig = create_overview_graph(df_overview, selected_brands or None)
-    st.plotly_chart(fig, use_container_width=True)
-    render_breakdown(df_overview)
+available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
+
+(df_overview,
+ selected_brands,
+ selected_week_end,
+ metric_col,
+ metric_y_title,
+ metric_hover_y,
+ metric_prefix) = render_overview_filters_and_highlights(weekly, available_weeks)
+
+fig = create_overview_graph(
+    df_overview,
+    selected_brands or None,
+    metric_col=metric_col,
+    metric_y_title=metric_y_title,
+    metric_hover_y=metric_hover_y
+)
+st.plotly_chart(fig, use_container_width=True)
+
+render_breakdown(
+    df_overview,
+    metric_col=metric_col,
+    metric_y_title=metric_y_title,
+    metric_hover_y=metric_hover_y
+)
 
 if __name__ == "__main__":
     main()
