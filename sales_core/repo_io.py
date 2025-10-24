@@ -83,12 +83,22 @@ def write_weekly_csv_local(df: pd.DataFrame, basket_name: str) -> str:
 # ------------------------------------------------------------
 # Read weekly CSV (used by Streamlit UI)
 # ------------------------------------------------------------
+# sales_core/repo_io.py
 @st.cache_data(show_spinner=False)
 def read_weekly_csv_remote(basket_name: str) -> pd.DataFrame:
     url = weekly_csv_raw_url(basket_name)
-    r = requests.get(url, timeout=30)
+    headers = {}
+    token = st.secrets.get("GITHUB_TOKEN", None)
+    if token:
+        # Personal Access Token o token de GitHub App con permiso de lectura del repo
+        headers["Authorization"] = f"Bearer {token}"
+        # Opcional, ayuda con raw:
+        headers["Accept"] = "application/vnd.github.raw"
+
+    r = requests.get(url, headers=headers, timeout=30)
     if r.status_code != 200:
         raise FileNotFoundError(f"Weekly CSV not found in repo ({r.status_code}): {url}")
+
     df = pd.read_csv(io.StringIO(r.text))
     if "week_end" in df.columns:
         df["week_end"] = pd.to_datetime(df["week_end"], errors="coerce")
