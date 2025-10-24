@@ -2,8 +2,8 @@
 from __future__ import annotations
 import streamlit as st
 import pandas as pd
-from sales_core.repo_io import read_weekly_csv_remote, read_weekly_csv_local
 
+from sales_core.repo_io import read_weekly_csv_remote, read_weekly_csv_local
 
 from components.common import (
     set_page_config, fetch_data, prepare_data,
@@ -22,6 +22,7 @@ from sales_core.ui_sections import (
     render_breakdown,
 )
 
+
 def main():
     set_page_config()
 
@@ -30,44 +31,49 @@ def main():
 
     st.header("📊 Sales Dashboard")
 
-    # 👇 SOLO leemos el CSV generado por el workflow
+    # Read the CSV produced by the workflow (remote recommended)
     try:
-        weekly = read_weekly_csv_remote(active_basket_name)   # <- remoto recomendado
-        # weekly = read_weekly_csv_local(active_basket_name)  # <- alternativa local
+        weekly = read_weekly_csv_remote(active_basket_name)   # remote
+        # weekly = read_weekly_csv_local(active_basket_name)  # local alternative
     except Exception as e:
-        st.warning(f"Weekly CSV not available for '{active_basket_name}'. "
-                   f"Run the GitHub Action (cron Friday or manual dispatch). Details: {e}")
+        st.warning(
+            f"Weekly CSV not available for '{active_basket_name}'. "
+            f"Run the GitHub Action (cron Friday or manual dispatch). Details: {e}"
+        )
         return
 
     if weekly is None or weekly.empty:
         st.warning("No weekly data available for this basket.")
         return
 
-available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
+    available_weeks = sorted(weekly["week_end"].dropna().unique().tolist())
 
-(df_overview,
- selected_brands,
- selected_week_end,
- metric_col,
- metric_y_title,
- metric_hover_y,
- metric_prefix) = render_overview_filters_and_highlights(weekly, available_weeks)
+    (
+        df_overview,
+        selected_brands,
+        selected_week_end,
+        metric_col,
+        metric_y_title,
+        metric_hover_y,
+        metric_prefix
+    ) = render_overview_filters_and_highlights(weekly, available_weeks)
 
-fig = create_overview_graph(
-    df_overview,
-    selected_brands or None,
-    metric_col=metric_col,
-    metric_y_title=metric_y_title,
-    metric_hover_y=metric_hover_y
-)
-st.plotly_chart(fig, use_container_width=True)
+    fig = create_overview_graph(
+        df_overview,
+        selected_brands or None,
+        metric_col=metric_col,
+        metric_y_title=metric_y_title,
+        metric_hover_y=metric_hover_y
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-render_breakdown(
-    df_overview,
-    metric_col=metric_col,
-    metric_y_title=metric_y_title,
-    metric_hover_y=metric_hover_y
-)
+    render_breakdown(
+        df_overview,
+        metric_col=metric_col,
+        metric_y_title=metric_y_title,
+        metric_hover_y=metric_hover_y
+    )
+
 
 if __name__ == "__main__":
     main()
