@@ -45,8 +45,23 @@ def set_page_config():
 # Fetch CSV data
 # -------------------------------
 def fetch_data(url: str) -> pd.DataFrame:
-    """Fetch CSV data from a URL and return it as a pandas DataFrame."""
-    return pd.read_csv(url)
+    """Fetch CSV data from a URL (public or private) and return it as a pandas DataFrame."""
+    import io
+    import requests
+    import streamlit as st
+
+    # Tomar el token de los secretos (asegúrate de tenerlo configurado)
+    token = st.secrets.get("GITHUB_TOKEN", None)
+    headers = {"Accept": "application/vnd.github.raw"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"  # Necesario para repos privados
+
+    # Descargar el archivo
+    response = requests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()  # Lanza error si no puede acceder
+
+    # Leer el contenido CSV
+    return pd.read_csv(io.BytesIO(response.content))
 
 # -------------------------------
 # Prepare data
