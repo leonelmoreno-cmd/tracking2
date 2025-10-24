@@ -22,17 +22,35 @@ def render_overview_filters_and_highlights(weekly_df: pd.DataFrame, available_we
 
     with left_col:
         selected_brands = st.multiselect(
-            "Brands to display (units)",
+            "Brands to display",
             options=all_brands,
             default=all_brands,
-            help="Brands to compare in the units chart."
+            help="Brands to compare in the chart."
         )
         selected_week_label = st.selectbox(
-            "Reporting week (labeled by week-ending Thursday)",
+            "Reporting week (week-ending Thursday)",
             options=week_labels,
             index=len(week_labels) - 1 if week_labels else 0
         )
         selected_week_end = label_to_we.get(selected_week_label)
+
+        # —— Metric toggle (affects Overview and Breakdown) ——
+        metric_choice = st.radio(
+            "Metric",
+            options=["Sales Amount ($)", "Units Sold"],
+            index=0,
+            horizontal=True
+        )
+        if metric_choice == "Units Sold":
+            metric_col = "units_sold"
+            metric_y_title = "Units Sold"
+            metric_hover_y = "%{y:,}"
+            metric_prefix = ""
+        else:
+            metric_col = "sales_amount"
+            metric_y_title = "Sales Amount (USD)"
+            metric_hover_y = "$%{y:,.0f}"
+            metric_prefix = "$"
 
     with right_col:
         df_overview = weekly_df.copy()
@@ -47,7 +65,7 @@ def render_overview_filters_and_highlights(weekly_df: pd.DataFrame, available_we
             if not metrics:
                 st.info("No data for the selected week.")
             else:
-                # metrics returns a dict with 'sales', 'variation', and 'units'
+                # metrics contains 'sales', 'variation', and 'units'
                 col1, col2, col3 = st.columns(3)
 
                 # Sales
@@ -58,7 +76,7 @@ def render_overview_filters_and_highlights(weekly_df: pd.DataFrame, available_we
                 col1.metric("📉 Lowest Sales", f"{b_l} (${v_l:,.0f})")
                 col1.metric("📊 Average Sales", f"${v_avg:,.0f}")
 
-                # Variation (based on sales)
+                # Variation (week-over-week, based on sales)
                 vb_h, vv_h = metrics["variation"]["highest"]
                 vb_l, vv_l = metrics["variation"]["lowest"]
                 v_avg2 = metrics["variation"]["average"]
@@ -74,16 +92,30 @@ def render_overview_filters_and_highlights(weekly_df: pd.DataFrame, available_we
                 col3.metric("📦 Least Units Sold", f"{ub_l} ({uv_l:,})")
                 col3.metric("📦 Average Units Sold", f"{u_avg:,.1f}")
 
-    return df_overview, selected_brands, selected_week_end
+    # Return the metric selection so downstream charts can use it
+    return (
+        df_overview,
+        selected_brands,
+        selected_week_end,
+        metric_col,
+        metric_y_title,
+        metric_hover_y,
+        metric_prefix,
+    )
 
 
-def create_overview_graph(df: pd.DataFrame, brands_to_plot: list[str] | None):
+def create_overview_graph(
+    df: pd.DataFrame,
+    brands_to_plot: list[str] | None,
+    metric_col: str,
+    metric_y_title: str,
+    metric_hover_y: str
+):
     d = df.copy()
     if brands_to_plot:
         d = d[d["brand"].isin(brands_to_plot)]
 
-    # 🔁 Use units instead of sales
-    agg = d.groupby(["brand", "week_end"], as_index=False)["units_sold"].sum()
+    agg = d.groupby(["brand", "week_end"], as_index=False)[metric_col].sum()
 
     fig = go.Figure()
     for brand, g in agg.groupby("brand"):
@@ -91,17 +123,21 @@ def create_overview_graph(df: pd.DataFrame, brands_to_plot: list[str] | None):
         fig.add_trace(
             go.Scatter(
                 x=g["week_end"],
-                y=g["units_sold"],
+                y=g[metric_col],
                 mode="lines+markers",
                 name=str(brand),
-                hovertemplate="Brand: %{text}<br>Units: %{y:,}<br>Week end: %{x|%Y-%m-%d}<extra></extra>",
+                hovertemplate=(
+                    "Brand: %{text}<br>"
+                    f"Value: {metric_hover_y}<br>"
+                    "Week end: %{x|%Y-%m-%d}<extra></extra>"
+                ),
                 text=g["brand"],
             )
         )
-    fig.update_yaxes(title_text="Units Sold")
+    fig.update_yaxes(title_text=metric_y_title)
     fig.update_xaxes(title_text="Week Ending (Thursday)")
     fig.update_layout(
-        title="📈 Sales Overview — Total Units by Brand (Weekly Fri→Thu)",
+        title="📈 Overview — Weekly by Brand (Fri→Thu)",
         height=420,
         hovermode="x unified",
         legend_title_text="Brand",
@@ -110,8 +146,13 @@ def create_overview_graph(df: pd.DataFrame, brands_to_plot: list[str] | None):
     return fig
 
 
-def render_breakdown(df: pd.DataFrame):
-    st.header("🔎 Units Breakdown by Brand")
+def render_breakdown(
+    df: pd.DataFrame,
+    metric_col: str,
+    metric_y_title: str,
+    metric_hover_y: str
+):
+    st.header("🔎 Breakdown by Brand")
     if df.empty:
         st.info("No data available.")
         return
@@ -121,8 +162,8 @@ def render_breakdown(df: pd.DataFrame):
     cols = 3 if num_brands >= 3 else max(1, num_brands)
     rows = int(np.ceil(num_brands / cols))
 
-    # 🔁 Shared Y-axis max based on units
-    max_y = df["units_sold"].max()
+    # Shared Y-axis maximum across all small multiples
+    max_y = df[metric_col].max()
 
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
@@ -134,7 +175,7 @@ def render_breakdown(df: pd.DataFrame):
     for i, brand in enumerate(brands):
         g = (
             df[df["brand"] == brand]
-            .groupby(["brand", "week_end"], as_index=False)["units_sold"].sum()  # 🔁 units
+            .groupby(["brand", "week_end"], as_index=False)[metric_col].sum()
             .sort_values("week_end")
         )
         if g.empty:
@@ -143,9 +184,13 @@ def render_breakdown(df: pd.DataFrame):
         c = i % cols + 1
         fig.add_trace(
             go.Scatter(
-                x=g["week_end"], y=g["units_sold"],  # 🔁 units
+                x=g["week_end"], y=g[metric_col],
                 mode="lines+markers", name=str(brand),
-                hovertemplate=f"Brand: {brand}<br>Units: %{{y:,}}<br>Week end: %{{x|%Y-%m-%d}}<extra></extra>",
+                hovertemplate=(
+                    f"Brand: {brand}<br>"
+                    f"Value: {metric_hover_y}<br>"
+                    "Week end: %{x|%Y-%m-%d}<extra></extra>"
+                ),
                 showlegend=False
             ),
             row=r, col=c
@@ -159,7 +204,11 @@ def render_breakdown(df: pd.DataFrame):
                 tickformat="%b %d", tickangle=0,
                 row=r, col=c
             )
-            fig.update_yaxes(range=[0, max_y * 1.05], row=r, col=c)
+            fig.update_yaxes(
+                range=[0, max_y * 1.05],
+                title_text=metric_y_title,
+                row=r, col=c
+            )
 
     fig.update_layout(
         height=max(400, 280 * rows),
@@ -168,7 +217,7 @@ def render_breakdown(df: pd.DataFrame):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("📄 Show weekly sales table (with ASIN links)"):
+    with st.expander("📄 Show weekly table (with ASIN links)"):
         table = df.copy()
         table["week_end"] = table["week_end"].dt.strftime("%Y-%m-%d")
         table["product_url"] = table["asin"].map(lambda a: AMAZON_DP_FMT.format(asin=a))
