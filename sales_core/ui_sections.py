@@ -113,11 +113,14 @@ def render_breakdown(df: pd.DataFrame):
     cols = 3 if num_brands >= 3 else max(1, num_brands)
     rows = int(np.ceil(num_brands / cols))
 
-    from plotly.subplots import make_subplots
+    # 1️⃣ calcular el máximo global de ventas
+    max_y = df["sales_amount"].max()
+
     fig = make_subplots(
         rows=rows, cols=cols, shared_xaxes=True,
         subplot_titles=[str(b) for b in brands],
-        vertical_spacing=0.12, horizontal_spacing=0.08
+        vertical_spacing=0.18,  # 2️⃣ más espacio vertical
+        horizontal_spacing=0.08
     )
 
     for i, brand in enumerate(brands):
@@ -126,7 +129,7 @@ def render_breakdown(df: pd.DataFrame):
             .groupby(["brand", "week_end"], as_index=False)["sales_amount"].sum()
             .sort_values("week_end")
         )
-        if g.empty: 
+        if g.empty:
             continue
         r = i // cols + 1; c = i % cols + 1
         fig.add_trace(
@@ -139,9 +142,15 @@ def render_breakdown(df: pd.DataFrame):
             row=r, col=c
         )
 
+    # 3️⃣ actualizar ejes
     for r in range(1, rows + 1):
         for c in range(1, cols + 1):
-            fig.update_xaxes(showticklabels=True, ticks="outside", ticklen=4, tickformat="%Y-%m-%d", tickangle=-45, row=r, col=c)
+            fig.update_xaxes(
+                showticklabels=True, ticks="outside", ticklen=4,
+                tickformat="%b %d", tickangle=0,  # etiquetas limpias
+                row=r, col=c
+            )
+            fig.update_yaxes(range=[0, max_y * 1.05], row=r, col=c)  # eje Y común
 
     fig.update_layout(
         height=max(400, 280 * rows),
