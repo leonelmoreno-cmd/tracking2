@@ -1,11 +1,10 @@
 name: 🦍 Jungle Scout Weekly Pipeline
 
 on:
-  workflow_dispatch:       # Permite ejecutarlo manualmente desde GitHub
+  workflow_dispatch:
   schedule:
     - cron: "0 10 * * 5"   # → todos los viernes 10:00 UTC
 
-# 👇 Permiso de escritura para poder commitear resultados
 permissions:
   contents: write
 
@@ -30,13 +29,22 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
+      - name: 🔐 Create Streamlit secrets.toml
+        run: |
+          mkdir -p ./.streamlit
+          cat <<EOF > ./.streamlit/secrets.toml
+          GITHUB_TOKEN = "${GITHUB_TOKEN}"
+          JS_KEY_NAME  = "${JS_KEY_NAME}"
+          JS_API_KEY   = "${JS_API_KEY}"
+          EOF
+
       - name: 🚀 Run Jungle Scout Pipeline (all baskets)
         run: |
           set -e
           for f in Asins/JS/*.txt; do
             echo ">>> Processing $(basename "$f")"
             python -m sales_core.pipeline --basket "$(basename "$f")"
-            sleep 2  # opcional: cuida rate limits de la API
+            sleep 2
           done
 
       - name: 💾 Commit and push results
