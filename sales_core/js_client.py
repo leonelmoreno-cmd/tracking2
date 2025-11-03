@@ -131,28 +131,31 @@ def fetch_daily_for_asin(
 # =============================================================
 # Fetch daily data for multiple ASINs
 # =============================================================
-
-def fetch_daily_for_asins(
-    asins: list[str],
-    start_date: pd.Timestamp,
-    end_date: pd.Timestamp,
-    token: JSToken,
-) -> pd.DataFrame:
-    """
-    Fetch daily Jungle Scout data for multiple ASINs.
-    Combines results into a single DataFrame.
-    """
-
-    frames: list[pd.DataFrame] = []
+# sales_core/js_client.py
+def fetch_daily_for_asins(asins, start_date, end_date, token):
+    frames = []
+    failures = []  # ← nuevo
 
     for asin in asins:
-        with st.status(f"📦 Fetching {asin}...", expanded=False):
-            df_asin = fetch_daily_for_asin(asin, start_date, end_date, token)
-            frames.append(df_asin)
+        try:
+            with st.status(f"📦 Fetching {asin}...", expanded=False):
+                df_asin = fetch_daily_for_asin(asin, start_date, end_date, token)
+
+                # Si el API devuelve vacío (asin sin datos / no disponible)
+                if df_asin.empty:
+                    failures.append((asin, "no_data_or_unavailable"))
+
+                frames.append(df_asin)
+
+        except RuntimeError as e:
+            failures.append((asin, str(e)))  # guardas el error y sigues
+            continue
 
     if not frames:
-        return pd.DataFrame(columns=["asin", "date", "estimated_units_sold", "last_known_price"])
+        return (
+            pd.DataFrame(columns=["asin","date","estimated_units_sold","last_known_price"]),
+            failures
+        )
 
-    out = pd.concat(frames, ignore_index=True)
-    out = out.sort_values(["asin", "date"]).reset_index(drop=True)
-    return out
+    out = pd.concat(frames, ignore_index=True).sort_values(["asin","date"]).reset_index(drop=True)
+    return out, failures  # ← ahora regresa datos + fallos
