@@ -12,6 +12,7 @@ from pages.campaigns_evolution import main as campaigns_evolution_page
 from pages.rating_evolution import main as rating_evolution_page
 from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
+from pages.parameters import main as parameters_page
 
 def main():
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
@@ -22,6 +23,7 @@ def main():
         # Modularized evolution pages
         st.Page(rating_evolution_page, title="Rating Evolution", icon="⭐", url_path="rating-evolution"),
         st.Page(ranking_evolution_page, title="Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
+        st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         # Other existing pages
         st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
         st.Page(best_sellers_page, title="Best Sellers Rank", icon="🥇", url_path="best-sellers"),
