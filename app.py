@@ -23,7 +23,6 @@ def main():
         # Modularized evolution pages
         st.Page(rating_evolution_page, title="Rating Evolution", icon="⭐", url_path="rating-evolution"),
         st.Page(ranking_evolution_page, title="Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
-        st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         # Other existing pages
         st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
         st.Page(best_sellers_page, title="Best Sellers Rank", icon="🥇", url_path="best-sellers"),
@@ -31,6 +30,7 @@ def main():
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
         st.Page(ngram_page, title="N-gram", icon="🔤", url_path="ngram"),
         st.Page(placements,title="Placements", icon="🕵️",url_path="placements"),
+        st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
