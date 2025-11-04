@@ -364,3 +364,6 @@ else:
                     st.warning("No rows for that campaign or the 'Date' column is missing.")
         else:
             st.caption("Type a term to search the campaign using fuzzy match.")
+# Streamlit runs the script top-to-bottom, but providing a main() helps local testing and reuse
+if __name__ == "__main__":
+    main()
