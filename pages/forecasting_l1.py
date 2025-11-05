@@ -212,7 +212,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
 
     fig = go.Figure()
 
-    # --- Confidence band as shaded area (future only) ---
+    # Shaded band (future only)
     fig.add_trace(
         go.Scatter(
             x=fc["ds"],
@@ -237,7 +237,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
         )
     )
 
-    # --- Forecast line (future only) ---
+    # Forecast line (future only)
     fig.add_trace(
         go.Scatter(
             x=fc["ds"],
@@ -248,7 +248,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
         )
     )
 
-    # --- Last observed point as reference ---
+    # Last observed marker
     last_row = df.loc[df["ds"] == last_ds]
     if not last_row.empty:
         fig.add_trace(
@@ -262,22 +262,12 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
             )
         )
 
-    # Vertical line at last observed date:
-    # 1) pásalo a datetime nativo para evitar bug con pandas.Timestamp
+    # Vertical line at last observed date (convert to native datetime)
     x_line = last_ds.to_pydatetime()
-    fig.add_vline(
-        x=x_line,
-        line_dash="dot",
-        line_color="gray",
-    )
-    # 2) agrega la anotación por separado (no usar annotation_* en add_vline)
+    fig.add_vline(x=x_line, line_dash="dot", line_color="gray")
     fig.add_annotation(
-        x=x_line,
-        y=1,                # parte superior del área del gráfico
-        yref="paper",
-        text="Last actual",
-        showarrow=False,
-        xanchor="left"
+        x=x_line, y=1, yref="paper",
+        text="Last actual", showarrow=False, xanchor="left"
     )
 
     fig.update_layout(
@@ -291,6 +281,11 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
 
     st.plotly_chart(fig, width="stretch")
 
+
+def _plot_components(m: Prophet, forecast: pd.DataFrame):
+    """Show Prophet seasonality/trend components (matplotlib)."""
+    fig_comp = m.plot_components(forecast)
+    st.pyplot(fig_comp)
 
 
 # ============================================================
