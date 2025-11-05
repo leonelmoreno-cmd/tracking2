@@ -207,6 +207,88 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
 def _plot_components(m: Prophet, forecast: pd.DataFrame):
     fig_comp = m.plot_components(forecast)  # matplotlib fig
     st.pyplot(fig_comp)
+def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
+    """Plot only the future part of the forecast as a shaded confidence band + forecast line.
+    Shows a vertical marker at the last observed date.
+    """
+    last_ds = pd.to_datetime(df["ds"].max())
+    fc = forecast[forecast["ds"] > last_ds].copy()
+
+    if fc.empty:
+        st.info("No future points found in the forecast (future dataframe is empty).")
+        return
+
+    fig = go.Figure()
+
+    # --- Confidence band as shaded area (future only) ---
+    fig.add_trace(
+        go.Scatter(
+            x=fc["ds"],
+            y=fc["yhat_lower"],
+            mode="lines",
+            line=dict(width=0),
+            name="Lower bound",
+            hovertemplate="Lower: %{y:.2f}<extra></extra>",
+            showlegend=False,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=fc["ds"],
+            y=fc["yhat_upper"],
+            mode="lines",
+            line=dict(width=0),
+            fill="tonexty",
+            fillcolor="rgba(0,0,0,0.15)",
+            name="Confidence interval",
+            hovertemplate="Upper: %{y:.2f}<extra></extra>",
+        )
+    )
+
+    # --- Forecast line (future only) ---
+    fig.add_trace(
+        go.Scatter(
+            x=fc["ds"],
+            y=fc["yhat"],
+            mode="lines",
+            name="Forecast (yhat)",
+            hovertemplate="Date: %{x}<br>Forecast: %{y:.2f}<extra></extra>",
+        )
+    )
+
+    # --- Last observed point as reference ---
+    last_row = df.loc[df["ds"] == last_ds]
+    if not last_row.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=last_row["ds"],
+                y=last_row["y"],
+                mode="markers",
+                name="Last actual",
+                marker=dict(size=9),
+                hovertemplate="Date: %{x}<br>Actual: %{y:.2f}<extra></extra>",
+            )
+        )
+
+    # Vertical line at last observed date
+    fig.add_vline(
+        x=last_ds,
+        line_dash="dot",
+        line_color="gray",
+        annotation_text="Last actual",
+        annotation_position="top left"
+    )
+
+    fig.update_layout(
+        title="Future Forecast (from last actual onward)",
+        xaxis_title="Date",
+        yaxis_title="Value",
+        height=450,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        hovermode="x unified",
+    )
+
+    st.plotly_chart(fig, width="stretch")
 
 
 # ============================================================
@@ -364,6 +446,7 @@ def main():
 
     # ---------- Plots ----------
     _plot_forecast_interactive(df_prepared, forecast)
+    _plot_forecast_future_only(df_prepared, forecast) 
     _plot_components(model, forecast)
 
     # ---------- Download ----------
