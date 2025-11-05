@@ -135,15 +135,12 @@ def _make_future_and_predict(m: Prophet, freq: str, periods: int):
 #  PLOTS
 # ============================================================
 def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
-    # We will draw:
-    # 1) Shaded confidence interval (yhat_lower..yhat_upper)
+    # 1) Confidence band as shaded area
     # 2) Forecast line (yhat)
     # 3) Actuals (markers+line)
-
     fig = go.Figure()
 
-    # --- Confidence band as a shaded area ---
-    # Plot lower bound first (thin/invisible line)
+    # Shaded band
     fig.add_trace(
         go.Scatter(
             x=forecast["ds"],
@@ -155,21 +152,20 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
             showlegend=False,
         )
     )
-    # Plot upper bound and fill to previous trace to create the band
     fig.add_trace(
         go.Scatter(
             x=forecast["ds"],
             y=forecast["yhat_upper"],
             mode="lines",
             line=dict(width=0),
-            fill="tonexty",            # <- this creates the shaded area
-            fillcolor="rgba(0,0,0,0.15)",  # light shade; adjust if you want
+            fill="tonexty",
+            fillcolor="rgba(0,0,0,0.15)",
             name="Confidence interval",
             hovertemplate="Upper: %{y:.2f}<extra></extra>",
         )
     )
 
-    # --- Forecast line (yhat) ---
+    # Forecast line
     fig.add_trace(
         go.Scatter(
             x=forecast["ds"],
@@ -180,7 +176,7 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
         )
     )
 
-    # --- Actuals ---
+    # Actuals
     fig.add_trace(
         go.Scatter(
             x=df["ds"],
@@ -203,10 +199,6 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
     st.plotly_chart(fig, width="stretch")
 
 
-
-def _plot_components(m: Prophet, forecast: pd.DataFrame):
-    fig_comp = m.plot_components(forecast)  # matplotlib fig
-    st.pyplot(fig_comp)
 def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
     """Plot only the future part of the forecast as a shaded confidence band + forecast line.
     Shows a vertical marker at the last observed date.
@@ -220,7 +212,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
 
     fig = go.Figure()
 
-    # --- Confidence band as shaded area (future only) ---
+    # Shaded band (future only)
     fig.add_trace(
         go.Scatter(
             x=fc["ds"],
@@ -245,7 +237,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
         )
     )
 
-    # --- Forecast line (future only) ---
+    # Forecast line (future only)
     fig.add_trace(
         go.Scatter(
             x=fc["ds"],
@@ -256,7 +248,7 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
         )
     )
 
-    # --- Last observed point as reference ---
+    # Last observed marker
     last_row = df.loc[df["ds"] == last_ds]
     if not last_row.empty:
         fig.add_trace(
@@ -310,7 +302,7 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
     fig_scatter = px.scatter(hist, x="yhat", y="residual", title="Residual vs Forecast")
     st.plotly_chart(fig_scatter, width="stretch")
 
-    # ---- Robust CV: adjust windows to avoid crashes ----
+    # Robust CV: adjust windows to avoid crashes
     n_weeks = df.shape[0]
     if n_weeks < horizon_weeks * 3:
         st.info(
@@ -318,7 +310,6 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
         )
         return
 
-    # Initial between 60% of data and (n_weeks - horizon - 1); at least 2×horizon
     initial_weeks = max(int(n_weeks * 0.6), horizon_weeks * 2)
     max_initial = max(n_weeks - horizon_weeks - 1, 1)
     initial_weeks = min(initial_weeks, max_initial)
@@ -365,7 +356,7 @@ def main():
         st.info("Please upload a CSV file to start forecasting.")
         return
 
-    # ---------- Robust Google Trends CSV Reader ----------
+    # Robust Google Trends CSV Reader
     try:
         raw_bytes = uploaded_file.read()
         text = raw_bytes.decode("utf-8-sig", errors="replace")
@@ -394,7 +385,7 @@ def main():
         st.error(f"Could not read uploaded file: {e}")
         st.stop()
 
-    # ---------- Debug ----------
+    # Debug
     st.subheader("🔍 Debug: Loaded Data Info")
     st.write(f"Shape: {raw.shape}")
     st.write(f"Columns detected: {raw.columns.tolist()}")
@@ -404,7 +395,7 @@ def main():
         st.error("Expected at least 2 columns (date + value) but found 1. Please check your CSV file.")
         st.stop()
 
-    # ---------- Sidebar ----------
+    # Sidebar
     st.sidebar.header("Forecasting settings")
     horizon_weeks = st.sidebar.selectbox("Forecast horizon (weeks)", options=[4, 8, 12, 16], index=2)
     missing_method = st.sidebar.selectbox("Missing-week handling", options=["warn", "forward-fill", "interpolate"], index=0)
@@ -416,7 +407,7 @@ def main():
     st.subheader("Raw Data Preview")
     st.dataframe(raw.head(), width="stretch")
 
-    # ---------- Prepare Data ----------
+    # Prepare Data
     try:
         df_prepared = _prepare_data(raw, missing_method=missing_method)
     except Exception as e:
@@ -429,11 +420,11 @@ def main():
     st.subheader("Prepared Weekly Data")
     st.dataframe(df_prepared.head(), width="stretch")
 
-    # ---------- Fit Model ----------
+    # Fit Model
     with st.spinner("Fitting Prophet model…"):
         model = _fit_model(df_prepared, changepoint_prior_scale, interval_width)
 
-    # ---------- Forecast ----------
+    # Forecast
     freq = "W-MON"
     with st.spinner(f"Forecasting next {horizon_weeks} weeks…"):
         future, forecast = _make_future_and_predict(model, freq=freq, periods=horizon_weeks)
@@ -444,12 +435,12 @@ def main():
         width="stretch"
     )
 
-    # ---------- Plots ----------
-    _plot_forecast_interactive(df_prepared, forecast)
-    _plot_forecast_future_only(df_prepared, forecast) 
+    # Plots
+    _plot_forecast_interactive(df_prepared, forecast)   # history + future
+    _plot_forecast_future_only(df_prepared, forecast)   # future only
     _plot_components(model, forecast)
 
-    # ---------- Download ----------
+    # Download
     csv_out = forecast.to_csv(index=False).encode("utf-8")
     st.download_button(
         "Download full forecast CSV",
@@ -458,7 +449,7 @@ def main():
         mime="text/csv"
     )
 
-    # ---------- Diagnostics ----------
+    # Diagnostics
     _diagnostics_section(model, df_prepared, horizon_weeks)
 
 
