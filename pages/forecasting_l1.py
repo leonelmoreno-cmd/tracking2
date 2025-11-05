@@ -179,12 +179,19 @@ def main():
         return
 
     try:
-        raw = pd.read_csv(io.BytesIO(uploaded_file.read()))
+        # Read CSV, skipping first 2 rows assuming they contain metadata before the actual header
+        raw = pd.read_csv(
+            io.BytesIO(uploaded_file.read()),
+            skiprows=2
+        )
     except Exception as e:
         st.error(f"Could not read uploaded file: {e}")
         st.stop()
 
-    st.subheader("Raw Data Preview")
+    # Debug: show detected columns and shape
+    st.subheader("🔍 Debug: Loaded Data Info")
+    st.write(f"DataFrame shape: {raw.shape}")
+    st.write(f"Columns detected: {raw.columns.tolist()}")
     st.dataframe(raw.head(), use_container_width=True)
 
     # Sidebar controls
