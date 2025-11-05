@@ -135,13 +135,73 @@ def _make_future_and_predict(m: Prophet, freq: str, periods: int):
 #  PLOTS
 # ============================================================
 def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
+    # We will draw:
+    # 1) Shaded confidence interval (yhat_lower..yhat_upper)
+    # 2) Forecast line (yhat)
+    # 3) Actuals (markers+line)
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Forecast (yhat)"))
-    fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_lower"], name="Lower bound", line=dict(dash="dash")))
-    fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_upper"], name="Upper bound", line=dict(dash="dash")))
-    fig.add_trace(go.Scatter(x=df["ds"], y=df["y"], name="Actual", mode="markers+lines"))
-    fig.update_layout(title="Forecast vs Actual", xaxis_title="Date", yaxis_title="Value", height=500)
+
+    # --- Confidence band as a shaded area ---
+    # Plot lower bound first (thin/invisible line)
+    fig.add_trace(
+        go.Scatter(
+            x=forecast["ds"],
+            y=forecast["yhat_lower"],
+            mode="lines",
+            line=dict(width=0),
+            name="Lower bound",
+            hovertemplate="Lower: %{y:.2f}<extra></extra>",
+            showlegend=False,
+        )
+    )
+    # Plot upper bound and fill to previous trace to create the band
+    fig.add_trace(
+        go.Scatter(
+            x=forecast["ds"],
+            y=forecast["yhat_upper"],
+            mode="lines",
+            line=dict(width=0),
+            fill="tonexty",            # <- this creates the shaded area
+            fillcolor="rgba(0,0,0,0.15)",  # light shade; adjust if you want
+            name="Confidence interval",
+            hovertemplate="Upper: %{y:.2f}<extra></extra>",
+        )
+    )
+
+    # --- Forecast line (yhat) ---
+    fig.add_trace(
+        go.Scatter(
+            x=forecast["ds"],
+            y=forecast["yhat"],
+            mode="lines",
+            name="Forecast (yhat)",
+            hovertemplate="Date: %{x}<br>Forecast: %{y:.2f}<extra></extra>",
+        )
+    )
+
+    # --- Actuals ---
+    fig.add_trace(
+        go.Scatter(
+            x=df["ds"],
+            y=df["y"],
+            mode="markers+lines",
+            name="Actual",
+            hovertemplate="Date: %{x}<br>Actual: %{y:.2f}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="Forecast vs Actual (with confidence band)",
+        xaxis_title="Date",
+        yaxis_title="Value",
+        height=500,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        hovermode="x unified",
+    )
+
     st.plotly_chart(fig, width="stretch")
+
 
 
 def _plot_components(m: Prophet, forecast: pd.DataFrame):
