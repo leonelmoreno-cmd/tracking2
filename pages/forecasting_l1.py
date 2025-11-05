@@ -63,32 +63,42 @@ def _runtime_checks(df: pd.DataFrame) -> bool:
     return ok
 
 def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.DataFrame:
-    import streamlit as st  # asegúrate que esté disponible
-    
+    import streamlit as st
+    import pandas as pd
+
     df = df_raw.copy()
-    
-    # Ensure we have at least two columns (date + value)
+
+    # If there are descriptive rows above the header, drop them.
+    # For example: skip first 2 rows if they are not part of the data.
+    # You might need to adjust skiprows parameter at read_csv, or drop here.
+    # Here: assume header is first row after drop, so:
+    if not df.columns[0].strip().lower().startswith("week"):
+        # try dropping first 2 rows
+        df = df.iloc[2:].reset_index(drop=True)
+
+    # Ensure at least two columns
     if len(df.columns) < 2:
         st.error(f"Expected at least 2 columns (date + value) but found {len(df.columns)}. Please upload a file with a date column and a value column.")
         st.stop()
-    
-    # Select only the first two columns and rename them
+
+    # Select first two columns
     df = df.iloc[:, :2].copy()
+    # Rename to ds, y
     df.columns = ["ds", "y"]
-    
+
     # Convert types
     df["ds"] = pd.to_datetime(df["ds"], errors="coerce")
     df["y"] = pd.to_numeric(df["y"], errors="coerce")
-    
-    # Drop rows with missing date or value
+
+    # Drop rows with missing ds or y
     df = df.dropna(subset=["ds", "y"])
     df = df.sort_values("ds").reset_index(drop=True)
-    
+
     # Resample to weekly frequency (Monday)
     df = df.set_index("ds").resample("W-MON").mean().reset_index()
-    
-    # Handle missing weeks according to method
-    if missing_method == "forward‐fill":
+
+    # Handle missing weeks
+    if missing_method == "forward-fill":
         df["y"] = df["y"].ffill()
     elif missing_method == "interpolate":
         df["y"] = df["y"].interpolate()
@@ -96,11 +106,11 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
         # missing_method == "warn"
         if df["y"].isna().any():
             st.warning("Missing values detected after weekly resampling. Consider using forward-fill or interpolation method.")
-    
+
     # Drop remaining NaNs in y
     df = df.dropna(subset=["y"]).reset_index(drop=True)
-    return df
 
+    return df
 
 def _fit_model(df: pd.DataFrame, changepoint_prior_scale: float, interval_width: float=0.95) -> Prophet:
     m = Prophet(interval_width=interval_width,
