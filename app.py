@@ -13,6 +13,7 @@ from pages.rating_evolution import main as rating_evolution_page
 from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
 from pages.parameters import main as parameters_page
+from pages.forecasting_l1 import main as forecasting_l1_page
 
 def main():
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
@@ -29,9 +30,10 @@ def main():
         st.Page(detailed_table_page, title="Detailed Table", icon="📋", url_path="detailed-table"),
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
         st.Page(ngram_page, title="N-gram", icon="🔤", url_path="ngram"),
+        st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
         st.Page(placements,title="Placements", icon="🕵️",url_path="placements"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
-        st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
+        st.Page(forecasting_l1_page, title="Forecasting L1", icon="🔮", url_path="forecasting-l1"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
