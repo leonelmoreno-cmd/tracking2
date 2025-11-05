@@ -30,7 +30,10 @@ def _header():
         5. Fit model → view forecast + components + diagnostics.  
         """
     )
-    uploaded_file = st.file_uploader("Upload CSV (must contain a date column and a numeric value column)", type=["csv", "tsv"])
+    uploaded_file = st.file_uploader(
+        "Upload CSV (must contain a date column and a numeric value column)",
+        type=["csv", "tsv"]
+    )
     return uploaded_file
 
 
@@ -54,7 +57,10 @@ def _runtime_checks(df: pd.DataFrame) -> bool:
     diffs = df_idx.index.to_series().diff().dropna()
     gaps = diffs.dt.days[df_idx.index.to_series().diff().dt.days > 10]
     if len(gaps) > 0:
-        st.warning(f"Detected {len(gaps)} gaps larger than ~10 days between weekly dates: {gaps.unique()[:3].tolist()} …")
+        st.warning(
+            f"Detected {len(gaps)} gaps larger than ~10 days between weekly dates: "
+            f"{gaps.unique()[:3].tolist()} …"
+        )
     return ok
 
 
@@ -72,25 +78,32 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
         )
         st.stop()
 
+    # Take only first two columns as (date, value)
     df = df.iloc[:, :2].copy()
     df.columns = ["ds", "y"]
 
+    # Types
     df["ds"] = pd.to_datetime(df["ds"], errors="coerce")
     df["y"] = pd.to_numeric(df["y"], errors="coerce")
 
+    # Clean
     df = df.dropna(subset=["ds", "y"])
     df = df.sort_values("ds").reset_index(drop=True)
 
     # Resample to weekly frequency (Monday)
     df = df.set_index("ds").resample("W-MON").mean().reset_index()
 
+    # Missing handling
     if missing_method == "forward-fill":
         df["y"] = df["y"].ffill()
     elif missing_method == "interpolate":
         df["y"] = df["y"].interpolate()
     else:
         if df["y"].isna().any():
-            st.warning("Missing values detected after weekly resampling. Consider using forward-fill or interpolation method.")
+            st.warning(
+                "Missing values detected after weekly resampling. "
+                "Consider using forward-fill or interpolation method."
+            )
 
     df = df.dropna(subset=["y"]).reset_index(drop=True)
     return df
@@ -112,7 +125,7 @@ def _fit_model(df: pd.DataFrame, changepoint_prior_scale: float, interval_width:
     return m
 
 
-def _make_future_and_predict(m: Prophet, freq: str, periods: int) -> pd.DataFrame:
+def _make_future_and_predict(m: Prophet, freq: str, periods: int):
     future = m.make_future_dataframe(periods=periods, freq=freq)
     forecast = m.predict(future)
     return future, forecast
@@ -128,45 +141,77 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
     fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat_upper"], name="Upper bound", line=dict(dash="dash")))
     fig.add_trace(go.Scatter(x=df["ds"], y=df["y"], name="Actual", mode="markers+lines"))
     fig.update_layout(title="Forecast vs Actual", xaxis_title="Date", yaxis_title="Value", height=500)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _plot_components(m: Prophet, forecast: pd.DataFrame):
-    fig_comp = m.plot_components(forecast)
+    fig_comp = m.plot_components(forecast)  # matplotlib fig
     st.pyplot(fig_comp)
 
 
 # ============================================================
-#  DIAGNOSTICS
+#  DIAGNOSTICS (robust)
 # ============================================================
 def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
     st.subheader("Model Diagnostics")
     st.markdown("This section shows cross-validation and residuals to evaluate forecast performance.")
 
-    hist = df.copy().rename(columns={"ds": "ds", "y": "y"})
+    # Residuals on fitted history
+    hist = df.copy()[["ds", "y"]]
     forecast_hist = m.predict(hist[["ds"]])
     hist = hist.merge(forecast_hist[["ds", "yhat"]], how="left", on="ds")
     hist["residual"] = hist["y"] - hist["yhat"]
 
     fig_res = px.histogram(hist, x="residual", title="Residual Distribution")
-    st.plotly_chart(fig_res, use_container_width=True)
+    st.plotly_chart(fig_res, width="stretch")
 
     fig_scatter = px.scatter(hist, x="yhat", y="residual", title="Residual vs Forecast")
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, width="stretch")
 
-    if df.shape[0] >= (horizon_weeks * 3):
-        st.markdown(f"### Cross-validation for horizon = {horizon_weeks} weeks")
-        initial = f"{int(df.shape[0] - horizon_weeks)}W"
-        period = f"{max(int(horizon_weeks // 2), 1)}W"
-        horizon = f"{horizon_weeks}W"
+    # ---- Robust CV: adjust windows to avoid crashes ----
+    n_weeks = df.shape[0]
+    if n_weeks < horizon_weeks * 3:
+        st.info(
+            f"Not enough history for cross-validation (need at least ~{horizon_weeks*3} weeks, have {n_weeks})."
+        )
+        return
+
+    # Initial between 60% of data and (n_weeks - horizon - 1); at least 2×horizon
+    initial_weeks = max(int(n_weeks * 0.6), horizon_weeks * 2)
+    max_initial = max(n_weeks - horizon_weeks - 1, 1)
+    initial_weeks = min(initial_weeks, max_initial)
+
+    if initial_weeks <= 0 or (initial_weeks + horizon_weeks) >= n_weeks:
+        st.info(
+            "Cross-validation skipped: insufficient span after adjusting the initial window. "
+            f"(n={n_weeks}, horizon={horizon_weeks}, initial={initial_weeks})"
+        )
+        return
+
+    period_weeks = max(horizon_weeks // 2, 1)
+    initial = f"{initial_weeks}W"
+    period = f"{period_weeks}W"
+    horizon = f"{horizon_weeks}W"
+
+    st.markdown(f"### Cross-validation (initial={initial}, period={period}, horizon={horizon})")
+
+    try:
         with st.spinner("Running cross validation (this may take some time)…"):
-            df_cv = cross_validation(m, initial=initial, period=period, horizon=horizon, parallel="processes")
+            df_cv = cross_validation(
+                m,
+                initial=initial,
+                period=period,
+                horizon=horizon,
+                parallel="processes",
+            )
             df_p = performance_metrics(df_cv)
-        st.dataframe(df_p, use_container_width=True)
+        st.dataframe(df_p, width="stretch")
         fig_cv = plot_cross_validation_metric(df_cv, metric="rmse")
         st.pyplot(fig_cv)
-    else:
-        st.info(f"Not enough history for cross-validation (need at least ~{horizon_weeks*3} weeks, have {df.shape[0]}).")
+    except ValueError as e:
+        st.info(f"Cross-validation skipped due to window constraints: {e}")
+    except Exception as e:
+        st.warning(f"Cross-validation failed: {e}")
 
 
 # ============================================================
@@ -211,7 +256,7 @@ def main():
     st.subheader("🔍 Debug: Loaded Data Info")
     st.write(f"Shape: {raw.shape}")
     st.write(f"Columns detected: {raw.columns.tolist()}")
-    st.dataframe(raw.head(), use_container_width=True)
+    st.dataframe(raw.head(), width="stretch")
 
     if raw.shape[1] < 2:
         st.error("Expected at least 2 columns (date + value) but found 1. Please check your CSV file.")
@@ -221,8 +266,13 @@ def main():
     st.sidebar.header("Forecasting settings")
     horizon_weeks = st.sidebar.selectbox("Forecast horizon (weeks)", options=[4, 8, 12, 16], index=2)
     missing_method = st.sidebar.selectbox("Missing-week handling", options=["warn", "forward-fill", "interpolate"], index=0)
-    changepoint_prior_scale = st.sidebar.slider("Changepoint prior scale (trend flexibility)", 0.001, 0.5, 0.1, 0.01)
+    changepoint_prior_scale = st.sidebar.slider(
+        "Changepoint prior scale (trend flexibility)", 0.001, 0.5, 0.1, 0.01
+    )
     interval_width = st.sidebar.slider("Prediction interval width", 0.80, 0.99, 0.95, 0.01)
+
+    st.subheader("Raw Data Preview")
+    st.dataframe(raw.head(), width="stretch")
 
     # ---------- Prepare Data ----------
     try:
@@ -235,7 +285,7 @@ def main():
         st.stop()
 
     st.subheader("Prepared Weekly Data")
-    st.dataframe(df_prepared.head(), use_container_width=True)
+    st.dataframe(df_prepared.head(), width="stretch")
 
     # ---------- Fit Model ----------
     with st.spinner("Fitting Prophet model…"):
@@ -247,7 +297,10 @@ def main():
         future, forecast = _make_future_and_predict(model, freq=freq, periods=horizon_weeks)
 
     st.subheader(f"Forecast Results (next {horizon_weeks} weeks)")
-    st.dataframe(forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(horizon_weeks), use_container_width=True)
+    st.dataframe(
+        forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(horizon_weeks),
+        width="stretch"
+    )
 
     # ---------- Plots ----------
     _plot_forecast_interactive(df_prepared, forecast)
@@ -255,7 +308,12 @@ def main():
 
     # ---------- Download ----------
     csv_out = forecast.to_csv(index=False).encode("utf-8")
-    st.download_button("Download full forecast CSV", csv_out, file_name=f"forecast_prophet_{horizon_weeks}w.csv", mime="text/csv")
+    st.download_button(
+        "Download full forecast CSV",
+        csv_out,
+        file_name=f"forecast_prophet_{horizon_weeks}w.csv",
+        mime="text/csv"
+    )
 
     # ---------- Diagnostics ----------
     _diagnostics_section(model, df_prepared, horizon_weeks)
