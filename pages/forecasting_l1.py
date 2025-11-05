@@ -63,33 +63,44 @@ def _runtime_checks(df: pd.DataFrame) -> bool:
     return ok
 
 def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.DataFrame:
+    import streamlit as st  # asegúrate que esté disponible
+    
     df = df_raw.copy()
-    # Pick date + value columns automatically or instruct user to rename columns beforehand
-    # Here assume first column is date, second is value if not named
-    if "ds" not in df.columns or "y" not in df.columns:
-        df.columns = ["ds", "y"] + list(df.columns[2:])
-    df = df[["ds", "y"]].copy()
+    
+    # Ensure we have at least two columns (date + value)
+    if len(df.columns) < 2:
+        st.error(f"Expected at least 2 columns (date + value) but found {len(df.columns)}. Please upload a file with a date column and a value column.")
+        st.stop()
+    
+    # Select only the first two columns and rename them
+    df = df.iloc[:, :2].copy()
+    df.columns = ["ds", "y"]
+    
+    # Convert types
     df["ds"] = pd.to_datetime(df["ds"], errors="coerce")
     df["y"] = pd.to_numeric(df["y"], errors="coerce")
-    df = df.dropna(subset=["ds","y"])
+    
+    # Drop rows with missing date or value
+    df = df.dropna(subset=["ds", "y"])
     df = df.sort_values("ds").reset_index(drop=True)
-
-    # Resample to weekly (Monday) frequency
+    
+    # Resample to weekly frequency (Monday)
     df = df.set_index("ds").resample("W-MON").mean().reset_index()
-
-    # Handle missing weeks
-    if missing_method == "forward-fill":
+    
+    # Handle missing weeks according to method
+    if missing_method == "forward‐fill":
         df["y"] = df["y"].ffill()
     elif missing_method == "interpolate":
         df["y"] = df["y"].interpolate()
     else:
-        # missing_method == "warn": just leave as is (with NaNs) and warn
+        # missing_method == "warn"
         if df["y"].isna().any():
             st.warning("Missing values detected after weekly resampling. Consider using forward-fill or interpolation method.")
-
-    # After handling, drop any remaining NaNs
+    
+    # Drop remaining NaNs in y
     df = df.dropna(subset=["y"]).reset_index(drop=True)
     return df
+
 
 def _fit_model(df: pd.DataFrame, changepoint_prior_scale: float, interval_width: float=0.95) -> Prophet:
     m = Prophet(interval_width=interval_width,
