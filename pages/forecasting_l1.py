@@ -8,6 +8,7 @@ from prophet.diagnostics import cross_validation, performance_metrics
 from prophet.plot import plot_cross_validation_metric
 import plotly.graph_objects as go
 import plotly.express as px
+from prophet.plot import plot_components_plotly  # <- add this
 
 # Page config
 st.set_page_config(page_title="Forecasting L1", layout="wide",
@@ -278,12 +279,11 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
 
     st.plotly_chart(fig, width="stretch")
 
-
 def _plot_components(m: Prophet, forecast: pd.DataFrame):
-    """Show Prophet seasonality/trend components (matplotlib)."""
-    fig_comp = m.plot_components(forecast)
-    st.pyplot(fig_comp)
-
+    """Show Prophet seasonality/trend components (Plotly, interactive)."""
+    fig = plot_components_plotly(m, forecast)
+    # Streamlit tip: use_container_width makes it fill the layout nicely
+    st.plotly_chart(fig, use_container_width=True)
 
 # ============================================================
 #  CV HELPERS & QUALITY GATE
