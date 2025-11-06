@@ -402,9 +402,6 @@ def main():
     )
     interval_width = st.sidebar.slider("Prediction interval width", 0.80, 0.99, 0.95, 0.01)
 
-    st.subheader("Raw Data Preview")
-    st.dataframe(raw.head(), width="stretch")
-
     # Prepare Data
     try:
         df_prepared = _prepare_data(raw, missing_method=missing_method)
@@ -415,9 +412,6 @@ def main():
     if not _runtime_checks(df_prepared):
         st.stop()
 
-    st.subheader("Prepared Weekly Data")
-    st.dataframe(df_prepared.head(), width="stretch")
-
     # Fit Model
     with st.spinner("Fitting Prophet model…"):
         model = _fit_model(df_prepared, changepoint_prior_scale, interval_width)
@@ -426,13 +420,6 @@ def main():
     freq = "W-MON"
     with st.spinner(f"Forecasting next {horizon_weeks} weeks…"):
         future, forecast = _make_future_and_predict(model, freq=freq, periods=horizon_weeks)
-
-    st.subheader(f"Forecast Results (next {horizon_weeks} weeks)")
-    st.dataframe(
-        forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(horizon_weeks),
-        width="stretch"
-    )
-
     # Plots
     _plot_forecast_interactive(df_prepared, forecast)   # history + future
     _plot_forecast_future_only(df_prepared, forecast)   # future only
