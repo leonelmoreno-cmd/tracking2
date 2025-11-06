@@ -269,26 +269,49 @@ def _compute_cv_metrics(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
         return None, f"Cross-validation failed: {e}"
 
 
-def _quality_gate_rmse(df_p: pd.DataFrame, df_hist: pd.DataFrame,
-                       horizon_weeks: int, rmse_ratio_threshold: float = 0.35):
+# --------- COVERAGE QUALITY GATE ----------
+def _quality_gate_coverage(df_p: pd.DataFrame, horizon_weeks: int):
     """
-    Return (ok, msg, rmse_val, median_y).
-    ok=False if RMSE > threshold * median(y) at the row whose horizon is closest to target.
+    Decide pass/warn/block based on coverage at the horizon closest to target.
+    Policy:
+      - Ideal: 0.90–0.97  -> PASS
+      - < 0.80            -> BLOCK (too narrow / overconfident)
+      - 0.80–0.90         -> WARN (borderline low), but show
+      - 0.97–0.99         -> WARN (slightly wide), but show
+      - > 0.99            -> WARN (too wide), but show
+    Returns: (status, message, coverage_value)
+      status in {"pass","warn","block"}
     """
-    median_y = float(df_hist["y"].median())
     df_tmp = df_p.copy()
     df_tmp["horizon_td"] = pd.to_timedelta(df_tmp["horizon"])
     target = pd.Timedelta(weeks=horizon_weeks)
     idx = (df_tmp["horizon_td"] - target).abs().idxmin()
-    rmse_val = float(df_tmp.loc[idx, "rmse"])
+    cov = float(df_tmp.loc[idx, "coverage"])
 
-    limit = rmse_ratio_threshold * median_y
-    if rmse_val > limit:
-        msg = (f"Forecast hidden: RMSE={rmse_val:.3f} is greater than "
-               f"{rmse_ratio_threshold:.0%} of median(y)={median_y:.3f} "
-               f"(limit={limit:.3f}).")
-        return False, msg, rmse_val, median_y
-    return True, "", rmse_val, median_y
+    if cov < 0.80:
+        return ("block",
+                f"Blocked: coverage at the selected horizon is {cov:.2%} (too low). "
+                f"Ideal coverage is 90–97% for a 95% interval.",
+                cov)
+    elif cov < 0.90:
+        return ("warn",
+                f"Warning: coverage is {cov:.2%}, below the ideal range (90–97%). "
+                f"The model may be overconfident (interval too narrow).",
+                cov)
+    elif cov <= 0.97:
+        return ("pass",
+                f"Coverage is {cov:.2%}, within the ideal range (90–97%).",
+                cov)
+    elif cov <= 0.99:
+        return ("warn",
+                f"Warning: coverage is {cov:.2%}, slightly above the ideal range (90–97%). "
+                f"Intervals may be a bit too wide.",
+                cov)
+    else:
+        return ("warn",
+                f"Warning: coverage is {cov:.2%}, well above the ideal range (90–97%). "
+                f"Intervals appear too wide.",
+                cov)
 
 
 # ---------- Plotly CV metric helper ----------
@@ -379,7 +402,7 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int, df_p=
     # Plotly, metric-selectable CV plot
     metric_choice = st.selectbox(
         "Select CV metric to visualize",
-        options=["rmse", "mae", "mape", "coverage", "mse", "mdape", "smape"],
+        options=["coverage", "rmse", "mae", "mape", "mse", "mdape", "smape"],
         index=0,
     )
     try:
@@ -454,7 +477,7 @@ def main():
     with st.spinner("Fitting Prophet model…"):
         model = _fit_model(df_prepared, changepoint_prior_scale, interval_width)
 
-    # ---- Quality gate: CV -> RMSE vs median(y) rule (35%) ----
+    # ---- Quality gate: CV -> COVERAGE rule ----
     with st.spinner("Evaluating model quality (cross-validation)…"):
         cv_result, cv_msg = _compute_cv_metrics(model, df_prepared, horizon_weeks)
 
@@ -463,24 +486,25 @@ def main():
         st.stop()
 
     df_p, df_cv = cv_result
-    ok, reason, rmse_val, median_y = _quality_gate_rmse(
-        df_p, df_prepared, horizon_weeks, rmse_ratio_threshold=0.35
-    )
+    status, message, cov = _quality_gate_coverage(df_p, horizon_weeks)
 
-    if not ok:
-        st.error(reason)
-        st.caption("Tip: Provide more history, reduce volatility, tune changepoint_prior_scale, "
-                   "or adjust seasonality/holidays.")
+    if status == "block":
+        st.error(message)
+        st.caption("Tip: Consider widening intervals, adding more history, handling outliers, or tuning seasonality.")
         st.write("Cross-validation metrics:")
         st.dataframe(df_p, width="stretch")
-        # Show Plotly RMSE curve for transparency
+        # Show Plotly coverage curve for transparency
         try:
-            st.plotly_chart(_plot_cv_metric_plotly(df_p, metric="rmse"), use_container_width=True)
+            st.plotly_chart(_plot_cv_metric_plotly(df_p, metric="coverage"), use_container_width=True)
         except Exception:
             pass
         return  # block display below this line
+    elif status == "warn":
+        st.warning(message)
+    else:
+        st.success(message)
 
-    # ---- Passed quality gate → proceed to forecast & plots ----
+    # ---- Passed (or warned) → proceed to forecast & plots ----
     freq = "W-MON"  # keep weekly Monday future grid for consistency
     with st.spinner(f"Forecasting next {horizon_weeks} weeks…"):
         future, forecast = _make_future_and_predict(model, freq=freq, periods=horizon_weeks)
