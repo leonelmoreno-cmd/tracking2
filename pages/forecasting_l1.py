@@ -409,7 +409,7 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int, df_p=
 
     st.dataframe(df_p, width="stretch")
     try:
-        fig_cv = plot_cross_validation_metric(df_cv, metric="rmse")
+        fig_cv = plot_cross_validation_metric(df_cv, metric="coverage")
         st.pyplot(fig_cv)
     except Exception:
         pass
