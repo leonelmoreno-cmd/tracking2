@@ -90,9 +90,6 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
     df = df.dropna(subset=["ds", "y"])
     df = df.sort_values("ds").reset_index(drop=True)
 
-    # Resample to weekly frequency (Monday)
-    df = df.set_index("ds").resample("W-MON").mean().reset_index()
-
     # Missing handling
     if missing_method == "forward-fill":
         df["y"] = df["y"].ffill()
