@@ -17,7 +17,7 @@ st.set_page_config(page_title="Forecasting L1", layout="wide",
 #  HEADER
 # ============================================================
 def _header():
-    st.title("Forecasting L1 – Weekly Forecast with Prophet")
+    st.title("Forecasting L1 – Variable: Traffic from Google - Weekly Forecast with Prophet")
     st.markdown(
         """
         Upload your weekly time series (CSV) → clean & validate → fit a Prophet model with US-holiday effects → forecast next N weeks (selectable) with confidence intervals.
