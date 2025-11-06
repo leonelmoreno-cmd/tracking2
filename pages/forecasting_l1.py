@@ -98,7 +98,7 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
     else:
         if df["y"].isna().any():
             st.warning(
-                "Missing values detected after weekly resampling. "
+                "Missing values detected after loading. "
                 "Consider using forward-fill or interpolation method."
             )
 
@@ -286,9 +286,65 @@ def _plot_components(m: Prophet, forecast: pd.DataFrame):
 
 
 # ============================================================
+#  CV HELPERS & QUALITY GATE
+# ============================================================
+def _compute_cv_metrics(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
+    """Run CV with guardrails. Return (df_p, message)."""
+    n_weeks = df.shape[0]
+    if n_weeks < horizon_weeks * 3:
+        return None, f"Not enough history for cross-validation (need ~{horizon_weeks*3}, have {n_weeks})."
+
+    initial_weeks = max(int(n_weeks * 0.6), horizon_weeks * 2)
+    max_initial = max(n_weeks - horizon_weeks - 1, 1)
+    initial_weeks = min(initial_weeks, max_initial)
+    if initial_weeks <= 0 or (initial_weeks + horizon_weeks) >= n_weeks:
+        return None, ("Cross-validation skipped: insufficient span after adjusting windows "
+                      f"(n={n_weeks}, horizon={horizon_weeks}, initial={initial_weeks}).")
+
+    period_weeks = max(horizon_weeks // 2, 1)
+    initial = f"{initial_weeks}W"
+    period = f"{period_weeks}W"
+    horizon = f"{horizon_weeks}W"
+
+    try:
+        df_cv = cross_validation(
+            m, initial=initial, period=period, horizon=horizon, parallel="processes"
+        )
+        df_p = performance_metrics(df_cv)
+        # include the raw df_cv as well for plotting later
+        return (df_p, df_cv), None
+    except Exception as e:
+        return None, f"Cross-validation failed: {e}"
+
+
+def _quality_gate_rmse(df_p: pd.DataFrame, df_hist: pd.DataFrame,
+                       horizon_weeks: int, rmse_ratio_threshold: float = 0.35):
+    """
+    Return (ok, msg, rmse_val, median_y).
+    ok=False if RMSE > threshold * median(y) at the row whose horizon is closest to target.
+    """
+    median_y = float(df_hist["y"].median())
+
+    df_tmp = df_p.copy()
+    # performance_metrics stores horizon as a timedelta-like; ensure it's Timedelta
+    df_tmp["horizon_td"] = pd.to_timedelta(df_tmp["horizon"])
+    target = pd.Timedelta(weeks=horizon_weeks)
+    idx = (df_tmp["horizon_td"] - target).abs().idxmin()
+    rmse_val = float(df_tmp.loc[idx, "rmse"])
+
+    limit = rmse_ratio_threshold * median_y
+    if rmse_val > limit:
+        msg = (f"Forecast hidden: RMSE={rmse_val:.3f} is greater than "
+               f"{rmse_ratio_threshold:.0%} of median(y)={median_y:.3f} "
+               f"(limit={limit:.3f}).")
+        return False, msg, rmse_val, median_y
+    return True, "", rmse_val, median_y
+
+
+# ============================================================
 #  DIAGNOSTICS (robust)
 # ============================================================
-def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
+def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int, df_p=None, df_cv=None):
     st.subheader("Model Diagnostics")
     st.markdown("This section shows cross-validation and residuals to evaluate forecast performance.")
 
@@ -304,49 +360,59 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
     fig_scatter = px.scatter(hist, x="yhat", y="residual", title="Residual vs Forecast")
     st.plotly_chart(fig_scatter, width="stretch")
 
-    # Robust CV: adjust windows to avoid crashes
-    n_weeks = df.shape[0]
-    if n_weeks < horizon_weeks * 3:
-        st.info(
-            f"Not enough history for cross-validation (need at least ~{horizon_weeks*3} weeks, have {n_weeks})."
-        )
-        return
-
-    initial_weeks = max(int(n_weeks * 0.6), horizon_weeks * 2)
-    max_initial = max(n_weeks - horizon_weeks - 1, 1)
-    initial_weeks = min(initial_weeks, max_initial)
-
-    if initial_weeks <= 0 or (initial_weeks + horizon_weeks) >= n_weeks:
-        st.info(
-            "Cross-validation skipped: insufficient span after adjusting the initial window. "
-            f"(n={n_weeks}, horizon={horizon_weeks}, initial={initial_weeks})"
-        )
-        return
-
-    period_weeks = max(horizon_weeks // 2, 1)
-    initial = f"{initial_weeks}W"
-    period = f"{period_weeks}W"
-    horizon = f"{horizon_weeks}W"
-
-    st.markdown(f"### Cross-validation (initial={initial}, period={period}, horizon={horizon})")
-
-    try:
-        with st.spinner("Running cross validation (this may take some time)…"):
-            df_cv = cross_validation(
-                m,
-                initial=initial,
-                period=period,
-                horizon=horizon,
-                parallel="processes",
+    # Cross-validation (reuse if provided)
+    if df_p is None or df_cv is None:
+        n_weeks = df.shape[0]
+        if n_weeks < horizon_weeks * 3:
+            st.info(
+                f"Not enough history for cross-validation (need at least ~{horizon_weeks*3} weeks, have {n_weeks})."
             )
-            df_p = performance_metrics(df_cv)
-        st.dataframe(df_p, width="stretch")
+            return
+
+        initial_weeks = max(int(n_weeks * 0.6), horizon_weeks * 2)
+        max_initial = max(n_weeks - horizon_weeks - 1, 1)
+        initial_weeks = min(initial_weeks, max_initial)
+
+        if initial_weeks <= 0 or (initial_weeks + horizon_weeks) >= n_weeks:
+            st.info(
+                "Cross-validation skipped: insufficient span after adjusting the initial window. "
+                f"(n={n_weeks}, horizon={horizon_weeks}, initial={initial_weeks})"
+            )
+            return
+
+        period_weeks = max(horizon_weeks // 2, 1)
+        initial = f"{initial_weeks}W"
+        period = f"{period_weeks}W"
+        horizon = f"{horizon_weeks}W"
+
+        st.markdown(f"### Cross-validation (initial={initial}, period={period}, horizon={horizon})")
+
+        try:
+            with st.spinner("Running cross validation (this may take some time)…"):
+                df_cv = cross_validation(
+                    m,
+                    initial=initial,
+                    period=period,
+                    horizon=horizon,
+                    parallel="processes",
+                )
+                df_p = performance_metrics(df_cv)
+        except ValueError as e:
+            st.info(f"Cross-validation skipped due to window constraints: {e}")
+            return
+        except Exception as e:
+            st.warning(f"Cross-validation failed: {e}")
+            return
+    else:
+        # we have df_p/df_cv already; show the CV window summary if possible
+        st.markdown("### Cross-validation (precomputed)")
+
+    st.dataframe(df_p, width="stretch")
+    try:
         fig_cv = plot_cross_validation_metric(df_cv, metric="rmse")
         st.pyplot(fig_cv)
-    except ValueError as e:
-        st.info(f"Cross-validation skipped due to window constraints: {e}")
-    except Exception as e:
-        st.warning(f"Cross-validation failed: {e}")
+    except Exception:
+        pass
 
 
 # ============================================================
@@ -386,6 +452,7 @@ def main():
     except Exception as e:
         st.error(f"Could not read uploaded file: {e}")
         st.stop()
+
     if raw.shape[1] < 2:
         st.error("Expected at least 2 columns (date + value) but found 1. Please check your CSV file.")
         st.stop()
@@ -413,11 +480,38 @@ def main():
     with st.spinner("Fitting Prophet model…"):
         model = _fit_model(df_prepared, changepoint_prior_scale, interval_width)
 
-    # Forecast
-    freq = "W-MON"
+    # ---- Quality gate: CV -> RMSE vs median(y) rule (35%) ----
+    with st.spinner("Evaluating model quality (cross-validation)…"):
+        cv_result, cv_msg = _compute_cv_metrics(model, df_prepared, horizon_weeks)
+
+    if cv_result is None:
+        st.info(cv_msg)
+        st.stop()
+
+    df_p, df_cv = cv_result
+    ok, reason, rmse_val, median_y = _quality_gate_rmse(
+        df_p, df_prepared, horizon_weeks, rmse_ratio_threshold=0.35
+    )
+
+    if not ok:
+        st.error(reason)
+        st.caption("Tip: Provide more history, reduce volatility, tune changepoint_prior_scale, "
+                   "or adjust seasonality/holidays.")
+        st.write("Cross-validation metrics:")
+        st.dataframe(df_p, width="stretch")
+        # Show CV plot for transparency
+        try:
+            fig_cv = plot_cross_validation_metric(df_cv, metric="rmse")
+            st.pyplot(fig_cv)
+        except Exception:
+            pass
+        return  # block display below this line
+
+    # ---- Passed quality gate → proceed to forecast & plots ----
+    freq = "W-MON"  # keep weekly Monday future grid for consistency
     with st.spinner(f"Forecasting next {horizon_weeks} weeks…"):
         future, forecast = _make_future_and_predict(model, freq=freq, periods=horizon_weeks)
-    # Plots
+
     _plot_forecast_interactive(df_prepared, forecast)   # history + future
     _plot_forecast_future_only(df_prepared, forecast)   # future only
     _plot_components(model, forecast)
@@ -431,8 +525,8 @@ def main():
         mime="text/csv"
     )
 
-    # Diagnostics
-    _diagnostics_section(model, df_prepared, horizon_weeks)
+    # Diagnostics (reuse CV results)
+    _diagnostics_section(model, df_prepared, horizon_weeks, df_p=df_p, df_cv=df_cv)
 
 
 if __name__ == "__main__":
