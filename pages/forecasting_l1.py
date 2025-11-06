@@ -389,13 +389,6 @@ def main():
     except Exception as e:
         st.error(f"Could not read uploaded file: {e}")
         st.stop()
-
-    # Debug
-    st.subheader("🔍 Debug: Loaded Data Info")
-    st.write(f"Shape: {raw.shape}")
-    st.write(f"Columns detected: {raw.columns.tolist()}")
-    st.dataframe(raw.head(), width="stretch")
-
     if raw.shape[1] < 2:
         st.error("Expected at least 2 columns (date + value) but found 1. Please check your CSV file.")
         st.stop()
