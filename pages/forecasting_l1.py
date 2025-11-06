@@ -292,7 +292,7 @@ def _quality_gate_rmse(df_p: pd.DataFrame, df_hist: pd.DataFrame,
 
 
 # ---------- Plotly CV metric helper ----------
-def _plot_cv_metric_plotly(df_p: pd.DataFrame, metric: str = "rmse"):
+def _plot_cv_metric_plotly(df_p: pd.DataFrame, metric: str = "coverage"):
     """Interactive Plotly version of the Prophet CV metric plot."""
     df_plot = df_p.copy()
     df_plot["horizon_days"] = pd.to_timedelta(df_plot["horizon"]).dt.days
