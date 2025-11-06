@@ -5,10 +5,9 @@ import numpy as np
 import streamlit as st
 from prophet import Prophet
 from prophet.diagnostics import cross_validation, performance_metrics
-from prophet.plot import plot_cross_validation_metric
 import plotly.graph_objects as go
 import plotly.express as px
-from prophet.plot import plot_components_plotly  # <- add this
+from prophet.plot import plot_components_plotly  # interactive components
 
 # Page config
 st.set_page_config(page_title="Forecasting L1", layout="wide",
@@ -74,7 +73,7 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
     # Ensure at least two columns
     if len(df.columns) < 2:
         st.error(
-            f"Expected at least 2 columns (date + value) but found {len(df.columns)}. "
+            f"Expected at least 2 columns (date + value) but found {len[df.columns]}. "
             "Please upload a file with a date column and a value column."
         )
         st.stop()
@@ -113,7 +112,7 @@ def _prepare_data(df_raw: pd.DataFrame, missing_method: str = "warn") -> pd.Data
 def _fit_model(df: pd.DataFrame, changepoint_prior_scale: float, interval_width: float = 0.95) -> Prophet:
     m = Prophet(
         interval_width=interval_width,
-        weekly_seasonality=False,
+        weekly_seasonality=False,   # weekly disabled for weekly data
         yearly_seasonality=True,
         daily_seasonality=False,
         changepoint_prior_scale=changepoint_prior_scale,
@@ -133,43 +132,28 @@ def _make_future_and_predict(m: Prophet, freq: str, periods: int):
 #  PLOTS
 # ============================================================
 def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
-    # 1) Confidence band as shaded area
-    # 2) Forecast line (yhat)
-    # 3) Actuals (markers+line)
     fig = go.Figure()
 
-    # Shaded band
+    # Confidence band
     fig.add_trace(
         go.Scatter(
-            x=forecast["ds"],
-            y=forecast["yhat_lower"],
-            mode="lines",
-            line=dict(width=0),
-            name="Lower bound",
-            hovertemplate="Lower: %{y:.2f}<extra></extra>",
+            x=forecast["ds"], y=forecast["yhat_lower"], mode="lines",
+            line=dict(width=0), name="Lower bound", hovertemplate="Lower: %{y:.2f}<extra></extra>",
             showlegend=False,
         )
     )
     fig.add_trace(
         go.Scatter(
-            x=forecast["ds"],
-            y=forecast["yhat_upper"],
-            mode="lines",
-            line=dict(width=0),
-            fill="tonexty",
-            fillcolor="rgba(0,0,0,0.15)",
-            name="Confidence interval",
-            hovertemplate="Upper: %{y:.2f}<extra></extra>",
+            x=forecast["ds"], y=forecast["yhat_upper"], mode="lines",
+            line=dict(width=0), fill="tonexty", fillcolor="rgba(0,0,0,0.15)",
+            name="Confidence interval", hovertemplate="Upper: %{y:.2f}<extra></extra>",
         )
     )
 
     # Forecast line
     fig.add_trace(
         go.Scatter(
-            x=forecast["ds"],
-            y=forecast["yhat"],
-            mode="lines",
-            name="Forecast (yhat)",
+            x=forecast["ds"], y=forecast["yhat"], mode="lines", name="Forecast (yhat)",
             hovertemplate="Date: %{x}<br>Forecast: %{y:.2f}<extra></extra>",
         )
     )
@@ -177,60 +161,41 @@ def _plot_forecast_interactive(df: pd.DataFrame, forecast: pd.DataFrame):
     # Actuals
     fig.add_trace(
         go.Scatter(
-            x=df["ds"],
-            y=df["y"],
-            mode="markers+lines",
-            name="Actual",
+            x=df["ds"], y=df["y"], mode="markers+lines", name="Actual",
             hovertemplate="Date: %{x}<br>Actual: %{y:.2f}<extra></extra>",
         )
     )
 
     fig.update_layout(
         title="Forecast vs Actual (with confidence band)",
-        xaxis_title="Date",
-        yaxis_title="Value",
-        height=500,
+        xaxis_title="Date", yaxis_title="Value", height=500,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         hovermode="x unified",
     )
-
     st.plotly_chart(fig, width="stretch")
 
 
 def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
-    """Plot only the future part of the forecast as a shaded confidence band + forecast line.
-    Shows a vertical marker at the last observed date.
-    """
+    """Future only forecast with band; marks last observed date."""
     last_ds = pd.to_datetime(df["ds"].max())
     fc = forecast[forecast["ds"] > last_ds].copy()
-
     if fc.empty:
         st.info("No future points found in the forecast (future dataframe is empty).")
         return
 
     fig = go.Figure()
 
-    # Shaded band (future only)
+    # Confidence band (future)
     fig.add_trace(
         go.Scatter(
-            x=fc["ds"],
-            y=fc["yhat_lower"],
-            mode="lines",
-            line=dict(width=0),
-            name="Lower bound",
-            hovertemplate="Lower: %{y:.2f}<extra></extra>",
-            showlegend=False,
+            x=fc["ds"], y=fc["yhat_lower"], mode="lines", line=dict(width=0),
+            name="Lower bound", hovertemplate="Lower: %{y:.2f}<extra></extra>", showlegend=False,
         )
     )
     fig.add_trace(
         go.Scatter(
-            x=fc["ds"],
-            y=fc["yhat_upper"],
-            mode="lines",
-            line=dict(width=0),
-            fill="tonexty",
-            fillcolor="rgba(0,0,0,0.15)",
-            name="Confidence interval",
+            x=fc["ds"], y=fc["yhat_upper"], mode="lines", line=dict(width=0), fill="tonexty",
+            fillcolor="rgba(0,0,0,0.15)", name="Confidence interval",
             hovertemplate="Upper: %{y:.2f}<extra></extra>",
         )
     )
@@ -238,58 +203,46 @@ def _plot_forecast_future_only(df: pd.DataFrame, forecast: pd.DataFrame):
     # Forecast line (future only)
     fig.add_trace(
         go.Scatter(
-            x=fc["ds"],
-            y=fc["yhat"],
-            mode="lines",
-            name="Forecast (yhat)",
+            x=fc["ds"], y=fc["yhat"], mode="lines", name="Forecast (yhat)",
             hovertemplate="Date: %{x}<br>Forecast: %{y:.2f}<extra></extra>",
         )
     )
 
-    # Last observed marker
+    # Last observed marker & vline
     last_row = df.loc[df["ds"] == last_ds]
     if not last_row.empty:
         fig.add_trace(
             go.Scatter(
-                x=last_row["ds"],
-                y=last_row["y"],
-                mode="markers",
-                name="Last actual",
+                x=last_row["ds"], y=last_row["y"], mode="markers", name="Last actual",
                 marker=dict(size=9),
                 hovertemplate="Date: %{x}<br>Actual: %{y:.2f}<extra></extra>",
             )
         )
-
-    # Vertical line at last observed date (convert to native datetime)
     x_line = last_ds.to_pydatetime()
     fig.add_vline(x=x_line, line_dash="dot", line_color="gray")
-    fig.add_annotation(
-        x=x_line, y=1, yref="paper",
-        text="Last actual", showarrow=False, xanchor="left"
-    )
+    fig.add_annotation(x=x_line, y=1, yref="paper", text="Last actual",
+                       showarrow=False, xanchor="left")
 
     fig.update_layout(
         title="Future Forecast (from last actual onward)",
-        xaxis_title="Date",
-        yaxis_title="Value",
-        height=450,
+        xaxis_title="Date", yaxis_title="Value", height=450,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         hovermode="x unified",
     )
-
     st.plotly_chart(fig, width="stretch")
+
 
 def _plot_components(m: Prophet, forecast: pd.DataFrame):
     """Show Prophet seasonality/trend components (Plotly, interactive)."""
     fig = plot_components_plotly(m, forecast)
-    # Streamlit tip: use_container_width makes it fill the layout nicely
     st.plotly_chart(fig, use_container_width=True)
+
 
 # ============================================================
 #  CV HELPERS & QUALITY GATE
 # ============================================================
 def _compute_cv_metrics(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
-    """Run CV with guardrails. Return (df_p, message)."""
+    """Run CV with guardrails. Return ((df_p, df_cv), message)."""
     n_weeks = df.shape[0]
     if n_weeks < horizon_weeks * 3:
         return None, f"Not enough history for cross-validation (need ~{horizon_weeks*3}, have {n_weeks})."
@@ -311,7 +264,6 @@ def _compute_cv_metrics(m: Prophet, df: pd.DataFrame, horizon_weeks: int):
             m, initial=initial, period=period, horizon=horizon, parallel="processes"
         )
         df_p = performance_metrics(df_cv)
-        # include the raw df_cv as well for plotting later
         return (df_p, df_cv), None
     except Exception as e:
         return None, f"Cross-validation failed: {e}"
@@ -324,9 +276,7 @@ def _quality_gate_rmse(df_p: pd.DataFrame, df_hist: pd.DataFrame,
     ok=False if RMSE > threshold * median(y) at the row whose horizon is closest to target.
     """
     median_y = float(df_hist["y"].median())
-
     df_tmp = df_p.copy()
-    # performance_metrics stores horizon as a timedelta-like; ensure it's Timedelta
     df_tmp["horizon_td"] = pd.to_timedelta(df_tmp["horizon"])
     target = pd.Timedelta(weeks=horizon_weeks)
     idx = (df_tmp["horizon_td"] - target).abs().idxmin()
@@ -339,6 +289,24 @@ def _quality_gate_rmse(df_p: pd.DataFrame, df_hist: pd.DataFrame,
                f"(limit={limit:.3f}).")
         return False, msg, rmse_val, median_y
     return True, "", rmse_val, median_y
+
+
+# ---------- Plotly CV metric helper ----------
+def _plot_cv_metric_plotly(df_p: pd.DataFrame, metric: str = "rmse"):
+    """Interactive Plotly version of the Prophet CV metric plot."""
+    df_plot = df_p.copy()
+    df_plot["horizon_days"] = pd.to_timedelta(df_plot["horizon"]).dt.days
+    fig = px.line(
+        df_plot,
+        x="horizon_days",
+        y=metric,
+        markers=True,
+        title=f"Cross-Validation Performance – {metric.upper()} vs Horizon (days)",
+        labels={"horizon_days": "Horizon (days)", metric: metric.upper()},
+    )
+    fig.update_traces(mode="lines+markers")
+    fig.update_layout(hovermode="x unified", height=450)
+    return fig
 
 
 # ============================================================
@@ -404,15 +372,21 @@ def _diagnostics_section(m: Prophet, df: pd.DataFrame, horizon_weeks: int, df_p=
             st.warning(f"Cross-validation failed: {e}")
             return
     else:
-        # we have df_p/df_cv already; show the CV window summary if possible
         st.markdown("### Cross-validation (precomputed)")
 
     st.dataframe(df_p, width="stretch")
+
+    # Plotly, metric-selectable CV plot
+    metric_choice = st.selectbox(
+        "Select CV metric to visualize",
+        options=["rmse", "mae", "mape", "coverage", "mse", "mdape", "smape"],
+        index=0,
+    )
     try:
-        fig_cv = plot_cross_validation_metric(df_cv, metric="coverage")
-        st.pyplot(fig_cv)
-    except Exception:
-        pass
+        fig_cv = _plot_cv_metric_plotly(df_p, metric=metric_choice)
+        st.plotly_chart(fig_cv, use_container_width=True)
+    except Exception as e:
+        st.info(f"Could not render CV plot: {e}")
 
 
 # ============================================================
@@ -499,10 +473,9 @@ def main():
                    "or adjust seasonality/holidays.")
         st.write("Cross-validation metrics:")
         st.dataframe(df_p, width="stretch")
-        # Show CV plot for transparency
+        # Show Plotly RMSE curve for transparency
         try:
-            fig_cv = plot_cross_validation_metric(df_cv, metric="rmse")
-            st.pyplot(fig_cv)
+            st.plotly_chart(_plot_cv_metric_plotly(df_p, metric="rmse"), use_container_width=True)
         except Exception:
             pass
         return  # block display below this line
