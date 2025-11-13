@@ -257,7 +257,7 @@ def main():
             st.plotly_chart(fig_spend_pct, use_container_width=True)
 
         # --- Product Pages: campaigns with highest Clicks ---
-        product_pages_data = df[df["Placement"].str.contains("Off Amazon", case=False, na=False)].copy()
+        product_pages_data = df[df["Placement"].str.contains("Product Pages", case=False, na=False)].copy()
         product_pages_data = product_pages_data[product_pages_data["Clicks"] > 12]
         if not product_pages_data.empty:
             clicks_by_campaign_pp = (
@@ -266,7 +266,7 @@ def main():
             )
             fig_campaigns_clicks = px.bar(
                 clicks_by_campaign_pp, y="Campaign Name", x="Clicks",
-                title="Campaigns with Highest Clicks in Product Pages Test 11-13-2025",
+                title="Campaigns with Highest Clicks in Product Pages",
                 labels={"Campaign Name": "Campaign Name", "Clicks": "Total Clicks"},
                 color="Clicks", color_continuous_scale="Viridis", template="plotly_dark"
             )
