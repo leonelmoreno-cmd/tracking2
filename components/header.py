@@ -14,7 +14,7 @@ def display_header(df):
         f"""
         <div style="text-align:center;">
             <h6 style="color:#666; font-weight:200; margin-top:0;">
-                Last update: {last_update_str} - Made with ❤️ from 🇻🇪
+                Last update: {last_update_str}
             </h6>
         </div>
         """,
