@@ -72,7 +72,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
             else f"ASIN {asin}"
             for asin in asins
         ],
-        vertical_spacing=0.16,
+        vertical_spacing=0.25,
         horizontal_spacing=0.08,
     )
 
