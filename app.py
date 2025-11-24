@@ -14,6 +14,7 @@ from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
 from pages.parameters import main as parameters_page
 from pages.forecasting_l1 import main as forecasting_l1_page
+from pages.placements_sb import main as placements_sb_page
 
 def main():
     st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
@@ -32,6 +33,7 @@ def main():
         st.Page(ngram_page, title="N-gram", icon="🔤", url_path="ngram"),
         st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
         st.Page(placements,title="Placements SP", icon="🕵️",url_path="placements"),
+        st.Page(placements_sb_page, title="Placements SB", icon="🕵️‍♀️", url_path="placements-sb"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         st.Page(forecasting_l1_page, title="Beta Forecasting L1", icon="🔮", url_path="forecasting-l1"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
