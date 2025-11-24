@@ -136,7 +136,7 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     _common_layout(
         fig,
         nrows=rows,
-        title="Ranking Evolution (by ASIN)",
+        title="",
         y_title="Category Rank (1 = best)",
         y_min=y_min,
         y_max=y_max,
