@@ -51,30 +51,30 @@ def plot_ranking_evolution_by_asin(df: pd.DataFrame, period: str = "day") -> Non
     cols = min(max_cols, n)
     rows = int(np.ceil(n / cols))
 
-fig = make_subplots(
-    rows=rows,
-    cols=cols,
-    shared_xaxes=True,
-    subplot_titles=[
-        (
-            f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
-            f"style='color:#FFFBFE; text-decoration:none;'>"
-            f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]}<br>"
-            f"{asin}<br>"
-            f"{dfp[dfp['asin'] == asin]['sub_category_name'].iloc[0]}"
-            f"</a>"
-        )
-        if (
-            "brand" in dfp.columns
-            and "product_url" in df.columns
-            and "sub_category_name" in dfp.columns
-        )
-        else f"ASIN {asin}"
-        for asin in asins
-    ],
-    vertical_spacing=0.16,
-    horizontal_spacing=0.08,
-)
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        shared_xaxes=True,
+        subplot_titles=[
+            (
+                f"<a href='{df[df['asin'] == asin]['product_url'].iloc[0]}' target='_blank' "
+                f"style='color:#FFFBFE; text-decoration:none;'>"
+                f"{dfp[dfp['asin'] == asin]['brand'].iloc[0]}<br>"
+                f"{asin}<br>"
+                f"{dfp[dfp['asin'] == asin]['sub_category_name'].iloc[0]}"
+                f"</a>"
+            )
+            if (
+                "brand" in dfp.columns
+                and "product_url" in df.columns
+                and "sub_category_name" in dfp.columns
+            )
+            else f"ASIN {asin}"
+            for asin in asins
+        ],
+        vertical_spacing=0.16,
+        horizontal_spacing=0.08,
+    )
 
     pos_map = {}
     for i, asin in enumerate(asins):
@@ -132,7 +132,7 @@ fig = make_subplots(
             row=r, col=c
         )
 
-    # aplicar layout comúns
+    # aplicar layout común
     _common_layout(
         fig,
         nrows=rows,
