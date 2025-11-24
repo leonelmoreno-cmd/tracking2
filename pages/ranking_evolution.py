@@ -25,15 +25,6 @@ def main():
     prepared_df = prepare_data(df, basket_name=active_basket_name)
     display_header(prepared_df)
     st.header("Ranking Evolution (by ASIN)")
-    st.subheader(
-    "The products shown here are the ones you defined in the basket. "
-    "Some categories may be different, so pay attention. "
-    "This is different from best_sellers, which are the top 10 in the category "
-    "where we sell our product, whereas what you see here is the ranking of the "
-    "products defined in the basket, which may belong to different categories "
-    "and are not necessarily in the top 10."
-    )
-
     if prepared_df is None or prepared_df.empty:
         st.warning("No data available. Load data first.")
     else:
