@@ -31,7 +31,7 @@ def main():
         st.Page(traffic_page, title="Web Traffic", icon="🌐", url_path="traffic"),
         st.Page(ngram_page, title="N-gram", icon="🔤", url_path="ngram"),
         st.Page(campaigns_evolution_page, title="Campaigns Evolution", icon="🔄", url_path="campaigns-evolution"),
-        st.Page(placements,title="Placements", icon="🕵️",url_path="placements"),
+        st.Page(placements,title="Placements SP", icon="🕵️",url_path="placements"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         st.Page(forecasting_l1_page, title="Beta Forecasting L1", icon="🔮", url_path="forecasting-l1"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
