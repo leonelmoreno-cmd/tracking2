@@ -24,7 +24,7 @@ def main():
         st.Page(summary_page, title="Pricing Breakdown by ASIN", icon="📈", url_path="summary"),
         # Modularized evolution pages
         st.Page(rating_evolution_page, title="Rating Evolution", icon="⭐", url_path="rating-evolution"),
-        st.Page(ranking_evolution_page, title="Beta Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
+        st.Page(ranking_evolution_page, title="Ranking Evolution", icon="🏆", url_path="ranking-evolution"),
         # Other existing pages
         st.Page(sales, title="Sales Estimate", icon="💰", url_path="sales"),
         st.Page(best_sellers_page, title="Best Sellers Rank", icon="🥇", url_path="best-sellers"),
@@ -35,7 +35,7 @@ def main():
         st.Page(placements,title="Placements SP", icon="🕵️",url_path="placements"),
         st.Page(placements_sb_page, title="Placements SB", icon="🕵️‍♀️", url_path="placements-sb"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
-        st.Page(forecasting_l1_page, title="Beta Forecasting L1", icon="🔮", url_path="forecasting-l1"),
+        st.Page(forecasting_l1_page, title="Beta Forecasting L1 - Modo prueba", icon="🔮", url_path="forecasting-l1"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
