@@ -256,6 +256,56 @@ def main():
             fig_spend_pct.update_layout(barmode="stack", xaxis_title="Date", yaxis_title="Spend Percentage (%)")
             st.plotly_chart(fig_spend_pct, use_container_width=True)
 
+        # --- Clicks % by Date and Placement (stacked) ---
+        if "Date" in df.columns:
+            clicks_by_day_placement = (
+                df.groupby(["Date", "Placement"])["Clicks"]
+                .sum()
+                .reset_index()
+            )
+
+            # Total clicks per day (to compute share)
+            total_daily_clicks = (
+                clicks_by_day_placement.groupby("Date")["Clicks"]
+                .sum()
+                .reset_index()
+                .rename(columns={"Clicks": "Total Daily Clicks"})
+            )
+
+            # Merge totals back
+            clicks_by_day_placement = clicks_by_day_placement.merge(
+                total_daily_clicks, on="Date", how="left"
+            )
+
+            # Click share per placement per day
+            clicks_by_day_placement["Clicks Percentage"] = np.where(
+                clicks_by_day_placement["Total Daily Clicks"] > 0,
+                clicks_by_day_placement["Clicks"]
+                / clicks_by_day_placement["Total Daily Clicks"]
+                * 100,
+                0,
+            )
+
+            fig_clicks_pct = px.bar(
+                clicks_by_day_placement,
+                x="Date",
+                y="Clicks Percentage",
+                color="Placement",
+                title="Evolution of Clicks Percentage by Placement Over Time",
+                labels={
+                    "Date": "Date",
+                    "Clicks Percentage": "Clicks Percentage (%)",
+                    "Placement": "Placement",
+                },
+                template="plotly_dark",
+            )
+            fig_clicks_pct.update_layout(
+                barmode="stack",
+                xaxis_title="Date",
+                yaxis_title="Clicks Percentage (%)",
+            )
+            st.plotly_chart(fig_clicks_pct, use_container_width=True)
+
         # --- Product Pages: campaigns with highest Clicks ---
         product_pages_data = df[df["Placement"].str.contains("Product Pages", case=False, na=False)].copy()
         product_pages_data = product_pages_data[product_pages_data["Clicks"] > 12]
