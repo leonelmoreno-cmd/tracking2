@@ -366,6 +366,49 @@ def main():
             )
             st.plotly_chart(fig_spend_pct, use_container_width=True)
 
+        # --- Clicks % by Date and Placement Type (stacked) ---
+        if "Date" in df.columns:
+            clicks_by_day_placement = (
+                df.groupby(["Date", PLACEMENT_COL])["Clicks"]
+                .sum()
+                .reset_index()
+            )
+            total_daily_clicks = (
+                clicks_by_day_placement.groupby("Date")["Clicks"]
+                .sum()
+                .reset_index()
+                .rename(columns={"Clicks": "Total Daily Clicks"})
+            )
+            clicks_by_day_placement = clicks_by_day_placement.merge(
+                total_daily_clicks, on="Date", how="left"
+            )
+            clicks_by_day_placement["Clicks Percentage"] = np.where(
+                clicks_by_day_placement["Total Daily Clicks"] > 0,
+                clicks_by_day_placement["Clicks"]
+                / clicks_by_day_placement["Total Daily Clicks"]
+                * 100,
+                0,
+            )
+            fig_clicks_pct = px.bar(
+                clicks_by_day_placement,
+                x="Date",
+                y="Clicks Percentage",
+                color=PLACEMENT_COL,
+                title="Evolution of Clicks Percentage by Placement Type Over Time",
+                labels={
+                    "Date": "Date",
+                    "Clicks Percentage": "Clicks Percentage (%)",
+                    PLACEMENT_COL: "Placement Type",
+                },
+                template="plotly_dark",
+            )
+            fig_clicks_pct.update_layout(
+                barmode="stack",
+                xaxis_title="Date",
+                yaxis_title="Clicks Percentage (%)",
+            )
+            st.plotly_chart(fig_clicks_pct, use_container_width=True)
+
         # --- Top of Search: campaigns with highest Clicks (optional analog to Product Pages) ---
         top_search_data = df[
             df[PLACEMENT_COL].str.contains("Top of Search", case=False, na=False)
