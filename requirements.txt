@@ -2,7 +2,8 @@ requests>=2.31.0
 pandas>=2.2.0
 python-dotenv>=1.0.1
 urllib3<2
-streamlit
+streamlit==1.19.0
+altair==4.2.2
 pytrends
 statsmodels
 plotly>=4
