@@ -1,4 +1,13 @@
 # app.py
+# app.py
+import streamlit as st
+
+# ✅ AQUÍ. FUERA DE main(). ARRIBA DEL TODO.
+st.set_page_config(
+    page_title="Competitor Price Monitoring",
+    page_icon="📊",
+    layout="wide",
+)
 import streamlit as st
 from pages.home import main as home_page
 from pages.summary import main as summary_page
@@ -14,13 +23,6 @@ from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
 from pages.parameters import main as parameters_page
 from pages.placements_sb import main as placements_sb_page
-
-st.set_page_config(
-    page_title="Competitor Price Monitoring",
-    page_icon="📊",
-    layout="wide",
-)
-
 def main():
 
 
