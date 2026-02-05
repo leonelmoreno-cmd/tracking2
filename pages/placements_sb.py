@@ -44,7 +44,7 @@ def right_part(text: str) -> str:
 def main():
     # DO NOT call st.set_page_config here; it's already set in app.py
 
-    PLACEMENT_COL = "Placement Type"
+    PLACEMENT_COL = "Placement"
     ORDERS_COL = "14 Day Total Orders (#)"
     SALES_COL = "14 Day Total Sales"
 
