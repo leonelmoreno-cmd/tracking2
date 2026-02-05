@@ -13,7 +13,6 @@ from pages.rating_evolution import main as rating_evolution_page
 from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
 from pages.parameters import main as parameters_page
-from pages.forecasting_l1 import main as forecasting_l1_page
 from pages.placements_sb import main as placements_sb_page
 
 def main():
@@ -35,7 +34,6 @@ def main():
         st.Page(placements,title="Placements SP", icon="🕵️",url_path="placements"),
         st.Page(placements_sb_page, title="Placements SB", icon="🕵️‍♀️", url_path="placements-sb"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
-        st.Page(forecasting_l1_page, title="Beta Forecasting", icon="🔮", url_path="forecasting-l1"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
