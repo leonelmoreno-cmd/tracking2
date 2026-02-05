@@ -15,8 +15,14 @@ from pages.placements import main as placements
 from pages.parameters import main as parameters_page
 from pages.placements_sb import main as placements_sb_page
 
+st.set_page_config(
+    page_title="Competitor Price Monitoring",
+    page_icon="📊",
+    layout="wide",
+)
+
 def main():
-    st.set_page_config(page_title="Competitor Price Monitoring", page_icon="📊")
+
 
     pages = [
         st.Page(home_page, title="Overview", icon="📊", default=True),
