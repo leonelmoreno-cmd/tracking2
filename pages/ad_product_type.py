@@ -155,6 +155,9 @@ def main():
         ascending=[True, False]
     ).drop(columns=["_type_rank"])
 
+    for c in ["Spend", "Sales", "ROAS"]:
+    table[c] = pd.to_numeric(table[c], errors="coerce")
+
     st.subheader("Table")
     st.dataframe(
         table,
