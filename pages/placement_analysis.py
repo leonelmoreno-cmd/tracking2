@@ -172,9 +172,6 @@ def main():
         cvr_summary,
         use_container_width=True,
         hide_index=True,
-        column_config={
-            "CVR": st.column_config.NumberColumn("CVR", format="%.2%"),
-        },
     )
 
     # ---------------- Charts ----------------
