@@ -45,7 +45,7 @@ def main():
         st.Page(placements_sb_page, title="Placements SB", icon="🕵️‍♀️", url_path="placements-sb"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         st.Page(ad_product_type_page, title="Ad product type", icon="🧾", url_path="ad-product-type"),
-        st.Page(placement_analysis_page,title="Placement Analysis",icon="📍",url_path="placement-analysis",
+        st.Page(placement_analysis_page,title="Placement Analysis",icon="📍",url_path="placement-analysis"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
