@@ -124,10 +124,6 @@ def main():
         uploaded = st.file_uploader("Upload CSV", type=["csv"])
         st.caption("Expected columns: asin, ad_product_type, total_spend_dollars, total_sales_dollars, roas")
 
-        # Optional: support a default local file path
-        use_local = st.toggle("Use local file path instead of upload", value=False)
-        local_path = st.text_input("Local CSV path", value="data/ad_product_type.csv", disabled=not use_local)
-
     if not uploaded and not use_local:
         st.info("Upload a CSV to get started (or toggle local file path).")
         return
@@ -160,9 +156,9 @@ def main():
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Spend": st.column_config.NumberColumn("Spend", format="$%,.2f"),
-            "Sales": st.column_config.NumberColumn("Sales", format="$%,.2f"),
-            "ROAS": st.column_config.NumberColumn("ROAS", format="%.2f"),
+    "Spend": st.column_config.NumberColumn("Spend", format="$,.2f"),
+    "Sales": st.column_config.NumberColumn("Sales", format="$,.2f"),
+    "ROAS": st.column_config.NumberColumn("ROAS", format=".2f"),
         },
     )
 
