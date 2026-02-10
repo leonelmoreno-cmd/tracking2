@@ -163,11 +163,6 @@ def main():
         table,
         use_container_width=True,
         hide_index=True,
-        column_config={
-            "Spend": st.column_config.NumberColumn("Spend", format="$,.2f"),
-            "Sales": st.column_config.NumberColumn("Sales", format="$,.2f"),
-            "ROAS": st.column_config.NumberColumn("ROAS", format=".2f"),
-        },
     )
 
     st.subheader("Charts")
