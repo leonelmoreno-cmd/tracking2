@@ -22,6 +22,7 @@ from pages.rating_evolution import main as rating_evolution_page
 from pages.ranking_evolution import main as ranking_evolution_page
 from pages.placements import main as placements
 from pages.parameters import main as parameters_page
+from pages.ad_product_type import main as ad_product_type_page
 from pages.placements_sb import main as placements_sb_page
 def main():
 
@@ -42,6 +43,7 @@ def main():
         st.Page(placements,title="Placements SP", icon="🕵️",url_path="placements"),
         st.Page(placements_sb_page, title="Placements SB", icon="🕵️‍♀️", url_path="placements-sb"),
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
+        st.Page(ad_product_type_page, title="Ad product type", icon="🧾", url_path="ad-product-type"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
     ]
 
