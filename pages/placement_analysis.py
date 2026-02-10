@@ -109,9 +109,14 @@ def stacked_percent_chart(df: pd.DataFrame, value_col: str, title: str) -> alt.C
         .mark_bar()
         .encode(
             x=alt.X(
-                "asin:N",
-                sort=asin_order,
-                title="ASIN",
+                    "asin:N",
+                    sort=asin_order,
+                    title="ASIN",
+                    axis=alt.Axis(
+                    labelAngle=0,
+                    labelLimit=120,
+                    labelFontSize=11,
+                    ),
             ),
             y=alt.Y(
                 "pct:Q",
