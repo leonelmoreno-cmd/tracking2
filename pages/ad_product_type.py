@@ -117,7 +117,7 @@ def main():
 
     st.write(
         "This page shows Spend/Sales/ROAS by **ASIN** and **ad_product_type**. "
-        "Rows without ASINs are **dropped** (we don’t infer ownership)."
+        "Rows without ASINs are **dropped**."
     )
 
     with st.expander("Data source", expanded=True):
