@@ -169,7 +169,7 @@ def main():
         use_container_width=True,
         hide_index=True,
         column_config={
-        "CVR": st.column_config.NumberColumn("CVR", format=".2%"),
+        "CVR": st.column_config.NumberColumn("CVR", format="%.2f%%"),
     },
     )
 
@@ -181,7 +181,7 @@ def main():
         use_container_width=True,
         hide_index=True,
         column_config={
-        "CVR": st.column_config.NumberColumn("CVR", format=".2%"),
+        "CVR": st.column_config.NumberColumn("CVR", format="%.2f%%"),
     },
     )
 
