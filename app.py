@@ -24,6 +24,7 @@ from pages.placements import main as placements
 from pages.parameters import main as parameters_page
 from pages.ad_product_type import main as ad_product_type_page
 from pages.placements_sb import main as placements_sb_page
+from pages.placement_analysis import main as placement_analysis_page
 def main():
 
 
@@ -45,6 +46,8 @@ def main():
         st.Page(parameters_page, title="Parameters", icon="🧮", url_path="parameters"),
         st.Page(ad_product_type_page, title="Ad product type", icon="🧾", url_path="ad-product-type"),
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
+        st.Page(placement_analysis_page,title="Placement Analysis",icon="📍",url_path="placement-analysis",
+)
     ]
 
     nav = st.navigation(pages, position="sidebar")
