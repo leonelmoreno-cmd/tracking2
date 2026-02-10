@@ -57,7 +57,7 @@ def load_and_clean_placements(file) -> pd.DataFrame:
         lambda r: (r["orders"] / r["clicks"]) if r["clicks"] > 0 else 0,
         axis=1,
     )
-
+    df["cvr"] = df["cvr"] * 100
     return df
 
 def placement_asin_table(df: pd.DataFrame) -> pd.DataFrame:
