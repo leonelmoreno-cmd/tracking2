@@ -47,7 +47,6 @@ def main():
         st.Page(ad_product_type_page, title="Ad product type", icon="🧾", url_path="ad-product-type"),
         st.Page(placement_analysis_page,title="Placement Analysis",icon="📍",url_path="placement-analysis",
         st.Page(settings_page, title="Settings", icon="⚙️", url_path="settings"),
-)
     ]
 
     nav = st.navigation(pages, position="sidebar")
