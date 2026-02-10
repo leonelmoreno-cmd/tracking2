@@ -83,7 +83,7 @@ def placement_cvr_summary(df: pd.DataFrame) -> pd.DataFrame:
         lambda r: (r["orders"] / r["clicks"]) if r["clicks"] > 0 else 0,
         axis=1,
     )
-    summary["cvr"] = df["cvr"] * 100
+    summary["CVR"] = summary["CVR"] * 100
     return summary.rename(
         columns={"placement": "Placement"}
     )[["Placement", "CVR"]]
