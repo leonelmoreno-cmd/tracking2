@@ -108,7 +108,7 @@ def build_figure(df_plot: pd.DataFrame, title_kw: str) -> go.Figure:
 def _looks_like_header(cols: list[str]) -> bool:
     if not cols or len(cols) < 2:
         return False
-    return cols[0].strip().lower() in {"week", "semana", "date", "fecha", "time"}
+    return cols[0].strip().replace('"','').lower() in {"week", "semana", "date", "fecha", "time"}
 
 
 def _clean_keyword_label(raw: str) -> str:
@@ -138,7 +138,7 @@ def parse_trends_csv(file_bytes: bytes) -> tuple[pd.DataFrame, str]:
     content = "\n".join(lines[header_idx:])
     df_raw = pd.read_csv(io.StringIO(content), sep=None, engine="python")
 
-    date_candidates = [c for c in df_raw.columns if c.strip().lower() in {"week", "semana", "date", "fecha", "time"}]
+    date_candidates = [c for c in df_raw.columns if c.strip().replace('"','').lower() in {"week", "semana", "date", "fecha", "time"}]
     if not date_candidates:
         raise ValueError("Date column not found (looking for Week/Semana/Date/Fecha).")
     date_col = date_candidates[0]
